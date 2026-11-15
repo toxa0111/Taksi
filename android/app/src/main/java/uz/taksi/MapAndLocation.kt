@@ -105,18 +105,34 @@ fun MapBox(
     }
 
     DisposableEffect(mapView, lifecycleOwner) {
+        var mapViewStarted = false
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_START -> mapView.onStart()
-                Lifecycle.Event.ON_STOP -> mapView.onStop()
+                Lifecycle.Event.ON_START -> {
+                    if (!mapViewStarted) {
+                        com.yandex.mapkit.MapKitFactory.getInstance().onStart()
+                        mapView.onStart()
+                        mapViewStarted = true
+                    }
+                }
+                Lifecycle.Event.ON_STOP -> {
+                    if (mapViewStarted) {
+                        mapView.onStop()
+                        com.yandex.mapkit.MapKitFactory.getInstance().onStop()
+                        mapViewStarted = false
+                    }
+                }
                 else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) mapView.onStart()
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            try { mapView.onStop() } catch (_: Exception) { }
+            if (mapViewStarted) {
+                try { mapView.onStop() } catch (_: Exception) { }
+                try { com.yandex.mapkit.MapKitFactory.getInstance().onStop() } catch (_: Exception) { }
+            }
+            try { mapView.destroy() } catch (_: Exception) { }
         }
     }
 
