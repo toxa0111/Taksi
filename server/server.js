@@ -4,7 +4,7 @@ const http = require('http'), fs = require('fs'), crypto = require('crypto'), pa
 
 const PORT = +process.env.PORT || 3000;
 const DEV_SMS = process.env.DEV_SMS !== '0';           // true: kod javobda qaytariladi (SMS yo'q)
-const PAY_DEV = process.env.PAY_DEV !== '0';           // true: karta to'lovi "o'ynab" tasdiqlanadi (haqiqiy pul yo'q)
+const PAY_DEV = process.env.PAY_DEV === '1';           // faqat maxsus sinov muhiti: haqiqiy pul yechilmaydi
 // ---- Haqiqiy SMS (Eskiz.uz). ESKIZ_EMAIL va ESKIZ_PASSWORD berilsa yoqiladi; bo'lmasa eski rejim ----
 const ESKIZ_EMAIL = process.env.ESKIZ_EMAIL || '', ESKIZ_PASSWORD = process.env.ESKIZ_PASSWORD || '';
 const ESKIZ_URL = process.env.ESKIZ_URL || 'https://notify.eskiz.uz/api';
@@ -64,7 +64,7 @@ const readBody = req => new Promise(r => {
   req.on('data', c => { s += c; if (s.length > 1e5) req.destroy(); });
   req.on('end', () => { try { r(JSON.parse(s || '{}')); } catch { r({}); } });
 });
-const pub = u => u && { name: u.name, phone: u.phone };
+// Maxfiylik: buyurtma obyektida tomonlarning telefon raqami hech qachon uzatilmaydi.\nconst pub = u => u && { name: u.name };
 const fresh = u => (u && u.loc && Date.now() - u.loc.t < 120000) ? { lat: u.loc.lat, lng: u.loc.lng } : undefined;
 const ACTIVE = ['searching', 'accepted', 'arrived', 'started'];
 const LIVE = ['accepted', 'arrived', 'started'];       // joylashuv faqat shu paytda ikki tomonga ko'rinadi
@@ -263,7 +263,7 @@ http.createServer(async (req, res) => {
         if (o.payMethod !== 'card') return send(res, 400, { error: 'Bu buyurtma naqd to\'lanadi' });
         if (o.status !== 'done') return send(res, 400, { error: 'Safar tugagach to\'lanadi' });
         if (o.payStatus === 'paid') return send(res, 400, { error: 'Allaqachon to\'langan' });
-        if (PAY_DEV) {                                  // SINOV: haqiqiy pul yechilmaydi
+        if (PAY_DEV) {                                  // Faqat PAY_DEV=1 bilan yoqiladigan sinov rejimi
           o.payStatus = 'paid'; o.paidAt = Date.now(); save();
           return send(res, 200, { order: view(o), simulated: true });
         }
