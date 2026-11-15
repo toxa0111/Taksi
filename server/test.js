@@ -18,6 +18,8 @@ async function login(phone, name, role) {
   const P = await login('+998901112233', 'Ali', 'passenger');
   const D = await login('+998907778899', 'Vali', 'driver');
   ok(P && D, 'ro\'yxatdan o\'tish');
+  ok((await call('GET', '/orders/available', null, D)).j.orders.length === 0, 'oflayn haydovchi buyurtma ko\'rmaydi');
+  ok((await call('POST', '/driver/availability', { online: true }, D)).j.online === true, 'haydovchi ishga chiqdi');
   ok((await call('GET', '/orders/mine')).s === 401, 'tokensiz 401');
 
   const q = await call('GET', '/estimate?flat=41.311&flng=69.279&tlat=41.340&tlng=69.285', null, P);

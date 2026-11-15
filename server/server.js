@@ -64,7 +64,8 @@ const readBody = req => new Promise(r => {
   req.on('data', c => { s += c; if (s.length > 1e5) req.destroy(); });
   req.on('end', () => { try { r(JSON.parse(s || '{}')); } catch { r({}); } });
 });
-// Maxfiylik: buyurtma obyektida tomonlarning telefon raqami hech qachon uzatilmaydi.\nconst pub = u => u && { name: u.name };
+// Maxfiylik: buyurtma obyektida tomonlarning telefon raqami hech qachon uzatilmaydi.
+const pub = u => u && { name: u.name };
 const fresh = u => (u && u.loc && Date.now() - u.loc.t < 120000) ? { lat: u.loc.lat, lng: u.loc.lng } : undefined;
 const ACTIVE = ['searching', 'accepted', 'arrived', 'started'];
 const LIVE = ['accepted', 'arrived', 'started'];       // joylashuv faqat shu paytda ikki tomonga ko'rinadi
