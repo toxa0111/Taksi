@@ -79,6 +79,7 @@ fun MapBox(
     route: List<Pair<Double, Double>>? = null,
     fitKey: Any? = null,
     centerKey: Int = 0,
+    onMapTap: (() -> Unit)? = null,
 ) {
     val tapRef = rememberUpdatedState(onTap)
     val tappable = onTap != null
@@ -126,19 +127,19 @@ fun MapBox(
                     m.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     map.overlays.add(m)
                 }
-                if (tappable) {
-                    // Eng ustiga qo'yiladi: tanlash rejimida bosilgan joy doim qabul qilinadi.
-                    map.overlays.add(
-                        MapEventsOverlay(object : MapEventsReceiver {
-                            override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
-                                if (p != null) tapRef.value?.invoke(p.latitude, p.longitude)
-                                return true
-                            }
+                // Xarita bosilishini kuzatadi; manzil tanlash callback'i bo'lmasa ham
+                // navigatsiya paneli animatsiyasini ishga tushirish mumkin.
+                map.overlays.add(
+                    MapEventsOverlay(object : MapEventsReceiver {
+                        override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
+                            onMapTap?.invoke()
+                            if (p != null) tapRef.value?.invoke(p.latitude, p.longitude)
+                            return tappable
+                        }
 
-                            override fun longPressHelper(p: GeoPoint?): Boolean = false
-                        })
-                    )
-                }
+                        override fun longPressHelper(p: GeoPoint?): Boolean = false
+                    })
+                )
                 map.invalidate()
             }
             var fitDone = prev?.fitDone
