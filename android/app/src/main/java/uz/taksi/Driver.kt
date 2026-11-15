@@ -347,24 +347,25 @@ private fun DriverBottomNavigation(selectedTab: String, onSelect: (String) -> Un
         shadowElevation = 12.dp,
     ) {
         Row(
-            Modifier.fillMaxWidth().height(68.dp).padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            Modifier.fillMaxWidth().height(74.dp).padding(horizontal = 9.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             items.forEach { item ->
                 val active = selectedTab == item.first || (selectedTab == "Sozlamalar" && item.first == "Kabinet")
                 Column(
                     Modifier.weight(1f).fillMaxSize()
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (active) Color(0xFFFFF5D8) else Color.Transparent)
                         .clickable { onSelect(item.first) }
                         .padding(vertical = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Text(item.second, fontSize = 22.sp, color = if (active) Ink else Muted, fontWeight = FontWeight.Bold)
-                    Text(item.third, fontSize = 10.sp, color = if (active) Ink else Muted, fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
+                    Text(item.second, fontSize = 23.sp, color = if (active) Ink else Color(0xFF858B96), fontWeight = FontWeight.Bold)
+                    Text(item.third, fontSize = 10.sp, color = if (active) Ink else Color(0xFF858B96), fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
                     if (active) {
-                        Box(Modifier.padding(top = 3.dp).size(width = 18.dp, height = 3.dp).background(Yellow, RoundedCornerShape(2.dp)))
+                        Box(Modifier.padding(top = 3.dp).size(width = 20.dp, height = 3.dp).background(Yellow, RoundedCornerShape(2.dp)))
                     }
                 }
             }
