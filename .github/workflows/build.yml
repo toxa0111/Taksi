@@ -26,6 +26,8 @@ jobs:
         with:
           gradle-version: 8.9
       - name: Debug APK yig'ish
+        env:
+          YANDEX_MAPKIT_API_KEY: ${{ secrets.YANDEX_MAPKIT_API_KEY }}
         run: gradle assembleDebug --no-daemon -PappVersionCode=${{ github.run_number }}
         working-directory: android
       - uses: actions/upload-artifact@v4
