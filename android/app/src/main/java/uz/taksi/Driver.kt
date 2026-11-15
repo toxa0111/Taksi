@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -75,6 +77,7 @@ fun DriverScreen(onLogout: () -> Unit) {
     var sheetExpanded by remember { mutableStateOf(false) }
     var mapOnlyMode by remember { mutableStateOf(false) }
     var mapOnlyTap by remember { mutableStateOf(0) }
+    var showOfflineConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(mapOnlyTap) {
         if (mapOnlyTap > 0) {
@@ -180,7 +183,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                     Surface(
                         modifier = Modifier.align(Alignment.TopStart).padding(12.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .clickable { setAvailability(false) },
+                            .clickable { showOfflineConfirm = true },
                         color = Color(0xFF20252D),
                         shape = RoundedCornerShape(18.dp),
                         shadowElevation = 8.dp,
@@ -453,6 +456,23 @@ fun DriverScreen(onLogout: () -> Unit) {
                 })
             }
         }
+    }
+
+    if (showOfflineConfirm) {
+        AlertDialog(
+            onDismissRequest = { showOfflineConfirm = false },
+            title = { Text("Ishdan chiqasizmi?", fontWeight = FontWeight.Bold) },
+            text = { Text("OFFLINE holatiga o'tsangiz, yangi buyurtmalar kelmaydi.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showOfflineConfirm = false
+                    setAvailability(false)
+                }) { Text("Ha, ishdan chiqish", color = Color(0xFFC62828), fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showOfflineConfirm = false }) { Text("Bekor qilish") }
+            },
+        )
     }
 }
 
