@@ -334,4 +334,3 @@ fun DriverScreen(onLogout: () -> Unit) {
         }
     }
 }
-}
