@@ -249,19 +249,20 @@ fun DriverScreen(onLogout: () -> Unit) {
                 }
             } else {
                 Panel(color = Ink) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text("HAYDOVCHI HOLATI", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.62f), letterSpacing = 1.sp)
-                            Text(if (online) "Ishdasiz" else "Hozir ishda emassiz", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = if (online) Color(0xFF7BE0A2) else Color.White)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Box(Modifier.size(46.dp).background(Color(0xFF292E37), CircleShape), contentAlignment = Alignment.Center) {
+                            Text("T", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Yellow)
                         }
-                        Pill(if (online) "ONLAYN" else "OFFLAYN", if (online) Color(0xFF173D2C) else Color(0xFF30343C), if (online) Color(0xFF7BE0A2) else Color.White.copy(alpha = 0.75f))
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("HAYDOVCHI PANELI", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.58f), letterSpacing = 1.1.sp)
+                            Text(if (online) "Yo'lda bo'lishga tayyorsiz" else "Bugun ishni boshlang", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        }
+                        Pill(if (online) "ONLAYN" else "OFFLAYN", if (online) Color(0xFF173D2C) else Color(0xFF30343C), if (online) Color(0xFF7BE0A2) else Color.White.copy(alpha = 0.78f))
                     }
-                    Text(if (online) "Ishdan chiqish uchun chapga suring" else "Ishga chiqish uchun o\u0027ngga suring", fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
-                    // Yandex Pro uslubidagi keng, qalin surish yo'lagi
+                    Text(if (online) "Yangi buyurtmalarni qabul qilyapsiz" else "Buyurtmalarni ko'rish uchun ishga chiqing", fontSize = 12.sp, color = Color.White.copy(alpha = 0.68f))
                     BoxWithConstraints(
-                        Modifier.fillMaxWidth().padding(top = 4.dp)
-                            .height(64.dp)
-                            .background(Color(0xFF252A32), RoundedCornerShape(32.dp))
+                        Modifier.fillMaxWidth().padding(top = 2.dp).height(66.dp)
+                            .background(Color(0xFF252A32), RoundedCornerShape(22.dp))
                             .pointerInput(online) {
                                 var dragValue = shiftSlider
                                 detectHorizontalDragGestures(
@@ -271,48 +272,47 @@ fun DriverScreen(onLogout: () -> Unit) {
                                         dragValue = (dragValue + amount / size.width.toFloat()).coerceIn(0f, 1f)
                                         shiftSlider = dragValue
                                     },
-                                    onDragEnd = {
-                                        shiftDragging = false
-                                        setAvailability(dragValue >= 0.5f)
-                                    },
-                                    onDragCancel = {
-                                        shiftDragging = false
-                                        shiftSlider = if (online) 1f else 0f
-                                    },
+                                    onDragEnd = { shiftDragging = false; setAvailability(dragValue >= 0.5f) },
+                                    onDragCancel = { shiftDragging = false; shiftSlider = if (online) 1f else 0f },
                                 )
                             },
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                        Box(Modifier.fillMaxWidth(shiftSlider.coerceAtLeast(0.16f)).height(64.dp)
-                            .background(if (online) Color(0xFF237A4B) else Color(0xFF4A505B), RoundedCornerShape(32.dp)))
+                        Box(Modifier.fillMaxWidth(shiftSlider.coerceAtLeast(0.16f)).height(66.dp)
+                            .background(if (online) Color(0xFF237A4B) else Color(0xFF3A414D), RoundedCornerShape(22.dp)))
                         Text(
-                            if (online) "◀  ISHDAN CHIQISH UCHUN SURING" else "ISHGA CHIQISH UCHUN SURING  ▶",
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 60.dp),
-                            fontSize = 11.sp, fontWeight = FontWeight.ExtraBold,
-                            color = Color.White, letterSpacing = 0.3.sp,
+                            if (online) "CHAPGA SURING  •  ISHDAN CHIQISH" else "O'NGGA SURING  •  ISHGA CHIQISH",
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 62.dp),
+                            fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, letterSpacing = 0.25.sp,
                         )
-                        Box(
-                            Modifier.offset(x = (maxWidth - 58.dp) * shiftSlider)
-                                .size(58.dp).padding(5.dp)
-                                .background(Yellow, CircleShape),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text("➜", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Ink)
+                        Box(Modifier.offset(x = (maxWidth - 62.dp) * shiftSlider).size(62.dp).padding(5.dp).background(Yellow, CircleShape), contentAlignment = Alignment.Center) {
+                            Text("➜", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Ink)
                         }
                     }
                 }
 
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DriverQuickStat("BUGUN", stats?.let { som(it.optLong("todaySum")) } ?: "—", "Daromad", Modifier.weight(1f))
+                    DriverQuickStat("BUYURTMA", stats?.optInt("todayCount")?.toString() ?: "—", "Bugun", Modifier.weight(1f))
+                    DriverQuickStat("REYTING", stats?.let { if (it.optInt("ratingCount") > 0) String.format("%.1f ★", it.optDouble("rating")) else "—" } ?: "—", "Baholash", Modifier.weight(1f))
+                }
 
-
-                BigLine(
-                    "Yangi buyurtmalar",
-                    if (available.isEmpty()) "Kutilmoqda" else "${available.size} ta mavjud",
-                )
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("Yangi buyurtmalar", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                        Text(if (available.isEmpty()) "Yangi takliflar kutilmoqda" else "Sizga ${available.size} ta taklif bor", fontSize = 12.sp, color = Muted)
+                    }
+                    Box(Modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xFFFFF3CD)).padding(horizontal = 11.dp, vertical = 7.dp)) {
+                        Text("${available.size} ta", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ink)
+                    }
+                }
                 if (available.isEmpty()) {
                     Panel {
-                        Text("⏳", fontSize = 28.sp)
-                        Text("Hozircha buyurtma yo'q", fontWeight = FontWeight.Bold)
-                        Text("Yangi buyurtmalar shu yerda avtomatik paydo bo'ladi.", fontSize = 13.sp, color = Muted)
+                        Box(Modifier.size(44.dp).background(Color(0xFFFFF5D8), CircleShape), contentAlignment = Alignment.Center) {
+                            Text("⌛", fontSize = 22.sp)
+                        }
+                        Text("Hozircha buyurtma yo'q", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("Onlayn holatda turing — yangi buyurtmalar shu yerda ko'rinadi.", fontSize = 13.sp, color = Muted)
                     }
                 }
                 available.forEach { o ->
@@ -330,6 +330,23 @@ fun DriverScreen(onLogout: () -> Unit) {
             }
         }
         DriverBottomNavigation(selectedTab = selectedTab, onSelect = { selectedTab = it })
+    }
+}
+
+
+@Composable
+private fun DriverQuickStat(
+    title: String,
+    value: String,
+    detail: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(18.dp), color = Color.White, shadowElevation = 1.dp) {
+        Column(Modifier.padding(horizontal = 11.dp, vertical = 13.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Muted, letterSpacing = 0.55.sp, maxLines = 1)
+            Text(value, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Ink, maxLines = 1)
+            Text(detail, fontSize = 10.sp, color = Muted, maxLines = 1)
+        }
     }
 }
 
