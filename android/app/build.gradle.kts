@@ -14,7 +14,7 @@ android {
         targetSdk = 34
         versionCode = (project.findProperty("appVersionCode") as String? ?: "1").toInt()
         versionName = "1.0." + (project.findProperty("appVersionCode") as String? ?: "1")
-        val mapkitApiKey = System.getenv("YANDEX_MAPKIT_API_KEY") ?: ""
+        val mapkitApiKey = System.getenv("YANDEX_MAPKIT_API_KEY")?.trim().orEmpty()
         buildConfigField("String", "MAPKIT_API_KEY", "\"${mapkitApiKey}\"")
     }
 
