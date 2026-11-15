@@ -1,5 +1,6 @@
 package uz.taksi
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +22,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -71,11 +76,17 @@ fun FloatingChip(text: String, modifier: Modifier = Modifier, onClick: () -> Uni
 /** "Qayerdan / Qayerga" qatori: rangli nuqta, kichik yorliq va manzil. */
 @Composable
 fun AddressRow(dot: Color, label: String, value: String, isPlaceholder: Boolean = false, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color(0xFFF3F4F6))
-            .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        color = Color(0xFFF8F9FB),
+        border = BorderStroke(1.dp, Color(0xFFE8EBF0)),
+        shadowElevation = 0.dp,
     ) {
+        Row(
+            Modifier.padding(horizontal = 15.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         Box(Modifier.size(12.dp).clip(CircleShape).background(dot))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -84,6 +95,7 @@ fun AddressRow(dot: Color, label: String, value: String, isPlaceholder: Boolean 
                 value, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
                 color = if (isPlaceholder) Muted else Ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
+        }
         }
     }
 }
@@ -110,10 +122,17 @@ fun SuggestionRow(icon: String, title: String, sub: String = "", onClick: () -> 
 /** Tarif kartasi: narx va (≈ vaqt · km). */
 @Composable
 fun TariffRow(price: Long, mins: Int, km: Double) {
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color(0xFFFFF8E1)).padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xFFFFF8E8),
+        border = BorderStroke(1.dp, Color(0xFFF2E4B8)),
+        shadowElevation = 1.dp,
     ) {
+        Row(
+            Modifier.fillMaxWidth().padding(17.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         Column(Modifier.weight(1f)) {
             Text("Narx", fontSize = 12.sp, color = Muted)
             Text(som(price), fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
@@ -121,6 +140,7 @@ fun TariffRow(price: Long, mins: Int, km: Double) {
         Column(horizontalAlignment = Alignment.End) {
             Text("≈ $mins daq", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Text(String.format("%.1f km", km), fontSize = 13.sp, color = Muted)
+        }
         }
     }
 }
@@ -131,5 +151,66 @@ fun BigLine(text: String, sub: String = "") {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(text, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
         if (sub.isNotBlank()) Text(sub, fontSize = 13.sp, color = Muted)
+    }
+}
+
+
+/** Kabinet ichidagi hisob sozlamalari. Ma'lumotlar serverdan kelgan holicha ko'rsatiladi. */
+@Composable
+fun AccountSettingsContent(name: String, phone: String, role: String, onRefresh: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = Color(0xFFF8F9FB),
+        border = BorderStroke(1.dp, Color(0xFFE8EBF0)),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Hisob ma'lumotlari", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            listOf("Ism" to name, "Telefon" to phone, "Hisob turi" to role).forEach { item ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(item.first, color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                    Text(item.second.ifBlank { "Ko'rsatilmagan" }, color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            Text("Telefon raqamini o'zgartirish hozircha ilova ichida mavjud emas. Hisobga kirish SMS tasdiqlash orqali amalga oshiriladi.", fontSize = 12.sp, color = Muted)
+            Surface(
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onRefresh),
+                shape = RoundedCornerShape(13.dp),
+                color = Color(0xFFFFF3D1),
+            ) {
+                Text("↻  Ma'lumotlarni yangilash", Modifier.padding(13.dp), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ink)
+            }
+        }
+    }
+}
+
+/** Aloqa kanali serverda sozlanmagani uchun hozircha mustaqil ishlaydigan FAQ ko'rsatiladi. */
+@Composable
+fun SupportFaq() {
+    var expanded by remember { mutableStateOf(-1) }
+    val questions = listOf(
+        "Buyurtmani qanday beraman?" to "Bosh sahifada qayerdan va qayerga manzillarini tanlang, narxni tekshiring va buyurtmani tasdiqlang.",
+        "Buyurtmani bekor qilish mumkinmi?" to "Faol buyurtma oynasidagi bekor qilish tugmasidan foydalaning. Haydovchi safarni boshlab yuborganidan keyin bekor qilish cheklanishi mumkin.",
+        "Narx qanday hisoblanadi?" to "Narx safar masofasi va tarif hisob-kitobiga ko'ra ilovada buyurtmadan oldin ko'rsatiladi.",
+        "GPS ishlamasa nima qilaman?" to "Telefon sozlamalarida TOXA uchun joylashuv ruxsatini yoqing, GPSni faollashtiring va ochiq joyda qayta urinib ko'ring.",
+        "Haydovchi buyurtmalarni ko'rmayapti" to "Haydovchi ilovasida Ishga chiqish holatini yoqing va internet hamda joylashuv ruxsatini tekshiring."
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        questions.forEachIndexed { index, qa ->
+            Surface(
+                modifier = Modifier.fillMaxWidth().clickable { expanded = if (expanded == index) -1 else index },
+                shape = RoundedCornerShape(15.dp),
+                color = Color(0xFFF8F9FB),
+                border = BorderStroke(1.dp, Color(0xFFE8EBF0)),
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(qa.first, Modifier.weight(1f), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+                        Text(if (expanded == index) "−" else "+", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Ink)
+                    }
+                    if (expanded == index) Text(qa.second, fontSize = 13.sp, color = Muted)
+                }
+            }
+        }
     }
 }

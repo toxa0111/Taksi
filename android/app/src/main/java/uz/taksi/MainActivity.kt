@@ -7,6 +7,12 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -48,20 +54,78 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
+import com.yandex.mapkit.MapKitFactory
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
+    private var mapKitReady = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (BuildConfig.MAPKIT_API_KEY.isNotBlank()) {
+            MapKitFactory.setApiKey(BuildConfig.MAPKIT_API_KEY)
+            MapKitFactory.initialize(this)
+            mapKitReady = true
+        }
         val prefs = getSharedPreferences("taksi", Context.MODE_PRIVATE)
         Api.token = prefs.getString("token", "") ?: ""
         Api.base = prefs.getString("base", Api.base) ?: Api.base
         // Holat paneli sariq, belgilari qora
                 window.statusBarColor = 0xFFFFC21A.toInt()
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = true
-        setContent { TaksiTheme { Surface(Modifier.fillMaxSize(), color = PageBg) { App(prefs) } } }
+        setContent { TaksiTheme { Surface(Modifier.fillMaxSize(), color = PageBg) { AppEntry(prefs) } } }
+    }
+
+}
+
+@Composable
+private fun AppEntry(prefs: SharedPreferences) {
+    var showSplash by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        delay(1700)
+        showSplash = false
+    }
+    Box(Modifier.fillMaxSize()) {
+        App(prefs)
+        AnimatedVisibility(
+            visible = showSplash,
+            enter = fadeIn() + scaleIn(initialScale = 0.94f),
+            exit = fadeOut(),
+        ) {
+            Box(
+                Modifier.fillMaxSize().background(Yellow),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.toxa_logo),
+                        contentDescription = "TOXA",
+                        modifier = Modifier.size(116.dp).clip(RoundedCornerShape(28.dp)),
+                    )
+                    Spacer(Modifier.height(18.dp))
+                    Text(
+                        "TOXA",
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Ink,
+                        letterSpacing = 7.sp,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "HAR BIR SAFARDA ISHONCH",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Ink.copy(alpha = 0.72f),
+                        letterSpacing = 1.5.sp,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -256,23 +320,120 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
 fun UpdateDialog() {
     val ctx = LocalContext.current
     var update by remember { mutableStateOf<Pair<Int, String>?>(null) }
-    LaunchedEffect(Unit) {
-        val r = latestRelease()
-        if (r != null && r.first > currentVersionCode(ctx)) update = r
+    var downloading by remember { mutableStateOf(false) }
+    var pendingInstallUri by remember { mutableStateOf<Uri?>(null) }
+
+    fun openInstaller(uri: Uri) {
+        downloading = false
+        pendingInstallUri = null
+        try {
+            val installIntent = Intent(Intent.ACTION_INSTALL_PACKAGE)
+                .setData(uri)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                .putExtra(Intent.EXTRA_RETURN_RESULT, true)
+            ctx.startActivity(installIntent)
+        } catch (_: Exception) {
+            android.widget.Toast.makeText(ctx, "APK yuklandi, lekin o'rnatish oynasi ochilmadi. Yuklangan faylni bildirishnomadan oching.", android.widget.Toast.LENGTH_LONG).show()
+        }
     }
-    val u = update ?: return
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        val uri = pendingInstallUri
+        if (uri != null && ctx.packageManager.canRequestPackageInstalls()) {
+            pendingInstallUri = null
+            openInstaller(uri)
+        } else if (uri != null) {
+            downloading = false
+            pendingInstallUri = null
+            android.widget.Toast.makeText(ctx, "TOXA uchun noma'lum ilovalarni o'rnatishga ruxsat bering, so'ng qayta urinib ko'ring.", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val release = latestRelease()
+        if (release != null && release.first > currentVersionCode(ctx)) update = release
+    }
+
+    val available = update ?: return
     AlertDialog(
-        onDismissRequest = { update = null },
+        onDismissRequest = { if (!downloading) update = null },
         shape = RoundedCornerShape(24.dp),
         containerColor = Color.White,
-        title = { Text("Yangi versiya bor", fontWeight = FontWeight.Bold) },
-        text = { Text("TOXA ilovasining yangi versiyasi chiqdi. Yuklangach, faylni bosib o'rnating.") },
+        title = { Text("TOXA yangilanishi mavjud", fontWeight = FontWeight.Bold) },
+        text = {
+            Text(
+                if (downloading) "Yangi versiya yuklanmoqda. Tugagach, Android o'rnatish oynasi ochiladi."
+                else "Yangi versiya ${available.first} tayyor. Yangilash tugmasini bossangiz, APK yuklanadi va o'rnatish oynasi ochiladi."
+            )
+        },
         confirmButton = {
-            BigButton("Yangilash", Modifier.width(150.dp)) {
-                ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u.second)))
-                update = null
+            BigButton(if (downloading) "Yuklanmoqda…" else "Yangilash", Modifier.width(150.dp)) {
+                if (!downloading) {
+                    downloading = true
+                    var receiver: android.content.BroadcastReceiver? = null
+                    try {
+                        val manager = ctx.getSystemService(Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
+                        val request = android.app.DownloadManager.Request(Uri.parse(available.second))
+                            .setTitle("TOXA yangilanmoqda")
+                            .setDescription("TOXA ilovasining yangi versiyasi")
+                            .setMimeType("application/vnd.android.package-archive")
+                            .setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                            .setDestinationInExternalFilesDir(ctx, android.os.Environment.DIRECTORY_DOWNLOADS, "toxa-update-${available.first}.apk")
+
+                        var downloadId = -1L
+                        receiver = object : android.content.BroadcastReceiver() {
+                            override fun onReceive(context: Context?, intent: Intent?) {
+                                if (intent?.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, -1L) != downloadId || downloadId < 0L) return
+                                try { ctx.unregisterReceiver(this) } catch (_: Exception) { }
+                                val query = android.app.DownloadManager.Query().setFilterById(downloadId)
+                                manager.query(query).use { cursor ->
+                                    if (cursor.moveToFirst()) {
+                                        val status = cursor.getInt(cursor.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_STATUS))
+                                        if (status == android.app.DownloadManager.STATUS_SUCCESSFUL) {
+                                            val apkUri = manager.getUriForDownloadedFile(downloadId)
+                                            if (apkUri != null) {
+                                                pendingInstallUri = apkUri
+                                                if (ctx.packageManager.canRequestPackageInstalls()) {
+                                                    openInstaller(apkUri)
+                                                } else {
+                                                    permissionLauncher.launch(
+                                                        Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${ctx.packageName}"))
+                                                    )
+                                                }
+                                            } else {
+                                                downloading = false
+                                                android.widget.Toast.makeText(ctx, "Yuklangan APK manzili topilmadi. Qayta urinib ko'ring.", android.widget.Toast.LENGTH_LONG).show()
+                                            }
+                                        } else {
+                                            downloading = false
+                                            android.widget.Toast.makeText(ctx, "Yuklash amalga oshmadi. Internetni tekshirib qayta urinib ko'ring.", android.widget.Toast.LENGTH_LONG).show()
+                                        }
+                                    } else {
+                                        downloading = false
+                                    }
+                                }
+                            }
+                        }
+                        val filter = android.content.IntentFilter(android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE)
+                        if (android.os.Build.VERSION.SDK_INT >= 33) ctx.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                        else {
+                            @Suppress("DEPRECATION")
+                            ctx.registerReceiver(receiver, filter)
+                        }
+                        downloadId = manager.enqueue(request)
+                        android.widget.Toast.makeText(ctx, "TOXA yangilanishi yuklanmoqda…", android.widget.Toast.LENGTH_SHORT).show()
+                    } catch (_: Exception) {
+                        try { receiver?.let { ctx.unregisterReceiver(it) } } catch (_: Exception) { }
+                        downloading = false
+                        android.widget.Toast.makeText(ctx, "Yangilashni boshlashda xato. Keyinroq urinib ko'ring.", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
             }
         },
-        dismissButton = { TextButton(onClick = { update = null }) { Text("Keyinroq", color = Muted) } },
+        dismissButton = {
+            TextButton(onClick = { if (!downloading) update = null }) { Text("Keyinroq", color = Muted) }
+        },
     )
 }

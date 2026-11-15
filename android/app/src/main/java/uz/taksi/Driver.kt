@@ -1,5 +1,8 @@
 package uz.taksi
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -14,6 +17,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
@@ -29,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -64,6 +72,20 @@ fun DriverScreen(onLogout: () -> Unit) {
     var shiftSlider by remember { mutableStateOf(0f) }
     var shiftDragging by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf("") }
+    var navVisible by remember { mutableStateOf(true) }
+    // Bosh ekran ixcham panel bilan ochiladi; xaritaga bosilganda vaqtincha faqat xarita qoladi.
+    var sheetExpanded by remember { mutableStateOf(false) }
+    var mapOnlyMode by remember { mutableStateOf(false) }
+    var mapOnlyTap by remember { mutableStateOf(0) }
+    var showOfflineConfirm by remember { mutableStateOf(false) }
+
+    LaunchedEffect(mapOnlyTap) {
+        if (mapOnlyTap > 0) {
+            mapOnlyMode = true
+            delay(3500)
+            mapOnlyMode = false
+        }
+    }
 
     ShareLocation(me)
     LaunchedEffect(me != null) {
@@ -101,6 +123,12 @@ fun DriverScreen(onLogout: () -> Unit) {
                 io { Api.call("POST", "/driver/availability", JSONObject().put("online", value)) }
                 online = value
                 shiftSlider = if (value) 1f else 0f
+                if (value) {
+                    // Ishga chiqqach haydovchi panelini yopib, xaritani asosiy ko'rinishda qoldiramiz.
+                    selectedTab = "Bosh sahifa"
+                    sheetExpanded = false
+                    mapOnlyMode = false
+                }
                 msg = ""
             } catch (e: Exception) {
                 shiftSlider = if (online) 1f else 0f
@@ -140,6 +168,7 @@ fun DriverScreen(onLogout: () -> Unit) {
 
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
+            Box(Modifier.fillMaxSize()) {
             MapBox(
                 pins = pins,
                 center = centerTo ?: pickup ?: DEFAULT_CENTER,
@@ -147,18 +176,41 @@ fun DriverScreen(onLogout: () -> Unit) {
                 route = route?.points,
                 fitKey = fitKey,
                 centerKey = centerKey,
+                onMapTap = { mapOnlyTap++ },
             )
-            FloatingChip(
-                "TOXA  •  HAYDOVCHI",
-                Modifier.align(Alignment.TopStart).padding(12.dp),
-            ) {}
-            FloatingChip("📍 Mening joyim", Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
-                val m = me
-                if (m != null) { centerTo = m; centerKey++ }
+            if (!mapOnlyMode) {
+                if (online) {
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopStart).padding(12.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .clickable { showOfflineConfirm = true },
+                        color = Color(0xFF20252D),
+                        shape = RoundedCornerShape(18.dp),
+                        shadowElevation = 8.dp,
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text("⏻", color = Color(0xFFFF6B6B), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            Text("OFFLINE", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+                } else {
+                    FloatingChip(
+                        "TOXA  •  HAYDOVCHI",
+                        Modifier.align(Alignment.TopStart).padding(12.dp),
+                    ) {}
+                }
+                FloatingChip("📍 Mening joyim", Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
+                    val m = me
+                    if (m != null) { centerTo = m; centerKey++ }
+                }
             }
-        }
+            }
 
-        Sheet {
+            if (!mapOnlyMode && sheetExpanded) Sheet(Modifier.align(Alignment.BottomCenter)) {
             if (selectedTab != "Bosh sahifa") {
                 BigLine(selectedTab, "Kerakli bo'lim")
                 when (selectedTab) {
@@ -178,23 +230,77 @@ fun DriverScreen(onLogout: () -> Unit) {
                         available.forEach { order -> OrderCard(order) { BigButton("Qabul qilish") { post("/orders/" + order.optInt("id") + "/accept") } } }
                     }
                     "Kabinet" -> {
+                        val driverName = profile?.optString("name").orEmpty().ifBlank { "Haydovchi" }
+                        val driverPhone = profile?.optString("phone").orEmpty().ifBlank { "Telefon raqami mavjud emas" }
+                        Panel(color = Ink) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                Box(
+                                    Modifier.size(58.dp).background(Yellow, CircleShape),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        driverName.firstOrNull()?.uppercase() ?: "H",
+                                        fontSize = 27.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Ink,
+                                    )
+                                }
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(driverName, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                                    Text("TOXA haydovchisi", fontSize = 12.sp, color = Color.White.copy(alpha = 0.68f))
+                                }
+                                Pill(
+                                    if (online) "ONLAYN" else "OFFLAYN",
+                                    if (online) Color(0xFF173D2C) else Color(0xFF30343C),
+                                    if (online) Color(0xFF7BE0A2) else Color.White.copy(alpha = 0.78f),
+                                )
+                            }
+                        }
+                        BigLine("Shaxsiy ma'lumotlar", "Hisobingizga tegishli ma'lumotlar")
                         Panel {
-                            Text(profile?.optString("name").orEmpty().ifBlank { "Haydovchi" }, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                            Text(profile?.optString("phone").orEmpty(), color = Muted)
-                            Text("Roli: Haydovchi", color = Muted, fontSize = 13.sp)
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text("Telefon raqami", color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                Text(driverPhone, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            }
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text("Hisob turi", color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                Text("Haydovchi", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            }
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text("Ish holati", color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                Text(if (online) "Ishda" else "Dam olishda", fontWeight = FontWeight.SemiBold, fontSize = 13.sp,
+                                    color = if (online) Color(0xFF237A4B) else Muted)
+                            }
                         }
                         BigButton("⚙  Sozlamalar") { selectedTab = "Sozlamalar" }
                         DangerButton("Hisobdan chiqish") { onLogout() }
                     }
-                    "Sozlamalar" -> Panel {
-                        BigLine("Sozlamalar", "Kabinet sozlamalari")
-                        Text("Sozlamalar bo'limi keyingi bosqichda to'ldiriladi.", color = Muted, fontSize = 13.sp)
+                    "Sozlamalar" -> {
+                        BigLine("Sozlamalar", "Kabinet va hisob ma'lumotlari")
+                        AccountSettingsContent(
+                            name = profile?.optString("name").orEmpty(),
+                            phone = profile?.optString("phone").orEmpty(),
+                            role = "Haydovchi",
+                            onRefresh = {
+                                scope.launch {
+                                    try {
+                                        profile = io { Api.call("GET", "/profile") }
+                                        msg = "Hisob ma'lumotlari yangilandi"
+                                    } catch (e: Exception) { msg = e.message ?: "Ma'lumotlarni yangilab bo'lmadi" }
+                                }
+                            },
+                        )
                         GhostButton("‹ Kabinetga qaytish") { selectedTab = "Kabinet" }
                     }
-                    "Qo'llab-quvvatlash" -> Panel {
-                        BigLine("Qo'llab-quvvatlash", "TOXA yordam xizmati")
-                        Text("Savol yoki muammo bo'yicha yordam xizmati bilan bog'lanish.", color = Muted, fontSize = 13.sp)
-                        Text("Aloqa kanali keyingi bosqichda ulanadi.", color = Muted, fontSize = 12.sp)
+                    "Qo'llab-quvvatlash" -> {
+                        BigLine("Qo'llab-quvvatlash", "TOXA yordam markazi")
+                        Text("Ko'p uchraydigan savollarga javoblar", fontSize = 13.sp, color = Muted)
+                        SupportFaq()
+                        Text("Bevosita operator bilan aloqa kanali hali sozlanmagan.", fontSize = 12.sp, color = Muted)
                     }
                 }
             } else if (active != null && pickup != null && dropoff != null) {
@@ -245,19 +351,20 @@ fun DriverScreen(onLogout: () -> Unit) {
                 }
             } else {
                 Panel(color = Ink) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text("HAYDOVCHI HOLATI", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.62f), letterSpacing = 1.sp)
-                            Text(if (online) "Ishdasiz" else "Hozir ishda emassiz", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = if (online) Color(0xFF7BE0A2) else Color.White)
+                    Row(Modifier.fillMaxWidth().clickable { sheetExpanded = false }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Box(Modifier.size(46.dp).background(Color(0xFF292E37), CircleShape), contentAlignment = Alignment.Center) {
+                            Text("T", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Yellow)
                         }
-                        Pill(if (online) "ONLAYN" else "OFFLAYN", if (online) Color(0xFF173D2C) else Color(0xFF30343C), if (online) Color(0xFF7BE0A2) else Color.White.copy(alpha = 0.75f))
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("HAYDOVCHI PANELI", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.58f), letterSpacing = 1.1.sp)
+                            Text(if (online) "Yo'lda bo'lishga tayyorsiz" else "Bugun ishni boshlang", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        }
+                        Pill(if (online) "ONLAYN" else "OFFLAYN", if (online) Color(0xFF173D2C) else Color(0xFF30343C), if (online) Color(0xFF7BE0A2) else Color.White.copy(alpha = 0.78f))
                     }
-                    Text(if (online) "Ishdan chiqish uchun chapga suring" else "Ishga chiqish uchun o\u0027ngga suring", fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
-                    // Yandex Pro uslubidagi keng, qalin surish yo'lagi
+                    Text(if (online) "Yangi buyurtmalarni qabul qilyapsiz" else "Buyurtmalarni ko'rish uchun ishga chiqing", fontSize = 12.sp, color = Color.White.copy(alpha = 0.68f))
                     BoxWithConstraints(
-                        Modifier.fillMaxWidth().padding(top = 4.dp)
-                            .height(64.dp)
-                            .background(Color(0xFF252A32), RoundedCornerShape(32.dp))
+                        Modifier.fillMaxWidth().padding(top = 2.dp).height(66.dp)
+                            .background(Color(0xFF252A32), RoundedCornerShape(22.dp))
                             .pointerInput(online) {
                                 var dragValue = shiftSlider
                                 detectHorizontalDragGestures(
@@ -267,48 +374,47 @@ fun DriverScreen(onLogout: () -> Unit) {
                                         dragValue = (dragValue + amount / size.width.toFloat()).coerceIn(0f, 1f)
                                         shiftSlider = dragValue
                                     },
-                                    onDragEnd = {
-                                        shiftDragging = false
-                                        setAvailability(dragValue >= 0.5f)
-                                    },
-                                    onDragCancel = {
-                                        shiftDragging = false
-                                        shiftSlider = if (online) 1f else 0f
-                                    },
+                                    onDragEnd = { shiftDragging = false; setAvailability(dragValue >= 0.5f) },
+                                    onDragCancel = { shiftDragging = false; shiftSlider = if (online) 1f else 0f },
                                 )
                             },
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                        Box(Modifier.fillMaxWidth(shiftSlider.coerceAtLeast(0.16f)).height(64.dp)
-                            .background(if (online) Color(0xFF237A4B) else Color(0xFF4A505B), RoundedCornerShape(32.dp)))
+                        Box(Modifier.fillMaxWidth(shiftSlider.coerceAtLeast(0.16f)).height(66.dp)
+                            .background(if (online) Color(0xFF237A4B) else Color(0xFF3A414D), RoundedCornerShape(22.dp)))
                         Text(
-                            if (online) "◀  ISHDAN CHIQISH UCHUN SURING" else "ISHGA CHIQISH UCHUN SURING  ▶",
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 60.dp),
-                            fontSize = 11.sp, fontWeight = FontWeight.ExtraBold,
-                            color = Color.White, letterSpacing = 0.3.sp,
+                            if (online) "CHAPGA SURING  •  ISHDAN CHIQISH" else "O'NGGA SURING  •  ISHGA CHIQISH",
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 62.dp),
+                            fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, letterSpacing = 0.25.sp,
                         )
-                        Box(
-                            Modifier.offset(x = (maxWidth - 58.dp) * shiftSlider)
-                                .size(58.dp).padding(5.dp)
-                                .background(Yellow, CircleShape),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text("➜", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Ink)
+                        Box(Modifier.offset(x = (maxWidth - 62.dp) * shiftSlider).size(62.dp).padding(5.dp).background(Yellow, CircleShape), contentAlignment = Alignment.Center) {
+                            Text("➜", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Ink)
                         }
                     }
                 }
 
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DriverQuickStat("BUGUN", stats?.let { som(it.optLong("todaySum")) } ?: "—", "Daromad", Modifier.weight(1f))
+                    DriverQuickStat("BUYURTMA", stats?.optInt("todayCount")?.toString() ?: "—", "Bugun", Modifier.weight(1f))
+                    DriverQuickStat("REYTING", stats?.let { if (it.optInt("ratingCount") > 0) String.format("%.1f ★", it.optDouble("rating")) else "—" } ?: "—", "Baholash", Modifier.weight(1f))
+                }
 
-
-                BigLine(
-                    "Yangi buyurtmalar",
-                    if (available.isEmpty()) "Kutilmoqda" else "${available.size} ta mavjud",
-                )
+                Row(Modifier.fillMaxWidth().clickable { sheetExpanded = false }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("Yangi buyurtmalar", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                        Text(if (available.isEmpty()) "Yangi takliflar kutilmoqda" else "Sizga ${available.size} ta taklif bor", fontSize = 12.sp, color = Muted)
+                    }
+                    Box(Modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xFFFFF3CD)).padding(horizontal = 11.dp, vertical = 7.dp)) {
+                        Text("${available.size} ta", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ink)
+                    }
+                }
                 if (available.isEmpty()) {
                     Panel {
-                        Text("⏳", fontSize = 28.sp)
-                        Text("Hozircha buyurtma yo'q", fontWeight = FontWeight.Bold)
-                        Text("Yangi buyurtmalar shu yerda avtomatik paydo bo'ladi.", fontSize = 13.sp, color = Muted)
+                        Box(Modifier.size(44.dp).background(Color(0xFFFFF5D8), CircleShape), contentAlignment = Alignment.Center) {
+                            Text("⌛", fontSize = 22.sp)
+                        }
+                        Text("Hozircha buyurtma yo'q", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("Onlayn holatda turing — yangi buyurtmalar shu yerda ko'rinadi.", fontSize = 13.sp, color = Muted)
                     }
                 }
                 available.forEach { o ->
@@ -322,15 +428,107 @@ fun DriverScreen(onLogout: () -> Unit) {
 
                 
             }
-            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                listOf("Bosh sahifa", "Buyurtmalar", "Kabinet", "Qo'llab-quvvatlash").forEach { tab ->
-                    Column(Modifier.weight(1f).clickable { selectedTab = tab }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(when (tab) { "Bosh sahifa" -> "⌂"; "Buyurtmalar" -> "▤"; "Kabinet" -> "♙"; else -> "◉" }, fontSize = 19.sp, color = if (selectedTab == tab || (selectedTab == "Sozlamalar" && tab == "Kabinet")) Yellow else Muted, fontWeight = FontWeight.Bold)
-                        Text(when (tab) { "Bosh sahifa" -> "Bosh"; "Buyurtmalar" -> "Buyurtma"; "Kabinet" -> "Kabinet"; else -> "Yordam" }, fontSize = 9.sp, color = if (selectedTab == tab || (selectedTab == "Sozlamalar" && tab == "Kabinet")) Yellow else Muted)
+            ErrorText(msg)
+            }
+            else {
+                Surface(
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth().clickable { sheetExpanded = true },
+                    shape = RoundedCornerShape(22.dp), color = Ink, shadowElevation = 12.dp,
+                ) {
+                    Row(Modifier.padding(horizontal = 18.dp, vertical = 15.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Box(Modifier.size(38.dp).background(Yellow, CircleShape), contentAlignment = Alignment.Center) {
+                            Text("T", fontSize = 21.sp, fontWeight = FontWeight.Black, color = Ink)
+                        }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("HAYDOVCHI PANELI", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.65f))
+                            Text("Yangi buyurtmalar: ${available.size} ta  ·  ${if (online) "ONLAYN" else "OFFLAYN"}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                        Text("⌃", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Yellow)
                     }
                 }
             }
-            ErrorText(msg)
+        }
+        if (!mapOnlyMode) {
+            AnimatedVisibility(visible = navVisible, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
+                DriverBottomNavigation(selectedTab = selectedTab, onSelect = {
+                    selectedTab = it
+                    sheetExpanded = true
+                })
+            }
+        }
+    }
+
+    if (showOfflineConfirm) {
+        AlertDialog(
+            onDismissRequest = { showOfflineConfirm = false },
+            title = { Text("Ishdan chiqasizmi?", fontWeight = FontWeight.Bold) },
+            text = { Text("OFFLINE holatiga o'tsangiz, yangi buyurtmalar kelmaydi.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showOfflineConfirm = false
+                    setAvailability(false)
+                }) { Text("Ha, ishdan chiqish", color = Color(0xFFC62828), fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showOfflineConfirm = false }) { Text("Bekor qilish") }
+            },
+        )
+    }
+}
+
+
+@Composable
+private fun DriverQuickStat(
+    title: String,
+    value: String,
+    detail: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(18.dp), color = Color.White, shadowElevation = 1.dp) {
+        Column(Modifier.padding(horizontal = 11.dp, vertical = 13.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Muted, letterSpacing = 0.55.sp, maxLines = 1)
+            Text(value, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Ink, maxLines = 1)
+            Text(detail, fontSize = 10.sp, color = Muted, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+private fun DriverBottomNavigation(selectedTab: String, onSelect: (String) -> Unit) {
+    val items = listOf(
+        Triple("Bosh sahifa", "⌂", "Bosh sahifa"),
+        Triple("Buyurtmalar", "▤", "Buyurtmalar"),
+        Triple("Kabinet", "♙", "Kabinet"),
+        Triple("Qo'llab-quvvatlash", "◉", "Yordam"),
+    )
+    Surface(
+        modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
+        color = Color.White,
+        shadowElevation = 12.dp,
+    ) {
+        Row(
+            Modifier.fillMaxWidth().height(74.dp).padding(horizontal = 9.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            items.forEach { item ->
+                val active = selectedTab == item.first || (selectedTab == "Sozlamalar" && item.first == "Kabinet")
+                Column(
+                    Modifier.weight(1f).fillMaxSize()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (active) Color(0xFFFFF5D8) else Color.Transparent)
+                        .clickable { onSelect(item.first) }
+                        .padding(vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(item.second, fontSize = 23.sp, color = if (active) Ink else Color(0xFF858B96), fontWeight = FontWeight.Bold)
+                    Text(item.third, fontSize = 10.sp, color = if (active) Ink else Color(0xFF858B96), fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
+                    if (active) {
+                        Box(Modifier.padding(top = 3.dp).size(width = 20.dp, height = 3.dp).background(Yellow, RoundedCornerShape(2.dp)))
+                    }
+                }
+            }
         }
     }
 }

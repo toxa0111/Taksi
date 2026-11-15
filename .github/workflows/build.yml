@@ -3,6 +3,8 @@ name: APK yig'ish
 on:
   workflow_dispatch: {}
   push:
+    branches: [main, master, "ui/fixed-bottom-navigation"]
+  pull_request:
     branches: [main, master]
 
 permissions:
@@ -23,7 +25,18 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
+      - name: Yandex MapKit kalitini tekshirish
+        env:
+          YANDEX_MAPKIT_API_KEY: ${{ secrets.YANDEX_MAPKIT_API_KEY }}
+        run: |
+          if [ -z "$YANDEX_MAPKIT_API_KEY" ]; then
+            echo "::error::YANDEX_MAPKIT_API_KEY GitHub Actions Secret topilmadi."
+            exit 1
+          fi
+          echo "Yandex MapKit API key mavjud (qiymati maxfiy)."
       - name: Debug APK yig'ish
+        env:
+          YANDEX_MAPKIT_API_KEY: ${{ secrets.YANDEX_MAPKIT_API_KEY }}
         run: gradle assembleDebug --no-daemon -PappVersionCode=${{ github.run_number }}
         working-directory: android
       - uses: actions/upload-artifact@v4
@@ -31,11 +44,14 @@ jobs:
           name: taksi-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
       - name: APK ni nomlash
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/ui/fixed-bottom-navigation')
         run: cp android/app/build/outputs/apk/debug/app-debug.apk taksi.apk
       - name: Release yaratish (ilova yangilanishi shu yerdan)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/ui/fixed-bottom-navigation')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: Taksi ${{ github.run_number }}
+          name: TOXA ${{ github.run_number }}
           files: taksi.apk
-          make_latest: true
+          prerelease: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' }}
+          make_latest: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}

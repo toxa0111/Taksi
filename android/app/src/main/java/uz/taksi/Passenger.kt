@@ -1,6 +1,20 @@
 package uz.taksi
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -61,7 +75,10 @@ fun PassengerScreen(onLogout: () -> Unit) {
     var quoteKey by remember { mutableStateOf("") }
     var orders by remember { mutableStateOf(listOf<JSONObject>()) }
     var msg by remember { mutableStateOf("") }
+    var selectedTab by rememberSaveable { mutableStateOf("Bosh sahifa") }
+    var profile by remember { mutableStateOf<JSONObject?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var navVisible by remember { mutableStateOf(true) }
 
     ShareLocation(me)
 
@@ -88,6 +105,10 @@ fun PassengerScreen(onLogout: () -> Unit) {
         val r = io { Nominatim.search(q) }
         found = r
         searchedFor = q
+    }
+
+    LaunchedEffect(Unit) {
+        try { profile = io { Api.call("GET", "/profile") } } catch (_: Exception) { }
     }
 
     // Buyurtmalar: har 3 soniyada
@@ -195,6 +216,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 route = route?.points,
                 fitKey = fitKey,
                 centerKey = centerKey,
+                onMapTap = { navVisible = false; scope.launch { delay(3500); navVisible = true } },
             )
             FloatingChip("✕ Chiqish", Modifier.align(Alignment.TopStart).padding(12.dp), onLogout)
             FloatingChip("📍 Mening joyim", Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
@@ -204,7 +226,71 @@ fun PassengerScreen(onLogout: () -> Unit) {
         }
 
         Sheet {
-            if (active != null) {
+            if (selectedTab == "Buyurtmalar") {
+                BigLine("Buyurtmalarim", "Safarlaringiz tarixi va holati")
+                if (orders.isEmpty()) {
+                    Panel {
+                        Text("Hozircha buyurtmalar yo'q", fontWeight = FontWeight.Bold)
+                        Text("Birinchi safaringizni rejalashtiring.", fontSize = 13.sp, color = Muted)
+                    }
+                } else {
+                    orders.sortedByDescending { it.optLong("createdAt") }.forEach { order ->
+                        OrderCard(order)
+                    }
+                }
+            } else if (selectedTab == "Kabinet") {
+                val passengerName = profile?.optString("name").orEmpty().ifBlank { "Yo'lovchi" }
+                val passengerPhone = profile?.optString("phone").orEmpty().ifBlank { "Telefon raqami mavjud emas" }
+                Panel(color = Ink) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Box(Modifier.size(58.dp).background(Yellow, CircleShape), contentAlignment = Alignment.Center) {
+                            Text(passengerName.firstOrNull()?.uppercase() ?: "Y", fontSize = 27.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                        }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(passengerName, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            Text("TOXA yo'lovchisi", fontSize = 12.sp, color = Color.White.copy(alpha = 0.68f))
+                        }
+                    }
+                }
+                BigLine("Shaxsiy ma'lumotlar", "Hisobingizga tegishli ma'lumotlar")
+                Panel {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Telefon raqami", color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                        Text(passengerPhone, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Hisob turi", color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                        Text("Yo'lovchi", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    }
+                }
+                BigButton("⚙  Sozlamalar") { selectedTab = "Sozlamalar" }
+                DangerButton("Hisobdan chiqish") { onLogout() }
+            } else if (selectedTab == "Sozlamalar") {
+                BigLine("Sozlamalar", "Kabinet va hisob ma'lumotlari")
+                AccountSettingsContent(
+                    name = profile?.optString("name").orEmpty(),
+                    phone = profile?.optString("phone").orEmpty(),
+                    role = "Yo'lovchi",
+                    onRefresh = {
+                        scope.launch {
+                            try {
+                                profile = io { Api.call("GET", "/profile") }
+                                msg = "Hisob ma'lumotlari yangilandi"
+                            } catch (e: Exception) { msg = e.message ?: "Ma'lumotlarni yangilab bo'lmadi" }
+                        }
+                    },
+                )
+                GhostButton("‹ Kabinetga qaytish") { selectedTab = "Kabinet" }
+            } else if (selectedTab == "Qo'llab-quvvatlash") {
+                BigLine("Qo'llab-quvvatlash", "TOXA yordam markazi")
+                Text("Ko'p uchraydigan savollarga javoblar", fontSize = 13.sp, color = Muted)
+                SupportFaq()
+                Text("Bevosita operator bilan aloqa kanali hali sozlanmagan.", fontSize = 12.sp, color = Muted)
+            } else if (active != null) {
                 // ───── Faol buyurtma ─────
                 val (bg, fg) = statusColors(aSt)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -296,6 +382,20 @@ fun PassengerScreen(onLogout: () -> Unit) {
                     }
                 }
 
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        "Safaringizni rejalashtiring",
+                        fontSize = 21.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                        color = Ink,
+                    )
+                    Text(
+                        "Qayerdan va qayerga borishingizni tanlang",
+                        fontSize = 13.sp,
+                        color = Muted,
+                    )
+                }
+
                 AddressRow(Ok, "Qayerdan", pickupName.ifBlank { "Joylashuv aniqlanmoqda…" }, pickupName.isBlank()) {
                     field = "from"; query = ""; mapPick = false
                 }
@@ -348,6 +448,47 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 }
             }
             ErrorText(msg)
+        }
+        AnimatedVisibility(visible = navVisible, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
+            PassengerBottomNavigation(selectedTab = selectedTab, onSelect = { selectedTab = it })
+        }
+    }
+}
+
+@Composable
+private fun PassengerBottomNavigation(selectedTab: String, onSelect: (String) -> Unit) {
+    val items = listOf(
+        Triple("Bosh sahifa", "⌂", "Bosh sahifa"),
+        Triple("Buyurtmalar", "▤", "Buyurtmalar"),
+        Triple("Kabinet", "♙", "Kabinet"),
+        Triple("Qo'llab-quvvatlash", "◉", "Yordam"),
+    )
+    Surface(
+        modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
+        color = Color.White,
+        shadowElevation = 12.dp,
+    ) {
+        Row(
+            Modifier.fillMaxWidth().height(74.dp).padding(horizontal = 9.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            items.forEach { item ->
+                val active = selectedTab == item.first || (selectedTab == "Sozlamalar" && item.first == "Kabinet")
+                Column(
+                    Modifier.weight(1f).fillMaxSize()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (active) Color(0xFFFFF5D8) else Color.Transparent)
+                        .clickable { onSelect(item.first) }
+                        .padding(vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(item.second, fontSize = 23.sp, color = if (active) Ink else Color(0xFF858B96), fontWeight = FontWeight.Bold)
+                    Text(item.third, fontSize = 10.sp, color = if (active) Ink else Color(0xFF858B96), fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
+                    if (active) Box(Modifier.padding(top = 3.dp).size(width = 20.dp, height = 3.dp).background(Yellow, RoundedCornerShape(2.dp)))
+                }
+            }
         }
     }
 }
