@@ -141,6 +141,18 @@ http.createServer(async (req, res) => {
       return send(res, 200, quote(a, b2, c, d, parseFloat(url.searchParams.get('km'))));
     }
 
+    // Haydovchi ish holati: onlayn bo'lmasa yangi buyurtmalar ko'rsatilmaydi.
+    if (m === 'POST' && p === '/driver/availability') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      const online = b.online === true;
+      if (!online && db.orders.some(o => o.driverId === user.id && ['accepted', 'arrived', 'started'].includes(o.status))) {
+        return send(res, 400, { error: "Faol safar tugamaguncha ishdan chiqa olmaysiz" });
+      }
+      user.online = online;
+      save();
+      return send(res, 200, { ok: true, online: user.online });
+    }
+
     // Joriy joylashuvni yangilash (yo'lovchi ham, haydovchi ham)
     if (m === 'POST' && p === '/location') {
       const lat = num(b.lat), lng = num(b.lng);
@@ -177,6 +189,7 @@ http.createServer(async (req, res) => {
     // Haydovchi: ochiq buyurtmalar (yo'lovchigacha masofa bilan)
     if (m === 'GET' && p === '/orders/available') {
       if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      if (user.online !== true) return send(res, 200, { orders: [] });
       const me = fresh(user);
       const list = db.orders.filter(o => o.status === 'searching').sort((x, y) => y.id - x.id).slice(0, 20).map(o => ({
         ...view(o),
@@ -197,6 +210,8 @@ http.createServer(async (req, res) => {
         todayCash: sum(t.filter(o => o.payMethod === 'cash')),
         todayCard: sum(t.filter(o => o.payMethod === 'card')),
         totalCount: done.length, totalSum: sum(done),
+        online: user.online === true,
+        rating: Number(user.rating) || 0, ratingCount: Number(user.ratingCount) || 0,
       });
     }
 
@@ -208,6 +223,7 @@ http.createServer(async (req, res) => {
 
       if (act === 'accept') {
         if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+        if (user.online !== true) return send(res, 400, { error: 'Avval ishga chiqing' });
         if (o.status !== 'searching') return send(res, 400, { error: 'Buyurtma allaqachon olingan' });
         if (db.orders.some(x => x.driverId === user.id && isActive(x))) return send(res, 400, { error: 'Avval joriy buyurtmani tugating' });
         o.driverId = user.id; o.status = 'accepted'; save();
