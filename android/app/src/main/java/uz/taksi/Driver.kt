@@ -59,8 +59,8 @@ fun DriverScreen(onLogout: () -> Unit) {
     var mine by remember { mutableStateOf(listOf<JSONObject>()) }
     var stats by remember { mutableStateOf<JSONObject?>(null) }
     var profile by remember { mutableStateOf<JSONObject?>(null) }
-    var showCabinet by remember { mutableStateOf(false) }
-    var showAccount by remember { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableStateOf("Bosh sahifa") }
     var online by remember { mutableStateOf(false) }
     var shiftSlider by remember { mutableStateOf(0f) }
     var shiftDragging by remember { mutableStateOf(false) }
@@ -153,7 +153,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                 "TOXA  •  HAYDOVCHI",
                 Modifier.align(Alignment.TopStart).padding(12.dp),
             ) {}
-            FloatingChip("Chiqish  ✕", Modifier.align(Alignment.TopEnd).padding(12.dp), onLogout)
+            FloatingChip("☰  MENYU", Modifier.align(Alignment.TopEnd).padding(12.dp)) { menuOpen = true }
             FloatingChip("📍 Mening joyim", Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
                 val m = me
                 if (m != null) { centerTo = m; centerKey++ }
@@ -161,7 +161,59 @@ fun DriverScreen(onLogout: () -> Unit) {
         }
 
         Sheet {
-            if (active != null && pickup != null && dropoff != null) {
+            if (menuOpen) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("TOXA  •  MENYU", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
+                    Box(Modifier.weight(1f))
+                    GhostButton("✕ Yopish") { menuOpen = false; selectedTab = "Bosh sahifa" }
+                }
+                BigLine(selectedTab, "Kerakli bo'limni tanlang")
+                when (selectedTab) {
+                    "Bosh sahifa" -> Panel { Text("Xaritaga qaytish uchun menyuni yoping.", color = Muted) }
+                    "Buyurtmalar" -> {
+                        Text("Faol buyurtmalar", fontWeight = FontWeight.Bold)
+                        if (active != null) Panel { Text("Sizda faol buyurtma mavjud.", fontWeight = FontWeight.Bold) }
+                        Text("Yangi buyurtmalar: " + available.size + " ta", color = Muted)
+                        available.forEach { order -> OrderCard(order) { BigButton("Qabul qilish") { post("/orders/" + order.optInt("id") + "/accept") } } }
+                    }
+                    "Hisob" -> {
+                        stats?.let { data -> Panel(color = Ink) {
+                            Text("BUGUNGI DAROMAD", fontSize = 11.sp, color = Color.White.copy(alpha = 0.65f))
+                            Text(som(data.optLong("todaySum")), fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = Yellow)
+                            Text("Bugungi buyurtmalar: " + data.optInt("todayCount"), color = Color.White)
+                            Text("Reyting: " + if (data.optInt("ratingCount") > 0) String.format("%.1f ★", data.optDouble("rating")) else "—", color = Color.White)
+                            Text("Jami daromad: " + som(data.optLong("totalSum")), color = Color.White)
+                        } } ?: Panel { Text("Hisobot yuklanmoqda…", color = Muted) }
+                    }
+                    "Kabinet" -> {
+                        Panel {
+                            Text(profile?.optString("name").orEmpty().ifBlank { "Haydovchi" }, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text(profile?.optString("phone").orEmpty(), color = Muted)
+                            Text("Roli: Haydovchi", color = Muted, fontSize = 13.sp)
+                        }
+                        BigButton("⚙  Sozlamalar") { selectedTab = "Sozlamalar" }
+                        DangerButton("Hisobdan chiqish") { onLogout() }
+                    }
+                    "Sozlamalar" -> Panel {
+                        BigLine("Sozlamalar", "Kabinet sozlamalari")
+                        Text("Sozlamalar bo'limi keyingi bosqichda to'ldiriladi.", color = Muted, fontSize = 13.sp)
+                        GhostButton("‹ Kabinetga qaytish") { selectedTab = "Kabinet" }
+                    }
+                    "Qo'llab-quvvatlash" -> Panel {
+                        BigLine("Qo'llab-quvvatlash", "TOXA yordam xizmati")
+                        Text("Savol yoki muammo bo'yicha yordam xizmati bilan bog'lanish.", color = Muted, fontSize = 13.sp)
+                        Text("Aloqa kanali keyingi bosqichda ulanadi.", color = Muted, fontSize = 12.sp)
+                    }
+                }
+                Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    listOf("Bosh sahifa", "Buyurtmalar", "Hisob", "Kabinet", "Qo'llab-quvvatlash").forEach { tab ->
+                        Column(Modifier.weight(1f).clickable { selectedTab = tab }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(when (tab) { "Bosh sahifa" -> "⌂"; "Buyurtmalar" -> "▤"; "Hisob" -> "₽"; "Kabinet" -> "♙"; else -> "◉" }, fontSize = 19.sp, color = if (selectedTab == tab) Yellow else Muted, fontWeight = FontWeight.Bold)
+                            Text(when (tab) { "Bosh sahifa" -> "Bosh"; "Buyurtmalar" -> "Buyurtma"; "Hisob" -> "Hisob"; "Kabinet" -> "Kabinet"; else -> "Yordam" }, fontSize = 9.sp, color = if (selectedTab == tab) Yellow else Muted)
+                        }
+                    }
+                }
+            } else if (active != null && pickup != null && dropoff != null) {
                 val isCash = active.optString("payMethod") == "cash"
                 val (bg, fg) = statusColors(st)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -285,64 +337,6 @@ fun DriverScreen(onLogout: () -> Unit) {
                 }
 
                 
-                // Hisob va shaxsiy kabinet — buyurtmalar ro'yxatidan keyingi pastki qatorlar
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Panel(Modifier.weight(1f).clickable { showAccount = !showAccount }) {
-                        Text("💳  HISOB", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
-                        Text("Daromad va buyurtmalar", fontSize = 11.sp, color = Muted)
-                    }
-                    Panel(Modifier.weight(1f).clickable { showCabinet = !showCabinet }) {
-                        Text("👤  SHAXSIY KABINET", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
-                        Text("Profil va ma'lumotlar", fontSize = 11.sp, color = Muted)
-                    }
-                }
-                if (showAccount) {
-                    Panel {
-                        BigLine("Hisob", "Haydovchilik faoliyatingiz bo'yicha ko'rsatkichlar")
-                        stats?.let {
-    Panel(color = Ink) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("BUGUNGI NATIJA", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.65f), letterSpacing = 1.sp)
-            Box(Modifier.weight(1f))
-            Pill("HISOBOT", Color(0xFF30343C), Yellow)
-        }
-        Text("Bugungi daromad", fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
-        Text(som(it.optLong("todaySum")), fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = Yellow)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatItem("Bugun", "${it.optInt("todayCount")} ta", Modifier.weight(1f))
-            StatItem("Reyting", if (it.optInt("ratingCount") > 0) String.format("%.1f ★", it.optDouble("rating")) else "—", Modifier.weight(1f))
-            StatItem("Buyurtmalar", "${it.optInt("totalCount")} ta", Modifier.weight(1f))
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatItem("Naqd", som(it.optLong("todayCash")), Modifier.weight(1f))
-            StatItem("Karta", som(it.optLong("todayCard")), Modifier.weight(1f))
-            StatItem("Baholar", if (it.optInt("ratingCount") > 0) "${it.optInt("ratingCount")} ta" else "Hali yo\u0027q", Modifier.weight(1f))
-        }
-        Text(
-            "Jami daromad: ${som(it.optLong("totalSum"))}",
-            fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f),
-        )
-    }
-}
-                    }
-                }
-                if (showCabinet) {
-                    Panel {
-                        BigLine("Shaxsiy kabinet", "Hisob ma'lumotlari")
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(48.dp).background(Color(0xFFFFF1C2), CircleShape), contentAlignment = Alignment.Center) {
-                                Text("👤", fontSize = 24.sp)
-                            }
-                            Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                                Text(profile?.optString("name").orEmpty().ifBlank { "Haydovchi" }, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                                Text(profile?.optString("phone").orEmpty(), fontSize = 13.sp, color = Muted)
-                            }
-                        }
-                        Text("Roli: Haydovchi", fontSize = 13.sp, color = Muted)
-                        Text("TOXA haydovchi profili", fontSize = 12.sp, color = Muted)
-                        GhostButton("Kabinetni yopish") { showCabinet = false }
-                    }
-                }            }
             ErrorText(msg)
         }
     }
