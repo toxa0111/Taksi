@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "uz.taksi"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "uz.taksi"
@@ -15,7 +15,7 @@ android {
         versionCode = (project.findProperty("appVersionCode") as String? ?: "1").toInt()
         versionName = "1.0." + (project.findProperty("appVersionCode") as String? ?: "1")
         val mapkitApiKey = System.getenv("YANDEX_MAPKIT_API_KEY") ?: ""
-        buildConfigField("String", "MAPKIT_API_KEY", "\"${mapkitApiKey}\"")
+        buildConfigField("String", "MAPKIT_API_KEY", "\"\${mapkitApiKey}\"")
     }
 
     signingConfigs {
