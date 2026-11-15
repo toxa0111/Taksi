@@ -1,5 +1,8 @@
 package uz.taksi
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -75,6 +78,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
     var selectedTab by rememberSaveable { mutableStateOf("Bosh sahifa") }
     var profile by remember { mutableStateOf<JSONObject?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var navVisible by remember { mutableStateOf(true) }
 
     ShareLocation(me)
 
@@ -212,6 +216,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 route = route?.points,
                 fitKey = fitKey,
                 centerKey = centerKey,
+                onMapTap = { navVisible = false; scope.launch { delay(3500); navVisible = true } },
             )
             FloatingChip("✕ Chiqish", Modifier.align(Alignment.TopStart).padding(12.dp), onLogout)
             FloatingChip("📍 Mening joyim", Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
@@ -444,7 +449,9 @@ fun PassengerScreen(onLogout: () -> Unit) {
             }
             ErrorText(msg)
         }
-        PassengerBottomNavigation(selectedTab = selectedTab, onSelect = { selectedTab = it })
+        AnimatedVisibility(visible = navVisible, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
+            PassengerBottomNavigation(selectedTab = selectedTab, onSelect = { selectedTab = it })
+        }
     }
 }
 
