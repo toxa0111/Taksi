@@ -182,10 +182,51 @@ fun DriverScreen(onLogout: () -> Unit) {
                         available.forEach { order -> OrderCard(order) { BigButton("Qabul qilish") { post("/orders/" + order.optInt("id") + "/accept") } } }
                     }
                     "Kabinet" -> {
+                        val driverName = profile?.optString("name").orEmpty().ifBlank { "Haydovchi" }
+                        val driverPhone = profile?.optString("phone").orEmpty().ifBlank { "Telefon raqami mavjud emas" }
+                        Panel(color = Ink) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                Box(
+                                    Modifier.size(58.dp).background(Yellow, CircleShape),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        driverName.firstOrNull()?.uppercase() ?: "H",
+                                        fontSize = 27.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Ink,
+                                    )
+                                }
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(driverName, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                                    Text("TOXA haydovchisi", fontSize = 12.sp, color = Color.White.copy(alpha = 0.68f))
+                                }
+                                Pill(
+                                    if (online) "ONLAYN" else "OFFLAYN",
+                                    if (online) Color(0xFF173D2C) else Color(0xFF30343C),
+                                    if (online) Color(0xFF7BE0A2) else Color.White.copy(alpha = 0.78f),
+                                )
+                            }
+                        }
+                        BigLine("Shaxsiy ma'lumotlar", "Hisobingizga tegishli ma'lumotlar")
                         Panel {
-                            Text(profile?.optString("name").orEmpty().ifBlank { "Haydovchi" }, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                            Text(profile?.optString("phone").orEmpty(), color = Muted)
-                            Text("Roli: Haydovchi", color = Muted, fontSize = 13.sp)
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text("Telefon raqami", color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                Text(driverPhone, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            }
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text("Hisob turi", color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                Text("Haydovchi", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            }
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text("Ish holati", color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                Text(if (online) "Ishda" else "Dam olishda", fontWeight = FontWeight.SemiBold, fontSize = 13.sp,
+                                    color = if (online) Color(0xFF237A4B) else Muted)
+                            }
                         }
                         BigButton("⚙  Sozlamalar") { selectedTab = "Sozlamalar" }
                         DangerButton("Hisobdan chiqish") { onLogout() }
