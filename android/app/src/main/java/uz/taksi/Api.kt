@@ -23,8 +23,8 @@ object Api {
     fun call(method: String, path: String, body: JSONObject? = null): JSONObject {
         val c = URL(base + path).openConnection() as HttpURLConnection
         c.requestMethod = method
-        c.connectTimeout = 8000
-        c.readTimeout = 8000
+        c.connectTimeout = 15000
+        c.readTimeout = 45000   // bepul server uxlab qolsa, uyg'onishiga 30-60 soniya ketadi
         if (token.isNotEmpty()) c.setRequestProperty("Authorization", "Bearer $token")
         if (body != null) {
             c.doOutput = true
@@ -43,6 +43,10 @@ object Api {
 suspend fun <T> io(f: () -> T): T = withContext(Dispatchers.IO) { f() }
 
 fun JSONArray.items(): List<JSONObject> = List(length()) { getJSONObject(it) }
+
+/** Ro'yxat mazmuni o'zgarganini tekshirish uchun: o'zgarmagan bo'lsa ekran qayta chizilmaydi. */
+fun List<JSONObject>.sameAs(other: List<JSONObject>): Boolean =
+    size == other.size && indices.all { this[it].toString() == other[it].toString() }
 
 fun som(n: Long): String = n.toString().reversed().chunked(3).joinToString(" ").reversed() + " so'm"
 

@@ -39,6 +39,9 @@ val RED = 0xFFC62828.toInt()     // borish manzili
 val BLUE = 0xFF1565C0.toInt()    // men
 val ORANGE = 0xFFEF6C00.toInt()  // haydovchi / yo'lovchi (jonli)
 
+/** Xaritaning oxirgi holati: o'zgarmagan bo'lsa, qayta chizilmaydi. */
+private class MapState(val center: Pair<Double, Double>, val pins: List<Pin>, val tappable: Boolean)
+
 private fun dot(color: Int) = GradientDrawable().apply {
     shape = GradientDrawable.OVAL
     setColor(color)
@@ -70,32 +73,37 @@ fun MapBox(
             }
         },
         update = { map ->
-            if (map.tag != center) {
+            // Faqat o'zgargan bo'lsa yangilaymiz: har 3 soniyada xaritani qayta chizish ilovani qotiradi.
+            val prev = map.tag as? MapState
+            val tappable = onTap != null
+            if (prev == null || prev.center != center) {
                 map.controller.setCenter(GeoPoint(center.first, center.second))
-                map.tag = center
             }
-            map.overlays.clear()
-            if (onTap != null) {
-                map.overlays.add(
-                    MapEventsOverlay(object : MapEventsReceiver {
-                        override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
-                            if (p != null) onTap(p.latitude, p.longitude)
-                            return true
-                        }
+            if (prev == null || prev.pins != pins || prev.tappable != tappable) {
+                map.overlays.clear()
+                if (onTap != null) {
+                    map.overlays.add(
+                        MapEventsOverlay(object : MapEventsReceiver {
+                            override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
+                                if (p != null) onTap(p.latitude, p.longitude)
+                                return true
+                            }
 
-                        override fun longPressHelper(p: GeoPoint?): Boolean = false
-                    })
-                )
+                            override fun longPressHelper(p: GeoPoint?): Boolean = false
+                        })
+                    )
+                }
+                pins.forEach { pin ->
+                    val m = Marker(map)
+                    m.position = GeoPoint(pin.lat, pin.lng)
+                    m.title = pin.title
+                    m.icon = dot(pin.color)
+                    m.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                    map.overlays.add(m)
+                }
+                map.invalidate()
             }
-            pins.forEach { pin ->
-                val m = Marker(map)
-                m.position = GeoPoint(pin.lat, pin.lng)
-                m.title = pin.title
-                m.icon = dot(pin.color)
-                m.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                map.overlays.add(m)
-            }
-            map.invalidate()
+            map.tag = MapState(center, pins, tappable)
         },
         onRelease = { it.onDetach() },
     )

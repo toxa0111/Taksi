@@ -241,7 +241,10 @@ fun PassengerScreen(onLogout: () -> Unit) {
     }
     LaunchedEffect(Unit) {
         while (true) {
-            try { orders = io { Api.call("GET", "/orders/mine").getJSONArray("orders").items() } } catch (e: Exception) { }
+            try {
+                val n = io { Api.call("GET", "/orders/mine").getJSONArray("orders").items() }
+                if (!n.sameAs(orders)) orders = n
+            } catch (e: Exception) { }
             delay(3000)
         }
     }
@@ -416,9 +419,12 @@ fun DriverScreen(onLogout: () -> Unit) {
     LaunchedEffect(Unit) {
         while (true) {
             try {
-                mine = io { Api.call("GET", "/orders/mine").getJSONArray("orders").items() }
-                available = io { Api.call("GET", "/orders/available").getJSONArray("orders").items() }
-                stats = io { Api.call("GET", "/stats") }
+                val m = io { Api.call("GET", "/orders/mine").getJSONArray("orders").items() }
+                if (!m.sameAs(mine)) mine = m
+                val a = io { Api.call("GET", "/orders/available").getJSONArray("orders").items() }
+                if (!a.sameAs(available)) available = a
+                val s = io { Api.call("GET", "/stats") }
+                if (s.toString() != stats?.toString()) stats = s
             } catch (e: Exception) { }
             delay(3000)
         }
