@@ -71,6 +71,7 @@ fun DriverScreen(onLogout: () -> Unit) {
     var shiftDragging by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf("") }
     var navVisible by remember { mutableStateOf(true) }
+    var sheetExpanded by remember { mutableStateOf(true) }
 
     ShareLocation(me)
     LaunchedEffect(me != null) {
@@ -167,7 +168,7 @@ fun DriverScreen(onLogout: () -> Unit) {
             }
             }
 
-            Sheet(Modifier.align(Alignment.BottomCenter)) {
+            if (sheetExpanded) Sheet(Modifier.align(Alignment.BottomCenter)) {
             if (selectedTab != "Bosh sahifa") {
                 BigLine(selectedTab, "Kerakli bo'lim")
                 when (selectedTab) {
@@ -308,7 +309,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                 }
             } else {
                 Panel(color = Ink) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(Modifier.fillMaxWidth().clickable { sheetExpanded = false }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(Modifier.size(46.dp).background(Color(0xFF292E37), CircleShape), contentAlignment = Alignment.Center) {
                             Text("T", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Yellow)
                         }
@@ -356,7 +357,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                     DriverQuickStat("REYTING", stats?.let { if (it.optInt("ratingCount") > 0) String.format("%.1f ★", it.optDouble("rating")) else "—" } ?: "—", "Baholash", Modifier.weight(1f))
                 }
 
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(Modifier.fillMaxWidth().clickable { sheetExpanded = false }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text("Yangi buyurtmalar", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
                         Text(if (available.isEmpty()) "Yangi takliflar kutilmoqda" else "Sizga ${available.size} ta taklif bor", fontSize = 12.sp, color = Muted)
@@ -386,6 +387,23 @@ fun DriverScreen(onLogout: () -> Unit) {
                 
             }
             ErrorText(msg)
+            }
+            } else {
+                Surface(
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth().clickable { sheetExpanded = true },
+                    shape = RoundedCornerShape(22.dp), color = Ink, shadowElevation = 12.dp,
+                ) {
+                    Row(Modifier.padding(horizontal = 18.dp, vertical = 15.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Box(Modifier.size(38.dp).background(Yellow, CircleShape), contentAlignment = Alignment.Center) {
+                            Text("T", fontSize = 21.sp, fontWeight = FontWeight.Black, color = Ink)
+                        }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("HAYDOVCHI PANELI", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.65f))
+                            Text("${available.size} ta yangi buyurtma  ·  ${if (online) "ONLAYN" else "OFFLAYN"}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                        Text("⌃", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Yellow)
+                    }
+                }
             }
         }
         AnimatedVisibility(visible = navVisible, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
