@@ -77,20 +77,35 @@ fun currentVersionCode(ctx: Context): Int = try {
     @Suppress("DEPRECATION") i.versionCode
 } catch (e: Exception) { 0 }
 
-/** Eng so'nggi release: Pair(versiya raqami, APK havolasi) yoki null */
+/** GitHub Releases ichidan eng yangi build APK sini topadi (stable va test release'lar). */
 suspend fun latestRelease(): Pair<Int, String>? = withContext(Dispatchers.IO) {
     try {
-        val c = URL("https://api.github.com/repos/$REPO/releases/latest").openConnection() as HttpURLConnection
-        c.connectTimeout = 8000; c.readTimeout = 8000
+        val c = URL("https://api.github.com/repos/$REPO/releases?per_page=30").openConnection() as HttpURLConnection
+        c.connectTimeout = 10000
+        c.readTimeout = 10000
         c.setRequestProperty("Accept", "application/vnd.github+json")
-        val j = JSONObject(c.inputStream.bufferedReader().readText())
-        val n = j.getString("tag_name").removePrefix("build-").toInt()
-        val assets = j.getJSONArray("assets")
-        var url = ""
-        for (i in 0 until assets.length()) {
-            val a = assets.getJSONObject(i)
-            if (a.getString("name").endsWith(".apk")) url = a.getString("browser_download_url")
+        c.setRequestProperty("User-Agent", "TOXA-Android-App")
+        val code = c.responseCode
+        if (code !in 200..299) return@withContext null
+        val releases = JSONArray(c.inputStream.bufferedReader().use { it.readText() })
+        var bestVersion = -1
+        var bestUrl = ""
+        for (i in 0 until releases.length()) {
+            val release = releases.optJSONObject(i) ?: continue
+            val tag = release.optString("tag_name")
+            if (!tag.startsWith("build-")) continue
+            val version = tag.removePrefix("build-").toIntOrNull() ?: continue
+            val assets = release.optJSONArray("assets") ?: continue
+            for (j in 0 until assets.length()) {
+                val asset = assets.optJSONObject(j) ?: continue
+                val name = asset.optString("name")
+                val downloadUrl = asset.optString("browser_download_url")
+                if (name.endsWith(".apk", ignoreCase = true) && downloadUrl.startsWith("https://") && version > bestVersion) {
+                    bestVersion = version
+                    bestUrl = downloadUrl
+                }
+            }
         }
-        if (url.isEmpty()) null else Pair(n, url)
+        if (bestVersion > 0 && bestUrl.isNotBlank()) Pair(bestVersion, bestUrl) else null
     } catch (e: Exception) { null }
 }
