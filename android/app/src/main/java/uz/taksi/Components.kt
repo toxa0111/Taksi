@@ -1,5 +1,6 @@
 package uz.taksi
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -71,11 +72,17 @@ fun FloatingChip(text: String, modifier: Modifier = Modifier, onClick: () -> Uni
 /** "Qayerdan / Qayerga" qatori: rangli nuqta, kichik yorliq va manzil. */
 @Composable
 fun AddressRow(dot: Color, label: String, value: String, isPlaceholder: Boolean = false, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color(0xFFF3F4F6))
-            .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        color = Color(0xFFF8F9FB),
+        border = BorderStroke(1.dp, Color(0xFFE8EBF0)),
+        shadowElevation = 0.dp,
     ) {
+        Row(
+            Modifier.padding(horizontal = 15.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         Box(Modifier.size(12.dp).clip(CircleShape).background(dot))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -110,10 +117,17 @@ fun SuggestionRow(icon: String, title: String, sub: String = "", onClick: () -> 
 /** Tarif kartasi: narx va (≈ vaqt · km). */
 @Composable
 fun TariffRow(price: Long, mins: Int, km: Double) {
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color(0xFFFFF8E1)).padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xFFFFF8E8),
+        border = BorderStroke(1.dp, Color(0xFFF2E4B8)),
+        shadowElevation = 1.dp,
     ) {
+        Row(
+            Modifier.fillMaxWidth().padding(17.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         Column(Modifier.weight(1f)) {
             Text("Narx", fontSize = 12.sp, color = Muted)
             Text(som(price), fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
