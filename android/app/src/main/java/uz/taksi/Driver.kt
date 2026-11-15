@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
@@ -140,6 +142,7 @@ fun DriverScreen(onLogout: () -> Unit) {
 
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
+            Box(Modifier.fillMaxSize()) {
             MapBox(
                 pins = pins,
                 center = centerTo ?: pickup ?: DEFAULT_CENTER,
@@ -156,9 +159,9 @@ fun DriverScreen(onLogout: () -> Unit) {
                 val m = me
                 if (m != null) { centerTo = m; centerKey++ }
             }
-        }
+            }
 
-        Sheet {
+            Sheet(Modifier.align(Alignment.BottomCenter)) {
             if (selectedTab != "Bosh sahifa") {
                 BigLine(selectedTab, "Kerakli bo'lim")
                 when (selectedTab) {
@@ -322,15 +325,48 @@ fun DriverScreen(onLogout: () -> Unit) {
 
                 
             }
-            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                listOf("Bosh sahifa", "Buyurtmalar", "Kabinet", "Qo'llab-quvvatlash").forEach { tab ->
-                    Column(Modifier.weight(1f).clickable { selectedTab = tab }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(when (tab) { "Bosh sahifa" -> "⌂"; "Buyurtmalar" -> "▤"; "Kabinet" -> "♙"; else -> "◉" }, fontSize = 19.sp, color = if (selectedTab == tab || (selectedTab == "Sozlamalar" && tab == "Kabinet")) Yellow else Muted, fontWeight = FontWeight.Bold)
-                        Text(when (tab) { "Bosh sahifa" -> "Bosh"; "Buyurtmalar" -> "Buyurtma"; "Kabinet" -> "Kabinet"; else -> "Yordam" }, fontSize = 9.sp, color = if (selectedTab == tab || (selectedTab == "Sozlamalar" && tab == "Kabinet")) Yellow else Muted)
+            ErrorText(msg)
+            }
+        }
+        DriverBottomNavigation(selectedTab = selectedTab, onSelect = { selectedTab = it })
+    }
+}
+
+@Composable
+private fun DriverBottomNavigation(selectedTab: String, onSelect: (String) -> Unit) {
+    val items = listOf(
+        Triple("Bosh sahifa", "⌂", "Bosh sahifa"),
+        Triple("Buyurtmalar", "▤", "Buyurtmalar"),
+        Triple("Kabinet", "♙", "Kabinet"),
+        Triple("Qo'llab-quvvatlash", "◉", "Yordam"),
+    )
+    Surface(
+        modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
+        color = Color.White,
+        shadowElevation = 12.dp,
+    ) {
+        Row(
+            Modifier.fillMaxWidth().height(68.dp).padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            items.forEach { item ->
+                val active = selectedTab == item.first || (selectedTab == "Sozlamalar" && item.first == "Kabinet")
+                Column(
+                    Modifier.weight(1f).fillMaxSize()
+                        .clip(RoundedCornerShape(14.dp))
+                        .clickable { onSelect(item.first) }
+                        .padding(vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(item.second, fontSize = 22.sp, color = if (active) Ink else Muted, fontWeight = FontWeight.Bold)
+                    Text(item.third, fontSize = 10.sp, color = if (active) Ink else Muted, fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
+                    if (active) {
+                        Box(Modifier.padding(top = 3.dp).size(width = 18.dp, height = 3.dp).background(Yellow, RoundedCornerShape(2.dp)))
                     }
                 }
             }
-            ErrorText(msg)
         }
     }
 }
