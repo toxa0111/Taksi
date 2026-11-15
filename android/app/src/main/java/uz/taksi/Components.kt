@@ -22,6 +22,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -147,5 +151,66 @@ fun BigLine(text: String, sub: String = "") {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(text, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
         if (sub.isNotBlank()) Text(sub, fontSize = 13.sp, color = Muted)
+    }
+}
+
+
+/** Kabinet ichidagi hisob sozlamalari. Ma'lumotlar serverdan kelgan holicha ko'rsatiladi. */
+@Composable
+fun AccountSettingsContent(name: String, phone: String, role: String, onRefresh: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = Color(0xFFF8F9FB),
+        border = BorderStroke(1.dp, Color(0xFFE8EBF0)),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Hisob ma'lumotlari", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            listOf("Ism" to name, "Telefon" to phone, "Hisob turi" to role).forEach { item ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(item.first, color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                    Text(item.second.ifBlank { "Ko'rsatilmagan" }, color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            Text("Telefon raqamini o'zgartirish hozircha ilova ichida mavjud emas. Hisobga kirish SMS tasdiqlash orqali amalga oshiriladi.", fontSize = 12.sp, color = Muted)
+            Surface(
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onRefresh),
+                shape = RoundedCornerShape(13.dp),
+                color = Color(0xFFFFF3D1),
+            ) {
+                Text("↻  Ma'lumotlarni yangilash", Modifier.padding(13.dp), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ink)
+            }
+        }
+    }
+}
+
+/** Aloqa kanali serverda sozlanmagani uchun hozircha mustaqil ishlaydigan FAQ ko'rsatiladi. */
+@Composable
+fun SupportFaq() {
+    var expanded by remember { mutableStateOf(-1) }
+    val questions = listOf(
+        "Buyurtmani qanday beraman?" to "Bosh sahifada qayerdan va qayerga manzillarini tanlang, narxni tekshiring va buyurtmani tasdiqlang.",
+        "Buyurtmani bekor qilish mumkinmi?" to "Faol buyurtma oynasidagi bekor qilish tugmasidan foydalaning. Haydovchi safarni boshlab yuborganidan keyin bekor qilish cheklanishi mumkin.",
+        "Narx qanday hisoblanadi?" to "Narx safar masofasi va tarif hisob-kitobiga ko'ra ilovada buyurtmadan oldin ko'rsatiladi.",
+        "GPS ishlamasa nima qilaman?" to "Telefon sozlamalarida TOXA uchun joylashuv ruxsatini yoqing, GPSni faollashtiring va ochiq joyda qayta urinib ko'ring.",
+        "Haydovchi buyurtmalarni ko'rmayapti" to "Haydovchi ilovasida Ishga chiqish holatini yoqing va internet hamda joylashuv ruxsatini tekshiring."
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        questions.forEachIndexed { index, qa ->
+            Surface(
+                modifier = Modifier.fillMaxWidth().clickable { expanded = if (expanded == index) -1 else index },
+                shape = RoundedCornerShape(15.dp),
+                color = Color(0xFFF8F9FB),
+                border = BorderStroke(1.dp, Color(0xFFE8EBF0)),
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(qa.first, Modifier.weight(1f), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+                        Text(if (expanded == index) "−" else "+", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Ink)
+                    }
+                    if (expanded == index) Text(qa.second, fontSize = 13.sp, color = Muted)
+                }
+            }
+        }
     }
 }
