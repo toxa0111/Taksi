@@ -112,7 +112,11 @@ fun DriverScreen(onLogout: () -> Unit) {
                 fitKey = fitKey,
                 centerKey = centerKey,
             )
-            FloatingChip("✕ Chiqish", Modifier.align(Alignment.TopStart).padding(12.dp), onLogout)
+            FloatingChip(
+                "TOXA  •  HAYDOVCHI",
+                Modifier.align(Alignment.TopStart).padding(12.dp),
+            ) {}
+            FloatingChip("Chiqish  ✕", Modifier.align(Alignment.TopEnd).padding(12.dp), onLogout)
             FloatingChip("📍 Mening joyim", Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
                 val m = me
                 if (m != null) { centerTo = m; centerKey++ }
@@ -169,8 +173,13 @@ fun DriverScreen(onLogout: () -> Unit) {
             } else {
                 stats?.let {
                     Panel(color = Ink) {
-                        Text("Bugungi daromad", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
-                        Text(som(it.optLong("todaySum")), fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = Yellow)
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("BUGUNGI NATIJA", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.65f), letterSpacing = 1.sp)
+                            Box(Modifier.weight(1f))
+                            Pill("HISOBOT", Color(0xFF30343C), Yellow)
+                        }
+                        Text("Bugungi daromad", fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
+                        Text(som(it.optLong("todaySum")), fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = Yellow)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             StatItem("Safarlar", "${it.optInt("todayCount")} ta", Modifier.weight(1f))
                             StatItem("Naqd", som(it.optLong("todayCash")), Modifier.weight(1f))
@@ -183,7 +192,10 @@ fun DriverScreen(onLogout: () -> Unit) {
                     }
                 }
 
-                BigLine("Yangi buyurtmalar", if (available.isEmpty()) "" else "${available.size} ta")
+                BigLine(
+                    "Yangi buyurtmalar",
+                    if (available.isEmpty()) "Kutilmoqda" else "${available.size} ta mavjud",
+                )
                 if (available.isEmpty()) {
                     Panel {
                         Text("⏳", fontSize = 28.sp)
