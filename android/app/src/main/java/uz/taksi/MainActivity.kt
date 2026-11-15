@@ -7,6 +7,8 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -266,6 +268,32 @@ fun UpdateDialog() {
     val ctx = LocalContext.current
     var update by remember { mutableStateOf<Pair<Int, String>?>(null) }
     var downloading by remember { mutableStateOf(false) }
+    var pendingInstallUri by remember { mutableStateOf<Uri?>(null) }
+
+    fun openInstaller(uri: Uri) {
+        try {
+            val installIntent = Intent(Intent.ACTION_INSTALL_PACKAGE)
+                .setData(uri)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                .putExtra(Intent.EXTRA_RETURN_RESULT, true)
+            ctx.startActivity(installIntent)
+        } catch (_: Exception) {
+            android.widget.Toast.makeText(ctx, "APK yuklandi, lekin o'rnatish oynasi ochilmadi. Yuklangan faylni bildirishnomadan oching.", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        val uri = pendingInstallUri
+        if (uri != null && ctx.packageManager.canRequestPackageInstalls()) {
+            pendingInstallUri = null
+            openInstaller(uri)
+        } else if (uri != null) {
+            downloading = false
+            android.widget.Toast.makeText(ctx, "TOXA uchun noma'lum ilovalarni o'rnatishga ruxsat bering, so'ng qayta urinib ko'ring.", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
 
     LaunchedEffect(Unit) {
         val release = latestRelease()
@@ -280,7 +308,7 @@ fun UpdateDialog() {
         title = { Text("TOXA yangilanishi mavjud", fontWeight = FontWeight.Bold) },
         text = {
             Text(
-                if (downloading) "Yangi versiya yuklanmoqda. Yuklab bo'lingach, o'rnatish oynasi avtomatik ochiladi."
+                if (downloading) "Yangi versiya yuklanmoqda. Tugagach, Android o'rnatish oynasi ochiladi."
                 else "Yangi versiya ${available.first} tayyor. Yangilash tugmasini bossangiz, APK yuklanadi va o'rnatish oynasi ochiladi."
             )
         },
@@ -288,6 +316,7 @@ fun UpdateDialog() {
             BigButton(if (downloading) "Yuklanmoqda…" else "Yangilash", Modifier.width(150.dp)) {
                 if (!downloading) {
                     downloading = true
+                    var receiver: android.content.BroadcastReceiver? = null
                     try {
                         val manager = ctx.getSystemService(Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
                         val request = android.app.DownloadManager.Request(Uri.parse(available.second))
@@ -296,10 +325,11 @@ fun UpdateDialog() {
                             .setMimeType("application/vnd.android.package-archive")
                             .setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                             .setDestinationInExternalFilesDir(ctx, android.os.Environment.DIRECTORY_DOWNLOADS, "toxa-update-${available.first}.apk")
-                        val downloadId = manager.enqueue(request)
-                        val receiver = object : android.content.BroadcastReceiver() {
+
+                        var downloadId = -1L
+                        receiver = object : android.content.BroadcastReceiver() {
                             override fun onReceive(context: Context?, intent: Intent?) {
-                                if (intent?.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, -1L) != downloadId) return
+                                if (intent?.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, -1L) != downloadId || downloadId < 0L) return
                                 try { ctx.unregisterReceiver(this) } catch (_: Exception) { }
                                 val query = android.app.DownloadManager.Query().setFilterById(downloadId)
                                 manager.query(query).use { cursor ->
@@ -308,17 +338,24 @@ fun UpdateDialog() {
                                         if (status == android.app.DownloadManager.STATUS_SUCCESSFUL) {
                                             val apkUri = manager.getUriForDownloadedFile(downloadId)
                                             if (apkUri != null) {
-                                                val installIntent = Intent(Intent.ACTION_VIEW)
-                                                    .setDataAndType(apkUri, "application/vnd.android.package-archive")
-                                                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                try { ctx.startActivity(installIntent) }
-                                                catch (_: Exception) {
-                                                    android.widget.Toast.makeText(ctx, "Yuklangan APK faylni bildirishnomadan ochib o'rnating.", android.widget.Toast.LENGTH_LONG).show()
+                                                pendingInstallUri = apkUri
+                                                if (ctx.packageManager.canRequestPackageInstalls()) {
+                                                    openInstaller(apkUri)
+                                                } else {
+                                                    permissionLauncher.launch(
+                                                        Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${ctx.packageName}"))
+                                                    )
                                                 }
+                                            } else {
+                                                downloading = false
+                                                android.widget.Toast.makeText(ctx, "Yuklangan APK manzili topilmadi. Qayta urinib ko'ring.", android.widget.Toast.LENGTH_LONG).show()
                                             }
                                         } else {
+                                            downloading = false
                                             android.widget.Toast.makeText(ctx, "Yuklash amalga oshmadi. Internetni tekshirib qayta urinib ko'ring.", android.widget.Toast.LENGTH_LONG).show()
                                         }
+                                    } else {
+                                        downloading = false
                                     }
                                 }
                             }
@@ -329,8 +366,10 @@ fun UpdateDialog() {
                             @Suppress("DEPRECATION")
                             ctx.registerReceiver(receiver, filter)
                         }
+                        downloadId = manager.enqueue(request)
                         android.widget.Toast.makeText(ctx, "TOXA yangilanishi yuklanmoqda…", android.widget.Toast.LENGTH_SHORT).show()
                     } catch (_: Exception) {
+                        try { receiver?.let { ctx.unregisterReceiver(it) } } catch (_: Exception) { }
                         downloading = false
                         android.widget.Toast.makeText(ctx, "Yangilashni boshlashda xato. Keyinroq urinib ko'ring.", android.widget.Toast.LENGTH_LONG).show()
                     }
