@@ -48,13 +48,21 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
+import com.yandex.mapkit.MapKitFactory
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
+    private var mapKitReady = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (BuildConfig.MAPKIT_API_KEY.isNotBlank()) {
+            MapKitFactory.setApiKey(BuildConfig.MAPKIT_API_KEY)
+            MapKitFactory.initialize(this)
+            mapKitReady = true
+        }
         val prefs = getSharedPreferences("taksi", Context.MODE_PRIVATE)
         Api.token = prefs.getString("token", "") ?: ""
         Api.base = prefs.getString("base", Api.base) ?: Api.base
@@ -62,6 +70,16 @@ class MainActivity : ComponentActivity() {
                 window.statusBarColor = 0xFFFFC21A.toInt()
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = true
         setContent { TaksiTheme { Surface(Modifier.fillMaxSize(), color = PageBg) { App(prefs) } } }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (mapKitReady) MapKitFactory.getInstance().onStart()
+    }
+
+    override fun onStop() {
+        if (mapKitReady) MapKitFactory.getInstance().onStop()
+        super.onStop()
     }
 }
 
