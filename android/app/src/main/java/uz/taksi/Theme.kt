@@ -242,7 +242,7 @@ fun TopBar(title: String, subtitle: String, onLogout: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(42.dp).clip(CircleShape).background(Yellow), contentAlignment = Alignment.Center) {
-            Text("🚕", fontSize = 20.sp)
+            Text("T", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {

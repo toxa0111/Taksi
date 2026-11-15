@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -164,11 +166,13 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
                 .padding(horizontal = 24.dp, vertical = 36.dp),
         ) {
             Column {
-                Box(Modifier.size(64.dp).clip(CircleShape).background(Ink), contentAlignment = Alignment.Center) {
-                    Text("🚕", fontSize = 32.sp)
-                }
+                Image(
+                    painter = painterResource(R.drawable.toxa_logo),
+                    contentDescription = "TOXA",
+                    modifier = Modifier.size(72.dp).clip(RoundedCornerShape(18.dp)),
+                )
                 Spacer(Modifier.height(16.dp))
-                Text("Taksi", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                Text("TOXA", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = Ink, letterSpacing = 4.sp)
                 Text("Shahar ichida tez va qulay safar", fontSize = 15.sp, color = Ink.copy(alpha = 0.75f))
             }
         }
@@ -262,7 +266,7 @@ fun UpdateDialog() {
         shape = RoundedCornerShape(24.dp),
         containerColor = Color.White,
         title = { Text("Yangi versiya bor", fontWeight = FontWeight.Bold) },
-        text = { Text("Taksi ilovasining yangi versiyasi chiqdi. Yuklangach, faylni bosib o'rnating.") },
+        text = { Text("TOXA ilovasining yangi versiyasi chiqdi. Yuklangach, faylni bosib o'rnating.") },
         confirmButton = {
             BigButton("Yangilash", Modifier.width(150.dp)) {
                 ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u.second)))

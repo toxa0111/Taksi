@@ -5,11 +5,38 @@ const http = require('http'), fs = require('fs'), crypto = require('crypto'), pa
 const PORT = +process.env.PORT || 3000;
 const DEV_SMS = process.env.DEV_SMS !== '0';           // true: kod javobda qaytariladi (SMS yo'q)
 const PAY_DEV = process.env.PAY_DEV !== '0';           // true: karta to'lovi "o'ynab" tasdiqlanadi (haqiqiy pul yo'q)
+// ---- Haqiqiy SMS (Eskiz.uz). ESKIZ_EMAIL va ESKIZ_PASSWORD berilsa yoqiladi; bo'lmasa eski rejim ----
+const ESKIZ_EMAIL = process.env.ESKIZ_EMAIL || '', ESKIZ_PASSWORD = process.env.ESKIZ_PASSWORD || '';
+const ESKIZ_URL = process.env.ESKIZ_URL || 'https://notify.eskiz.uz/api';
+const SMS_FROM = process.env.SMS_FROM || '4546';
+const SMS_TEXT = process.env.SMS_TEXT || 'TOXA: tasdiqlash kodi {code}';   // matn Eskiz'da tasdiqlangan shablonga mos bo'lsin
+const SMS_ENABLED = !!(ESKIZ_EMAIL && ESKIZ_PASSWORD);
 const DB_FILE = process.env.DB_FILE || path.join(__dirname, 'db.json');
 
 let db = { users: {}, sessions: {}, codes: {}, orders: [], seq: 1 };
 try { db = Object.assign(db, JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))); } catch {}
 const save = () => fs.writeFileSync(DB_FILE, JSON.stringify(db));
+
+let eskizToken = null;
+async function eskizLogin() {
+  const fd = new FormData(); fd.append('email', ESKIZ_EMAIL); fd.append('password', ESKIZ_PASSWORD);
+  const r = await fetch(ESKIZ_URL + '/auth/login', { method: 'POST', body: fd });
+  const j = await r.json().catch(() => ({}));
+  eskizToken = j && j.data && j.data.token;
+  if (!eskizToken) throw new Error('Eskiz login xatosi (' + r.status + ')');
+}
+async function sendSms(phone, text) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (!eskizToken) await eskizLogin();
+    const fd = new FormData();
+    fd.append('mobile_phone', phone.replace('+', '')); fd.append('message', text); fd.append('from', SMS_FROM);
+    const r = await fetch(ESKIZ_URL + '/message/sms/send', { method: 'POST', headers: { Authorization: 'Bearer ' + eskizToken }, body: fd });
+    if (r.status === 401) { eskizToken = null; continue; }   // token eskirgan: qayta kirib, yana urinamiz
+    if (!r.ok) throw new Error('Eskiz SMS xatosi (' + r.status + ')');
+    return;
+  }
+  throw new Error('Eskiz avtorizatsiya xatosi');
+}
 
 // ---- Narx ----
 const BASE = 5000, PER_KM = 2500, MIN_FARE = 8000;
@@ -64,11 +91,24 @@ http.createServer(async (req, res) => {
     if (m === 'POST' && p === '/auth/request') {
       const phone = String(b.phone || '').trim();
       if (!PHONE_RE.test(phone)) return send(res, 400, { error: 'Telefon raqam +998XXXXXXXXX ko\'rinishida bo\'lsin' });
+      // Haqiqiy SMS yoqilgan bo'lsa: bir raqamga 60 soniyada bir martadan ko'p yuborilmaydi (pul va spamdan himoya)
+      const prev = db.codes[phone];
+      if (SMS_ENABLED && prev && prev.sent && Date.now() - prev.sent < 60000) {
+        return send(res, 429, { error: 'Kodni 60 soniyadan keyin qayta so\'rang' });
+      }
       const code = String(crypto.randomInt(100000, 1000000));
-      db.codes[phone] = { code, exp: Date.now() + 5 * 60 * 1000, tries: 0 };
+      db.codes[phone] = { code, exp: Date.now() + 5 * 60 * 1000, tries: 0, sent: Date.now() };
       save();
-      // TODO: haqiqiy SMS provayder (Eskiz.uz, Playmobile) shu yerda kodni yuboradi.
-      console.log(`[SMS] ${phone}: ${code}`);
+      if (SMS_ENABLED) {
+        try { await sendSms(phone, SMS_TEXT.replace('{code}', code)); }
+        catch (e) {
+          console.error('[SMS xato]', e.message);
+          delete db.codes[phone]; save();
+          return send(res, 502, { error: 'SMS yuborilmadi, birozdan keyin urinib ko\'ring' });
+        }
+        return send(res, 200, { ok: true });          // SMS ketdi: kod hech qachon javobda qaytmaydi
+      }
+      console.log(`[SMS] ${phone}: ${code}`);          // SMS ulanmagan (sinov rejimi)
       return send(res, 200, DEV_SMS ? { ok: true, devCode: code } : { ok: true });
     }
     if (m === 'POST' && p === '/auth/verify') {

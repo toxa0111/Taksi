@@ -34,7 +34,7 @@ node server.js            # http://localhost:3000
   Haqiqiy to'lov uchun `server.js` dagi `TODO` joyiga Payme / Click / Uzum Merchant API ulanadi (ular bilan shartnoma va merchant akkaunt kerak) va `PAY_DEV=0` bilan ishga tushiriladi. Karta raqamlari hech qachon bizning serverda saqlanmaydi — provayderning to'lov sahifasi orqali o'tadi.
 
 ## Ishlab chiqarishdan oldin qilinadigan ishlar
-- **SMS:** `server.js` dagi `TODO` joyiga SMS provayder (Eskiz, Playmobile) ulang va `DEV_SMS=0` bilan ishga tushiring.
+- **SMS (Eskiz.uz):** server muhit o'zgaruvchilari orqali yoqiladi: `ESKIZ_EMAIL`, `ESKIZ_PASSWORD`, `DEV_SMS=0`. Ixtiyoriy: `SMS_FROM` (standart 4546), `SMS_TEXT` (standart `TOXA: tasdiqlash kodi {code}` — Eskiz'da tasdiqlangan shablonga mos bo'lsin). Bu o'zgaruvchilar berilmasa, eski sinov rejimi (kod ilovada ko'rinadi) ishlaydi. SMS yoqilganda kod javobda hech qachon qaytmaydi va bir raqamga 60 soniyada bir marta yuboriladi.
 - **HTTPS:** serverni domen va sertifikat bilan joylang; `AndroidManifest.xml` dagi `usesCleartextTraffic` ni o'chiring.
 - **Orqa fonda joylashuv:** hozir joylashuv ilova ochiq turganda yuboriladi. Haydovchi ekranni o'chirib qo'yganda ham yuborilishi uchun foreground service kerak.
 - **Ma'lumotlar bazasi:** hozir `db.json` fayli; ko'p foydalanuvchi uchun PostgreSQL'ga o'ting.

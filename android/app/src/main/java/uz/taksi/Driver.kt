@@ -79,6 +79,9 @@ fun DriverScreen(onLogout: () -> Unit) {
     val pickup = active?.let { Pair(it.optDouble("fromLat"), it.optDouble("fromLng")) }
     val dropoff = active?.let { Pair(it.optDouble("toLat"), it.optDouble("toLng")) }
 
+    // Navigatorga o'tganingizda ham joylashuvingiz yo'lovchiga ko'rinib turadi
+    TripLocationService(running = active != null, text = "Faol buyurtma — joylashuv yuborilmoqda")
+
     // Marshrut: o'zidan yo'lovchigacha, safar boshlangach manzilgacha. Faqat ~110 m siljiganda qayta so'raladi.
     val routeTo: Pair<Double, Double>? = when (st) {
         "accepted", "arrived" -> pickup

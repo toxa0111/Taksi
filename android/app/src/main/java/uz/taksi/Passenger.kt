@@ -15,6 +15,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +28,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
+/** Pair<Double, Double>? ni ekran aylanganda ham saqlab turish uchun. */
+private val PairSaver = listSaver<Pair<Double, Double>?, Double>(
+    save = { if (it == null) emptyList() else listOf(it.first, it.second) },
+    restore = { if (it.size == 2) Pair(it[0], it[1]) else null },
+)
+
 private fun rk(p: Pair<Double, Double>?): String = if (p == null) "" else keyOf(p, 4)
 
 /** Yandex Go uslubi: tepada katta xarita, pastda oq "sheet". */
@@ -34,10 +42,10 @@ fun PassengerScreen(onLogout: () -> Unit) {
     val scope = rememberCoroutineScope()
     val me by rememberMyLocation()
 
-    var pickup by remember { mutableStateOf<Pair<Double, Double>?>(null) }
-    var pickupName by remember { mutableStateOf("") }
-    var dest by remember { mutableStateOf<Pair<Double, Double>?>(null) }
-    var destName by remember { mutableStateOf("") }
+    var pickup by rememberSaveable(stateSaver = PairSaver) { mutableStateOf<Pair<Double, Double>?>(null) }
+    var pickupName by rememberSaveable { mutableStateOf("") }
+    var dest by rememberSaveable(stateSaver = PairSaver) { mutableStateOf<Pair<Double, Double>?>(null) }
+    var destName by rememberSaveable { mutableStateOf("") }
 
     var field by remember { mutableStateOf("") }        // "" | "from" | "to": qaysi manzil tahrirlanmoqda
     var mapPick by remember { mutableStateOf(false) }   // xaritaga bosib tanlash rejimi
@@ -45,10 +53,10 @@ fun PassengerScreen(onLogout: () -> Unit) {
     var found by remember { mutableStateOf(listOf<Place>()) }
     var searchedFor by remember { mutableStateOf("") }
 
-    var centerTo by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+    var centerTo by rememberSaveable(stateSaver = PairSaver) { mutableStateOf<Pair<Double, Double>?>(null) }
     var centerKey by remember { mutableStateOf(0) }
 
-    var pay by remember { mutableStateOf("cash") }
+    var pay by rememberSaveable { mutableStateOf("cash") }
     var quote by remember { mutableStateOf<JSONObject?>(null) }
     var quoteKey by remember { mutableStateOf("") }
     var orders by remember { mutableStateOf(listOf<JSONObject>()) }
@@ -97,6 +105,12 @@ fun PassengerScreen(onLogout: () -> Unit) {
     val needPay = orders.firstOrNull {
         it.optString("status") == "done" && it.optString("payMethod") == "card" && it.optString("payStatus") != "paid"
     }
+
+    // Safar davomida boshqa ilovaga (masalan, Navigator) o'tsangiz ham joylashuv yuborilib turadi
+    TripLocationService(
+        running = active != null && active.optString("status") != "searching",
+        text = "Safar davom etmoqda — joylashuv yuborilmoqda",
+    )
 
     // ---- Marshrut ----
     val aSt = active?.optString("status") ?: ""
