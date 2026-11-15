@@ -135,6 +135,14 @@ http.createServer(async (req, res) => {
     const user = db.users[db.sessions[token]];
     if (!user) return send(res, 401, { error: 'Qaytadan kiring' });
 
+    if (m === 'GET' && p === '/profile') {
+      return send(res, 200, {
+        name: user.name || '',
+        phone: user.phone || '',
+        role: user.role || '',
+      });
+    }
+
     if (m === 'GET' && p === '/estimate') {
       const [a, b2, c, d] = ['flat', 'flng', 'tlat', 'tlng'].map(k => parseFloat(url.searchParams.get(k)));
       if ([a, b2, c, d].some(isNaN)) return send(res, 400, { error: 'Koordinata xato' });
