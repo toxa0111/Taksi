@@ -163,19 +163,19 @@ fun DriverScreen(onLogout: () -> Unit) {
                 BigLine(selectedTab, "Kerakli bo'lim")
                 when (selectedTab) {
                     "Buyurtmalar" -> {
-                        Text("Faol buyurtmalar", fontWeight = FontWeight.Bold)
+                        stats?.let { data -> Panel(color = Ink) {
+                            Text("BUGUNGI DAROMAD", fontSize = 11.sp, color = Color.White.copy(alpha = 0.65f))
+                            Text(som(data.optLong("todaySum")), fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Yellow)
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Buyurtmalar: " + data.optInt("todayCount"), color = Color.White, fontSize = 12.sp)
+                                Text("Reyting: " + if (data.optInt("ratingCount") > 0) String.format("%.1f ★", data.optDouble("rating")) else "—", color = Color.White, fontSize = 12.sp)
+                            }
+                            Text("Jami daromad: " + som(data.optLong("totalSum")), color = Color.White, fontSize = 12.sp)
+                        } } ?: Panel { Text("Hisobot yuklanmoqda…", color = Muted) }
+                        BigLine("Buyurtmalar", "Faol va yangi buyurtmalar")
                         if (active != null) Panel { Text("Sizda faol buyurtma mavjud.", fontWeight = FontWeight.Bold) }
                         Text("Yangi buyurtmalar: " + available.size + " ta", color = Muted)
                         available.forEach { order -> OrderCard(order) { BigButton("Qabul qilish") { post("/orders/" + order.optInt("id") + "/accept") } } }
-                    }
-                    "Hisob" -> {
-                        stats?.let { data -> Panel(color = Ink) {
-                            Text("BUGUNGI DAROMAD", fontSize = 11.sp, color = Color.White.copy(alpha = 0.65f))
-                            Text(som(data.optLong("todaySum")), fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = Yellow)
-                            Text("Bugungi buyurtmalar: " + data.optInt("todayCount"), color = Color.White)
-                            Text("Reyting: " + if (data.optInt("ratingCount") > 0) String.format("%.1f ★", data.optDouble("rating")) else "—", color = Color.White)
-                            Text("Jami daromad: " + som(data.optLong("totalSum")), color = Color.White)
-                        } } ?: Panel { Text("Hisobot yuklanmoqda…", color = Muted) }
                     }
                     "Kabinet" -> {
                         Panel {
@@ -323,10 +323,10 @@ fun DriverScreen(onLogout: () -> Unit) {
                 
             }
             Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                listOf("Bosh sahifa", "Buyurtmalar", "Hisob", "Kabinet", "Qo'llab-quvvatlash").forEach { tab ->
+                listOf("Bosh sahifa", "Buyurtmalar", "Kabinet", "Qo'llab-quvvatlash").forEach { tab ->
                     Column(Modifier.weight(1f).clickable { selectedTab = tab }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(when (tab) { "Bosh sahifa" -> "⌂"; "Buyurtmalar" -> "▤"; "Hisob" -> "₽"; "Kabinet" -> "♙"; else -> "◉" }, fontSize = 19.sp, color = if (selectedTab == tab || (selectedTab == "Sozlamalar" && tab == "Kabinet")) Yellow else Muted, fontWeight = FontWeight.Bold)
-                        Text(when (tab) { "Bosh sahifa" -> "Bosh"; "Buyurtmalar" -> "Buyurtma"; "Hisob" -> "Hisob"; "Kabinet" -> "Kabinet"; else -> "Yordam" }, fontSize = 9.sp, color = if (selectedTab == tab || (selectedTab == "Sozlamalar" && tab == "Kabinet")) Yellow else Muted)
+                        Text(when (tab) { "Bosh sahifa" -> "⌂"; "Buyurtmalar" -> "▤"; "Kabinet" -> "♙"; else -> "◉" }, fontSize = 19.sp, color = if (selectedTab == tab || (selectedTab == "Sozlamalar" && tab == "Kabinet")) Yellow else Muted, fontWeight = FontWeight.Bold)
+                        Text(when (tab) { "Bosh sahifa" -> "Bosh"; "Buyurtmalar" -> "Buyurtma"; "Kabinet" -> "Kabinet"; else -> "Yordam" }, fontSize = 9.sp, color = if (selectedTab == tab || (selectedTab == "Sozlamalar" && tab == "Kabinet")) Yellow else Muted)
                     }
                 }
             }
