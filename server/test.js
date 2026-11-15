@@ -78,6 +78,45 @@ async function login(phone, name, role) {
   await call('POST', `/orders/${o3.j.order.id}/accept`, {}, D);
   ok((await call('POST', `/orders/${o3.j.order.id}/cancel`, {}, D)).j.order.status === 'searching', 'haydovchi rad etdi — qayta qidiruvga o\'tdi');
 
+  // ---- Baholash ----
+  await call('POST', `/orders/${o3.j.order.id}/cancel`, {}, P);
+  const o4 = await call('POST', '/orders', { ...card, payMethod: 'cash' }, P);
+  await call('POST', `/orders/${o4.j.order.id}/accept`, {}, D);
+  await call('POST', `/orders/${o4.j.order.id}/status`, { status: 'arrived' }, D);
+  await call('POST', `/orders/${o4.j.order.id}/status`, { status: 'started' }, D);
+  ok((await call('POST', `/orders/${o4.j.order.id}/rate`, { rating: 5 }, P)).s === 400, 'tugamagan safarni baholab bo\'lmaydi');
+  await call('POST', `/orders/${o4.j.order.id}/status`, { status: 'done' }, D);
+  ok((await call('POST', `/orders/${o4.j.order.id}/rate`, { rating: 9 }, P)).s === 400, 'noto\'g\'ri baho rad etildi');
+  ok((await call('POST', `/orders/${o4.j.order.id}/rate`, { rating: 4 }, P)).j.order.rating === 4, 'haydovchi baholandi');
+  ok((await call('POST', `/orders/${o4.j.order.id}/rate`, { rating: 5 }, P)).s === 400, 'ikkinchi marta baholab bo\'lmaydi');
+  ok((await call('GET', '/stats', null, D)).j.rating === 4, 'haydovchi reytingi yangilandi');
+
+  // ---- Admin (ADMIN_PHONES=+998900000000 bilan ishga tushirilgan serverda) ----
+  const AP = process.env.ADMIN_PHONE;
+  if (AP) {
+    const a1 = await call('POST', '/auth/request', { phone: '+998905550000' });
+    ok((await call('POST', '/auth/verify', { phone: '+998905550000', code: a1.j.devCode, name: 'Yot', admin: true })).s === 403, 'admin raqami bo\'lmaganga admin kirishi rad etildi');
+    const ra = await call('POST', '/auth/request', { phone: AP });
+    const va = await call('POST', '/auth/verify', { phone: AP, code: ra.j.devCode, name: 'Admin', admin: true });
+    const A = va.j.token;
+    ok(va.s === 200 && va.j.user.role === 'admin', 'admin kirdi');
+    ok((await call('GET', '/admin/overview', null, P)).s === 403, 'oddiy foydalanuvchiga admin API yopiq');
+    const ov = await call('GET', '/admin/overview', null, A);
+    ok(ov.j.users.drivers >= 1 && ov.j.orders.total >= 1, 'umumiy ko\'rsatkichlar: ' + JSON.stringify(ov.j.users));
+    const us = await call('GET', '/admin/users?role=driver', null, A);
+    ok(us.j.users.length >= 1 && us.j.users[0].phone, 'haydovchilar ro\'yxati');
+    await call('POST', '/orders', { ...card, payMethod: 'cash' }, P);
+    const act = await call('GET', '/admin/orders?status=active', null, A);
+    ok(act.j.orders.length >= 1 && act.j.orders[0].passenger.phone, 'faol buyurtmalar (telefon bilan)');
+    const cx = await call('POST', `/admin/orders/${act.j.orders[0].id}/cancel`, {}, A);
+    ok(cx.j.order && cx.j.order.status === 'cancelled', 'admin buyurtmani bekor qildi');
+    const pid = us.j.users[0].id;
+    ok((await call('POST', `/admin/users/${pid}/block`, { blocked: true }, A)).j.blocked === true, 'foydalanuvchi bloklandi');
+    ok((await call('GET', '/orders/mine', null, D)).s === 403, 'bloklangan foydalanuvchi kira olmaydi');
+    ok((await call('POST', `/admin/users/${pid}/block`, { blocked: false }, A)).j.blocked === false, 'blok olib tashlandi');
+    ok((await call('GET', '/orders/mine', null, D)).s === 200, 'blokdan keyin yana ishlaydi');
+  }
+
   console.log(fails ? `\n${fails} ta xato` : '\nHammasi o\'tdi');
   process.exit(fails ? 1 : 0);
 })();

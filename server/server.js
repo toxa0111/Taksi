@@ -11,6 +11,8 @@ const ESKIZ_URL = process.env.ESKIZ_URL || 'https://notify.eskiz.uz/api';
 const SMS_FROM = process.env.SMS_FROM || '4546';
 const SMS_TEXT = process.env.SMS_TEXT || 'TOXA: tasdiqlash kodi {code}';   // matn Eskiz'da tasdiqlangan shablonga mos bo'lsin
 const SMS_ENABLED = !!(ESKIZ_EMAIL && ESKIZ_PASSWORD);
+// Admin huquqi faqat shu raqamlarga beriladi (vergul bilan). Bo'sh bo'lsa, admin kirishi butunlay o'chiq.
+const ADMIN_PHONES = (process.env.ADMIN_PHONES || '').split(',').map(x => x.trim()).filter(Boolean);
 const DB_FILE = process.env.DB_FILE || path.join(__dirname, 'db.json');
 
 let db = { users: {}, sessions: {}, codes: {}, orders: [], seq: 1 };
@@ -117,13 +119,19 @@ http.createServer(async (req, res) => {
       if (!c || c.exp < Date.now() || c.tries >= 5) return send(res, 400, { error: 'Kod eskirgan, qaytadan so\'rang' });
       if (String(b.code) !== c.code) { c.tries++; save(); return send(res, 400, { error: 'Kod noto\'g\'ri' }); }
       delete db.codes[phone];
+      const adminLogin = b.admin === true;
+      if (adminLogin && !ADMIN_PHONES.includes(phone)) return send(res, 403, { error: 'Bu raqamga admin huquqi berilmagan' });
       let user = Object.values(db.users).find(u => u.phone === phone);
+      if (user && user.blocked) return send(res, 403, { error: 'Hisobingiz bloklangan' });
+      if (user && user.role === 'admin' && !adminLogin) return send(res, 403, { error: 'Bu hisob faqat admin ilovasi uchun' });
       if (!user) {
         const name = String(b.name || '').trim().slice(0, 40);
         if (!name) return send(res, 400, { error: 'Ismingizni kiriting' });
-        const role = b.role === 'driver' ? 'driver' : 'passenger';
+        const role = adminLogin ? 'admin' : (b.role === 'driver' ? 'driver' : 'passenger');
         user = { id: crypto.randomUUID(), phone, name, role };
         db.users[user.id] = user;
+      } else if (adminLogin) {
+        user.role = 'admin';
       }
       const token = crypto.randomBytes(24).toString('hex');
       db.sessions[token] = user.id;
@@ -135,6 +143,80 @@ http.createServer(async (req, res) => {
     const token = (req.headers.authorization || '').replace('Bearer ', '');
     const user = db.users[db.sessions[token]];
     if (!user) return send(res, 401, { error: 'Qaytadan kiring' });
+    if (user.blocked) return send(res, 403, { error: 'Hisobingiz bloklangan' });
+
+    // ---- Admin boshqaruvi (faqat role=admin). Hech narsa o'chirilmaydi: faqat ko'rish, bekor qilish va bloklash. ----
+    if (p.startsWith('/admin/')) {
+      if (user.role !== 'admin') return send(res, 403, { error: 'Faqat admin' });
+      const all = Object.values(db.users);
+      const sum = a => a.reduce((s, o) => s + o.price, 0);
+      const adminOrder = o => ({
+        ...o,
+        passenger: db.users[o.passengerId] && { name: db.users[o.passengerId].name, phone: db.users[o.passengerId].phone },
+        driver: db.users[o.driverId] && { name: db.users[o.driverId].name, phone: db.users[o.driverId].phone },
+      });
+
+      if (m === 'GET' && p === '/admin/overview') {
+        const done = db.orders.filter(o => o.status === 'done');
+        const today = new Date().toDateString();
+        const t = done.filter(o => new Date(o.doneAt).toDateString() === today);
+        const by = {};
+        for (const o of db.orders) by[o.status] = (by[o.status] || 0) + 1;
+        return send(res, 200, {
+          users: {
+            passengers: all.filter(u => u.role === 'passenger').length,
+            drivers: all.filter(u => u.role === 'driver').length,
+            onlineDrivers: all.filter(u => u.role === 'driver' && u.online === true).length,
+            blocked: all.filter(u => u.blocked).length,
+          },
+          orders: { total: db.orders.length, active: db.orders.filter(isActive).length, byStatus: by },
+          today: { count: t.length, sum: sum(t), cash: sum(t.filter(o => o.payMethod === 'cash')), card: sum(t.filter(o => o.payMethod === 'card')) },
+          total: { count: done.length, sum: sum(done) },
+        });
+      }
+
+      if (m === 'GET' && p === '/admin/users') {
+        const role = url.searchParams.get('role'), q = (url.searchParams.get('q') || '').toLowerCase();
+        const list = all.filter(u => u.role !== 'admin' && (!role || u.role === role) &&
+          (!q || (u.name || '').toLowerCase().includes(q) || (u.phone || '').includes(q)))
+          .sort((x, y) => (x.name || '').localeCompare(y.name || '')).slice(0, 100)
+          .map(u => ({
+            id: u.id, name: u.name, phone: u.phone, role: u.role, online: u.online === true, blocked: !!u.blocked,
+            rating: Number(u.rating) || 0, ratingCount: Number(u.ratingCount) || 0,
+            trips: db.orders.filter(o => o.status === 'done' && (o.passengerId === u.id || o.driverId === u.id)).length,
+          }));
+        return send(res, 200, { users: list });
+      }
+
+      const bm = p.match(/^\/admin\/users\/([\w-]+)\/block$/);
+      if (m === 'POST' && bm) {
+        const target = db.users[bm[1]];
+        if (!target) return send(res, 404, { error: 'Foydalanuvchi topilmadi' });
+        if (target.role === 'admin') return send(res, 400, { error: 'Adminni bloklab bo\'lmaydi' });
+        target.blocked = b.blocked === true;
+        if (target.blocked) target.online = false;
+        save();
+        return send(res, 200, { ok: true, blocked: target.blocked });
+      }
+
+      if (m === 'GET' && p === '/admin/orders') {
+        const st = url.searchParams.get('status');
+        const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit')) || 50));
+        const list = db.orders.filter(o => !st || (st === 'active' ? isActive(o) : o.status === st))
+          .sort((x, y) => y.id - x.id).slice(0, limit).map(adminOrder);
+        return send(res, 200, { orders: list });
+      }
+
+      const cm = p.match(/^\/admin\/orders\/(\d+)\/cancel$/);
+      if (m === 'POST' && cm) {
+        const o = db.orders.find(x => x.id === +cm[1]);
+        if (!o) return send(res, 404, { error: 'Buyurtma topilmadi' });
+        if (!isActive(o)) return send(res, 400, { error: 'Bu buyurtma allaqachon yakunlangan' });
+        o.status = 'cancelled'; o.cancelledBy = 'admin'; save();
+        return send(res, 200, { order: adminOrder(o) });
+      }
+      return send(res, 404, { error: 'Topilmadi' });
+    }
 
     if (m === 'GET' && p === '/profile') {
       return send(res, 200, {
@@ -177,6 +259,7 @@ http.createServer(async (req, res) => {
       if (db.orders.some(o => o.passengerId === user.id && isActive(o))) return send(res, 400, { error: 'Sizda faol buyurtma bor' });
       const [a, b2, c, d] = [num(b.fromLat), num(b.fromLng), num(b.toLat), num(b.toLng)];
       if ([a, b2, c, d].some(isNaN) || !b.from || !b.to) return send(res, 400, { error: 'Manzil to\'liq emas' });
+      if (b.payMethod === 'card' && !PAY_DEV) return send(res, 400, { error: 'Karta to\'lovi hali ulanmagan. Naqd to\'lovni tanlang' });
       const q = quote(a, b2, c, d, num(b.km));
       const o = {
         id: db.seq++, passengerId: user.id, driverId: null, status: 'searching',
@@ -224,7 +307,7 @@ http.createServer(async (req, res) => {
       });
     }
 
-    const mm = p.match(/^\/orders\/(\d+)\/(accept|status|cancel|pay)$/);
+    const mm = p.match(/^\/orders\/(\d+)\/(accept|status|cancel|pay|rate)$/);
     if (m === 'POST' && mm) {
       const o = db.orders.find(x => x.id === +mm[1]);
       if (!o) return send(res, 404, { error: 'Buyurtma topilmadi' });
@@ -258,6 +341,22 @@ http.createServer(async (req, res) => {
           o.driverId = null; o.status = 'searching'; save(); return send(res, 200, { order: view(o) });
         }
         return send(res, 400, { error: 'Bekor qilib bo\'lmaydi' });
+      }
+      if (act === 'rate') {
+        if (o.passengerId !== user.id) return send(res, 403, { error: 'Bu sizning buyurtmangiz emas' });
+        if (o.status !== 'done' || !o.driverId) return send(res, 400, { error: 'Faqat yakunlangan safarni baholash mumkin' });
+        if (o.rating) return send(res, 400, { error: 'Bu safar allaqachon baholangan' });
+        const r = Math.round(num(b.rating));
+        if (!(r >= 1 && r <= 5)) return send(res, 400, { error: 'Baho 1 dan 5 gacha bo\'lsin' });
+        const d = db.users[o.driverId];
+        o.rating = r;
+        if (d) {
+          const n = Number(d.ratingCount) || 0;
+          d.rating = Math.round((((Number(d.rating) || 0) * n + r) / (n + 1)) * 100) / 100;
+          d.ratingCount = n + 1;
+        }
+        save();
+        return send(res, 200, { order: view(o) });
       }
       if (act === 'pay') {
         if (o.passengerId !== user.id) return send(res, 403, { error: 'Bu sizning buyurtmangiz emas' });
