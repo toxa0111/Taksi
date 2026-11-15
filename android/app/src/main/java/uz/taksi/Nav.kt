@@ -3,7 +3,11 @@ package uz.taksi
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.media.RingtoneManager
 import android.net.Uri
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -201,4 +205,20 @@ fun openOtherMap(ctx: Context, to: Pair<Double, Double>, label: String) {
     val uri = Uri.parse("geo:${f(to.first)},${f(to.second)}?q=${f(to.first)},${f(to.second)}(${Uri.encode(label)})")
     val ok = tryStart(ctx, Intent.createChooser(Intent(Intent.ACTION_VIEW, uri), "Xaritani tanlang"))
     if (!ok) Toast.makeText(ctx, "Telefonda xarita yoki navigator ilovasi topilmadi", Toast.LENGTH_LONG).show()
+}
+
+
+/** Yangi buyurtma: qisqa tebranish va standart bildirishnoma ovozi. */
+@Suppress("DEPRECATION")
+fun alertNewOrder(ctx: Context) {
+    try {
+        val v = ctx.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        if (v != null) {
+            if (Build.VERSION.SDK_INT >= 26) v.vibrate(VibrationEffect.createOneShot(450, VibrationEffect.DEFAULT_AMPLITUDE))
+            else v.vibrate(450)
+        }
+    } catch (e: Exception) { }
+    try {
+        RingtoneManager.getRingtone(ctx, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))?.play()
+    } catch (e: Exception) { }
 }

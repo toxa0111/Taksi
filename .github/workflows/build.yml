@@ -3,7 +3,7 @@ name: APK yig'ish
 on:
   workflow_dispatch: {}
   push:
-    branches: [main, master]
+    branches: [main, master, 'claude/**']
 
 permissions:
   contents: write
@@ -14,6 +14,15 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Server testlari
+        run: |
+          cd server
+          PORT=3999 PAY_DEV=1 ADMIN_PHONES=+998900000000 DB_FILE=/tmp/ci-db.json node server.js &
+          sleep 2
+          BASE=http://localhost:3999 ADMIN_PHONE=+998900000000 node test.js
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -23,19 +32,35 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
-      - name: Debug APK yig'ish
-        run: gradle assembleDebug --no-daemon -PappVersionCode=${{ github.run_number }}
+      - name: Debug APK yig'ish (foydalanuvchi va admin)
+        run: gradle assembleUserDebug assembleAdminDebug --no-daemon -PappVersionCode=${{ github.run_number }}
         working-directory: android
       - uses: actions/upload-artifact@v4
         with:
           name: taksi-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-      - name: APK ni nomlash
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk taksi.apk
-      - name: Release yaratish (ilova yangilanishi shu yerdan)
+          path: android/app/build/outputs/apk/user/debug/app-user-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: toxa-admin-apk
+          path: android/app/build/outputs/apk/admin/debug/app-admin-debug.apk
+      - name: APK larni nomlash
+        run: |
+          cp android/app/build/outputs/apk/user/debug/app-user-debug.apk taksi.apk
+          cp android/app/build/outputs/apk/admin/debug/app-admin-debug.apk toxa-admin.apk
+      # Release faqat main'dan: boshqa branch'lar foydalanuvchilarga yangilanish chiqarmaydi.
+      - name: Release (foydalanuvchi ilovasi; yangilanish shu yerdan)
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
           name: Taksi ${{ github.run_number }}
           files: taksi.apk
           make_latest: true
+      - name: Release (TOXA Admin, alohida; "latest" bo'lmaydi)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: toxa-admin
+          name: TOXA Admin ${{ github.run_number }}
+          files: toxa-admin.apk
+          make_latest: false

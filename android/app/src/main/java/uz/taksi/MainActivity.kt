@@ -61,7 +61,13 @@ class MainActivity : ComponentActivity() {
         // Holat paneli sariq, belgilari qora
                 window.statusBarColor = 0xFFFFC21A.toInt()
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = true
-        setContent { TaksiTheme { Surface(Modifier.fillMaxSize(), color = PageBg) { App(prefs) } } }
+        setContent {
+            TaksiTheme {
+                Surface(Modifier.fillMaxSize(), color = PageBg) {
+                    if (BuildConfig.IS_ADMIN) AdminApp(prefs) else App(prefs)
+                }
+            }
+        }
     }
 }
 
@@ -69,14 +75,13 @@ class MainActivity : ComponentActivity() {
 fun App(prefs: SharedPreferences) {
     var role by remember { mutableStateOf(prefs.getString("role", "") ?: "") }
     val logout = {
-        prefs.edit().remove("token").remove("role").apply()
+        prefs.edit().remove("token").remove("role").remove("name").remove("phone").apply()
         Api.token = ""
         role = ""
     }
     UpdateDialog()
     when (role) {
-        "passenger" -> PassengerScreen(logout)
-        "driver" -> DriverScreen(logout)
+        "passenger", "driver" -> Shell(role, prefs, logout)
         else -> LoginScreen(prefs) { role = it }
     }
 }
@@ -114,10 +119,12 @@ fun PersonRow(role: String, name: String, phone: String) {
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(name.ifBlank { role }, fontWeight = FontWeight.Bold)
-            Text("$role · $phone", fontSize = 12.sp, color = Muted)
+            Text(if (phone.isBlank()) role else "$role · $phone", fontSize = 12.sp, color = Muted)
         }
-        DarkButton("📞 Qo'ng'iroq") {
-            try { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))) } catch (e: Exception) { }
+        if (phone.isNotBlank()) {
+            DarkButton("📞 Qo'ng'iroq") {
+                try { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))) } catch (e: Exception) { }
+            }
         }
     }
 }
@@ -226,7 +233,8 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
                                 Api.token = r.getString("token")
                                 prefs.edit()
                                     .putString("token", Api.token).putString("role", u.getString("role"))
-                                    .putString("base", Api.base).apply()
+                                    .putString("base", Api.base)
+                                    .putString("name", u.optString("name")).putString("phone", u.optString("phone")).apply()
                                 onDone(u.getString("role"))
                             } catch (e: Exception) { msg = e.message ?: "Xato" }
                             busy = false
@@ -253,11 +261,11 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
 // ───────────────────────── Yangilanish ─────────────────────────
 
 @Composable
-fun UpdateDialog() {
+fun UpdateDialog(tag: String? = null, appName: String = "TOXA") {
     val ctx = LocalContext.current
     var update by remember { mutableStateOf<Pair<Int, String>?>(null) }
     LaunchedEffect(Unit) {
-        val r = latestRelease()
+        val r = latestRelease(tag)
         if (r != null && r.first > currentVersionCode(ctx)) update = r
     }
     val u = update ?: return
@@ -266,7 +274,7 @@ fun UpdateDialog() {
         shape = RoundedCornerShape(24.dp),
         containerColor = Color.White,
         title = { Text("Yangi versiya bor", fontWeight = FontWeight.Bold) },
-        text = { Text("TOXA ilovasining yangi versiyasi chiqdi. Yuklangach, faylni bosib o'rnating.") },
+        text = { Text("$appName ilovasining yangi versiyasi chiqdi. Yuklangach, faylni bosib o'rnating.") },
         confirmButton = {
             BigButton("Yangilash", Modifier.width(150.dp)) {
                 ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u.second)))

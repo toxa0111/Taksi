@@ -15,7 +15,7 @@ const SMS_ENABLED = !!(ESKIZ_EMAIL && ESKIZ_PASSWORD);
 const ADMIN_PHONES = (process.env.ADMIN_PHONES || '').split(',').map(x => x.trim()).filter(Boolean);
 const DB_FILE = process.env.DB_FILE || path.join(__dirname, 'db.json');
 
-let db = { users: {}, sessions: {}, codes: {}, orders: [], seq: 1 };
+let db = { users: {}, sessions: {}, codes: {}, orders: [], seq: 1, tickets: [], tseq: 1 };
 try { db = Object.assign(db, JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))); } catch {}
 const save = () => fs.writeFileSync(DB_FILE, JSON.stringify(db));
 
@@ -215,7 +215,40 @@ http.createServer(async (req, res) => {
         o.status = 'cancelled'; o.cancelledBy = 'admin'; save();
         return send(res, 200, { order: adminOrder(o) });
       }
+      if (m === 'GET' && p === '/admin/tickets') {
+        const st = url.searchParams.get('status');
+        const list = db.tickets.filter(t => !st || t.status === st).sort((x, y) => y.id - x.id).slice(0, 100).map(t => {
+          const u = db.users[t.userId];
+          return { ...t, name: u && u.name, phone: u && u.phone, role: u && u.role };
+        });
+        return send(res, 200, { tickets: list });
+      }
+      const tm = p.match(/^\/admin\/tickets\/(\d+)\/reply$/);
+      if (m === 'POST' && tm) {
+        const t = db.tickets.find(x => x.id === +tm[1]);
+        if (!t) return send(res, 404, { error: 'Murojaat topilmadi' });
+        const text = String(b.text || '').trim().slice(0, 500);
+        if (text.length < 2) return send(res, 400, { error: 'Javobni yozing' });
+        t.reply = text; t.repliedAt = Date.now(); t.status = 'closed'; save();
+        return send(res, 200, { ticket: t });
+      }
       return send(res, 404, { error: 'Topilmadi' });
+    }
+
+    // Qo'llab-quvvatlash: foydalanuvchi murojaati (admin ilovasida ko'rinadi va javob beriladi)
+    if (m === 'POST' && p === '/support') {
+      const text = String(b.text || '').trim().slice(0, 500);
+      if (text.length < 3) return send(res, 400, { error: 'Xabarni yozing (kamida 3 belgi)' });
+      if (db.tickets.filter(t => t.userId === user.id && t.status === 'open').length >= 3) {
+        return send(res, 400, { error: 'Avvalgi murojaatlaringizga javob kelishini kuting' });
+      }
+      const t = { id: db.tseq++, userId: user.id, text, status: 'open', createdAt: Date.now() };
+      db.tickets.push(t); save();
+      return send(res, 200, { ticket: t });
+    }
+    if (m === 'GET' && p === '/support/mine') {
+      const list = db.tickets.filter(t => t.userId === user.id).sort((x, y) => y.id - x.id).slice(0, 20);
+      return send(res, 200, { tickets: list });
     }
 
     if (m === 'GET' && p === '/profile') {

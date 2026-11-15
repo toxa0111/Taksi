@@ -25,7 +25,26 @@ android {
         }
     }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
+    // Ikki ilova bitta koddan: "user" (yo'lovchi/haydovchi) va "admin" (boshqaruv, alohida applicationId)
+    flavorDimensions += "target"
+    productFlavors {
+        create("user") {
+            dimension = "target"
+            buildConfigField("boolean", "IS_ADMIN", "false")
+            manifestPlaceholders["appLabel"] = "TOXA"
+        }
+        create("admin") {
+            dimension = "target"
+            applicationIdSuffix = ".admin"
+            buildConfigField("boolean", "IS_ADMIN", "true")
+            manifestPlaceholders["appLabel"] = "TOXA Admin"
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

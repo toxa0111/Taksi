@@ -1,5 +1,6 @@
 package uz.taksi
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -102,6 +103,11 @@ fun PassengerScreen(onLogout: () -> Unit) {
     }
 
     val active = orders.firstOrNull { it.optString("status") in ACTIVE }
+    var skippedRate by remember { mutableStateOf(0) }
+    val lastDone = orders.firstOrNull { it.optString("status") == "done" }
+    val needRate = lastDone?.takeIf {
+        !it.has("rating") && it.optJSONObject("driver") != null && it.optInt("id") != skippedRate
+    }
     val needPay = orders.firstOrNull {
         it.optString("status") == "done" && it.optString("payMethod") == "card" && it.optString("payStatus") != "paid"
     }
@@ -296,6 +302,26 @@ fun PassengerScreen(onLogout: () -> Unit) {
                     }
                 }
 
+                if (needRate != null) {
+                    BigLine("Safar qanday o'tdi?", "Haydovchini baholang")
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        (1..5).forEach { star ->
+                            Text(
+                                "⭐", fontSize = 34.sp,
+                                modifier = Modifier.clickable {
+                                    scope.launch {
+                                        try { io { Api.call("POST", "/orders/${needRate.optInt("id")}/rate", JSONObject().put("rating", star)) } }
+                                        catch (e: Exception) { msg = e.message ?: "Xato" }
+                                    }
+                                }.padding(6.dp),
+                            )
+                        }
+                    }
+                    TextButton(onClick = { skippedRate = needRate.optInt("id") }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Keyinroq", color = Muted)
+                    }
+                }
+
                 AddressRow(Ok, "Qayerdan", pickupName.ifBlank { "Joylashuv aniqlanmoqda…" }, pickupName.isBlank()) {
                     field = "from"; query = ""; mapPick = false
                 }
@@ -313,8 +339,12 @@ fun PassengerScreen(onLogout: () -> Unit) {
                         val km = q.optDouble("km")
                         val mins = route?.min ?: maxOf(1, Math.round(km * 2.5).toInt())
                         TariffRow(q.optLong("price"), mins, km)
-                        Segmented(listOf("cash" to "💵 Naqd", "card" to "💳 Karta"), pay) { pay = it }
-                        if (pay == "card") Text("Karta bilan safar tugagach to'laysiz.", fontSize = 12.sp, color = Muted)
+                        if (CARD_ENABLED) {
+                            Segmented(listOf("cash" to "💵 Naqd", "card" to "💳 Karta"), pay) { pay = it }
+                        } else {
+                            Text("💵 To'lov: naqd, haydovchiga. Karta to'lovi tez orada.", fontSize = 13.sp, color = Muted, modifier = Modifier.padding(horizontal = 4.dp))
+                        }
+                        if (CARD_ENABLED && pay == "card") Text("Karta bilan safar tugagach to'laysiz.", fontSize = 12.sp, color = Muted)
                         BigButton("Taksi chaqirish", enabled = !busy) {
                             scope.launch {
                                 busy = true

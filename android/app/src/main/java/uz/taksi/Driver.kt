@@ -58,8 +58,6 @@ fun DriverScreen(onLogout: () -> Unit) {
     var available by remember { mutableStateOf(listOf<JSONObject>()) }
     var mine by remember { mutableStateOf(listOf<JSONObject>()) }
     var stats by remember { mutableStateOf<JSONObject?>(null) }
-    var profile by remember { mutableStateOf<JSONObject?>(null) }
-    var selectedTab by remember { mutableStateOf("Bosh sahifa") }
     var online by remember { mutableStateOf(false) }
     var shiftSlider by remember { mutableStateOf(0f) }
     var shiftDragging by remember { mutableStateOf(false) }
@@ -79,8 +77,6 @@ fun DriverScreen(onLogout: () -> Unit) {
                 if (!a.sameAs(available)) available = a
                 val s = io { Api.call("GET", "/stats") }
                 if (s.toString() != stats?.toString()) stats = s
-                val p = io { Api.call("GET", "/profile") }
-                if (p.toString() != profile?.toString()) profile = p
                 online = s.optBoolean("online", false)
                 if (!shiftDragging) shiftSlider = if (online) 1f else 0f
             } catch (e: Exception) { }
@@ -107,6 +103,13 @@ fun DriverScreen(onLogout: () -> Unit) {
                 msg = e.message ?: "Ish holatini o'zgartirib bo'lmadi"
             }
         }
+    }
+
+    // Yangi buyurtma tushganda tebranish va signal
+    var lastCount by remember { mutableStateOf(0) }
+    LaunchedEffect(available.size) {
+        if (available.size > lastCount && online) alertNewOrder(ctx)
+        lastCount = available.size
     }
 
     val active = mine.firstOrNull { it.optString("status") in ACTIVE }
@@ -159,45 +162,7 @@ fun DriverScreen(onLogout: () -> Unit) {
         }
 
         Sheet {
-            if (selectedTab != "Bosh sahifa") {
-                BigLine(selectedTab, "Kerakli bo'lim")
-                when (selectedTab) {
-                    "Buyurtmalar" -> {
-                        stats?.let { data -> Panel(color = Ink) {
-                            Text("BUGUNGI DAROMAD", fontSize = 11.sp, color = Color.White.copy(alpha = 0.65f))
-                            Text(som(data.optLong("todaySum")), fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Yellow)
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Buyurtmalar: " + data.optInt("todayCount"), color = Color.White, fontSize = 12.sp)
-                                Text("Reyting: " + if (data.optInt("ratingCount") > 0) String.format("%.1f ★", data.optDouble("rating")) else "—", color = Color.White, fontSize = 12.sp)
-                            }
-                            Text("Jami daromad: " + som(data.optLong("totalSum")), color = Color.White, fontSize = 12.sp)
-                        } } ?: Panel { Text("Hisobot yuklanmoqda…", color = Muted) }
-                        BigLine("Buyurtmalar", "Faol va yangi buyurtmalar")
-                        if (active != null) Panel { Text("Sizda faol buyurtma mavjud.", fontWeight = FontWeight.Bold) }
-                        Text("Yangi buyurtmalar: " + available.size + " ta", color = Muted)
-                        available.forEach { order -> OrderCard(order) { BigButton("Qabul qilish") { post("/orders/" + order.optInt("id") + "/accept") } } }
-                    }
-                    "Kabinet" -> {
-                        Panel {
-                            Text(profile?.optString("name").orEmpty().ifBlank { "Haydovchi" }, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                            Text(profile?.optString("phone").orEmpty(), color = Muted)
-                            Text("Roli: Haydovchi", color = Muted, fontSize = 13.sp)
-                        }
-                        BigButton("⚙  Sozlamalar") { selectedTab = "Sozlamalar" }
-                        DangerButton("Hisobdan chiqish") { onLogout() }
-                    }
-                    "Sozlamalar" -> Panel {
-                        BigLine("Sozlamalar", "Kabinet sozlamalari")
-                        Text("Sozlamalar bo'limi keyingi bosqichda to'ldiriladi.", color = Muted, fontSize = 13.sp)
-                        GhostButton("‹ Kabinetga qaytish") { selectedTab = "Kabinet" }
-                    }
-                    "Qo'llab-quvvatlash" -> Panel {
-                        BigLine("Qo'llab-quvvatlash", "TOXA yordam xizmati")
-                        Text("Savol yoki muammo bo'yicha yordam xizmati bilan bog'lanish.", color = Muted, fontSize = 13.sp)
-                        Text("Aloqa kanali keyingi bosqichda ulanadi.", color = Muted, fontSize = 12.sp)
-                    }
-                }
-            } else if (active != null && pickup != null && dropoff != null) {
+            if (active != null && pickup != null && dropoff != null) {
                 val isCash = active.optString("payMethod") == "cash"
                 val (bg, fg) = statusColors(st)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -321,14 +286,6 @@ fun DriverScreen(onLogout: () -> Unit) {
                 }
 
                 
-            }
-            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                listOf("Bosh sahifa", "Buyurtmalar", "Kabinet", "Qo'llab-quvvatlash").forEach { tab ->
-                    Column(Modifier.weight(1f).clickable { selectedTab = tab }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(when (tab) { "Bosh sahifa" -> "⌂"; "Buyurtmalar" -> "▤"; "Kabinet" -> "♙"; else -> "◉" }, fontSize = 19.sp, color = if (selectedTab == tab || (selectedTab == "Sozlamalar" && tab == "Kabinet")) Yellow else Muted, fontWeight = FontWeight.Bold)
-                        Text(when (tab) { "Bosh sahifa" -> "Bosh"; "Buyurtmalar" -> "Buyurtma"; "Kabinet" -> "Kabinet"; else -> "Yordam" }, fontSize = 9.sp, color = if (selectedTab == tab || (selectedTab == "Sozlamalar" && tab == "Kabinet")) Yellow else Muted)
-                    }
-                }
             }
             ErrorText(msg)
         }

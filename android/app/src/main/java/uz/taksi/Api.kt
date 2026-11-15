@@ -77,14 +77,20 @@ fun currentVersionCode(ctx: Context): Int = try {
     @Suppress("DEPRECATION") i.versionCode
 } catch (e: Exception) { 0 }
 
-/** Eng so'nggi release: Pair(versiya raqami, APK havolasi) yoki null */
-suspend fun latestRelease(): Pair<Int, String>? = withContext(Dispatchers.IO) {
+/**
+ * Eng so'nggi release: Pair(versiya raqami, APK havolasi) yoki null.
+ * tag == null: foydalanuvchi ilovasi (releases/latest, tag "build-N").
+ * tag berilsa (masalan "toxa-admin"): shu tegdagi release, versiya raqami nomining oxiridan olinadi.
+ */
+suspend fun latestRelease(tag: String? = null): Pair<Int, String>? = withContext(Dispatchers.IO) {
     try {
-        val c = URL("https://api.github.com/repos/$REPO/releases/latest").openConnection() as HttpURLConnection
+        val path = if (tag == null) "releases/latest" else "releases/tags/$tag"
+        val c = URL("https://api.github.com/repos/$REPO/$path").openConnection() as HttpURLConnection
         c.connectTimeout = 8000; c.readTimeout = 8000
         c.setRequestProperty("Accept", "application/vnd.github+json")
         val j = JSONObject(c.inputStream.bufferedReader().readText())
-        val n = j.getString("tag_name").removePrefix("build-").toInt()
+        val n = if (tag == null) j.getString("tag_name").removePrefix("build-").toInt()
+        else Regex("(\\d+)\\s*$").find(j.optString("name"))!!.groupValues[1].toInt()
         val assets = j.getJSONArray("assets")
         var url = ""
         for (i in 0 until assets.length()) {
@@ -94,3 +100,10 @@ suspend fun latestRelease(): Pair<Int, String>? = withContext(Dispatchers.IO) {
         if (url.isEmpty()) null else Pair(n, url)
     } catch (e: Exception) { null }
 }
+
+/** Qo'llab-quvvatlash aloqa ma'lumotlari. Bo'sh bo'lsa, tegishli tugma ko'rsatilmaydi. */
+const val SUPPORT_PHONE = ""      // masalan: "+998901234567"
+const val SUPPORT_TELEGRAM = ""   // masalan: "toxa_support" (@ belgisiz)
+
+/** Karta to'lovi provayderi ulangunga qadar o'chiq (server ham shunday rad etadi). */
+const val CARD_ENABLED = false

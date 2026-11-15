@@ -91,6 +91,21 @@ async function login(phone, name, role) {
   ok((await call('POST', `/orders/${o4.j.order.id}/rate`, { rating: 5 }, P)).s === 400, 'ikkinchi marta baholab bo\'lmaydi');
   ok((await call('GET', '/stats', null, D)).j.rating === 4, 'haydovchi reytingi yangilandi');
 
+  // ---- Qo'llab-quvvatlash ----
+  ok((await call('POST', '/support', { text: 'a' }, P)).s === 400, 'juda qisqa murojaat rad etildi');
+  const tk = await call('POST', '/support', { text: 'Ilova haqida savol bor' }, P);
+  ok(tk.s === 200 && tk.j.ticket.status === 'open', 'murojaat yuborildi');
+  ok((await call('GET', '/support/mine', null, P)).j.tickets.length === 1, 'murojaatlarim ro\'yxati');
+  if (process.env.ADMIN_PHONE) {
+    const ra2 = await call('POST', '/auth/request', { phone: process.env.ADMIN_PHONE });
+    const va2 = await call('POST', '/auth/verify', { phone: process.env.ADMIN_PHONE, code: ra2.j.devCode, name: 'Admin', admin: true });
+    const A2 = va2.j.token;
+    const tl = await call('GET', '/admin/tickets?status=open', null, A2);
+    ok(tl.j.tickets.length === 1 && tl.j.tickets[0].phone, 'admin murojaatni ko\'rdi');
+    ok((await call('POST', `/admin/tickets/${tl.j.tickets[0].id}/reply`, { text: 'Yordam beramiz' }, A2)).j.ticket.status === 'closed', 'admin javob berdi');
+    ok((await call('GET', '/support/mine', null, P)).j.tickets[0].reply === 'Yordam beramiz', 'foydalanuvchi javobni ko\'rdi');
+  }
+
   // ---- Admin (ADMIN_PHONES=+998900000000 bilan ishga tushirilgan serverda) ----
   const AP = process.env.ADMIN_PHONE;
   if (AP) {
