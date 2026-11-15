@@ -81,6 +81,55 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+private fun AppEntry(prefs: SharedPreferences) {
+    var showSplash by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        delay(1700)
+        showSplash = false
+    }
+    Box(Modifier.fillMaxSize()) {
+        App(prefs)
+        AnimatedVisibility(
+            visible = showSplash,
+            enter = fadeIn() + scaleIn(initialScale = 0.94f),
+            exit = fadeOut(),
+        ) {
+            Box(
+                Modifier.fillMaxSize().background(Yellow),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.toxa_logo),
+                        contentDescription = "TOXA",
+                        modifier = Modifier.size(116.dp).clip(RoundedCornerShape(28.dp)),
+                    )
+                    Spacer(Modifier.height(18.dp))
+                    Text(
+                        "TOXA",
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Ink,
+                        letterSpacing = 7.sp,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "HAR BIR SAFARDA ISHONCH",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Ink.copy(alpha = 0.72f),
+                        letterSpacing = 1.5.sp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun App(prefs: SharedPreferences) {
     var role by remember { mutableStateOf(prefs.getString("role", "") ?: "") }
     val logout = {
