@@ -2,11 +2,23 @@ package uz.taksi
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.material3.Text
 import androidx.compose.material3.Slider
 import androidx.compose.runtime.Composable
@@ -46,6 +58,9 @@ fun DriverScreen(onLogout: () -> Unit) {
     var available by remember { mutableStateOf(listOf<JSONObject>()) }
     var mine by remember { mutableStateOf(listOf<JSONObject>()) }
     var stats by remember { mutableStateOf<JSONObject?>(null) }
+    var profile by remember { mutableStateOf<JSONObject?>(null) }
+    var showCabinet by remember { mutableStateOf(false) }
+    var showAccount by remember { mutableStateOf(false) }
     var online by remember { mutableStateOf(false) }
     var shiftSlider by remember { mutableStateOf(0f) }
     var shiftDragging by remember { mutableStateOf(false) }
@@ -65,6 +80,8 @@ fun DriverScreen(onLogout: () -> Unit) {
                 if (!a.sameAs(available)) available = a
                 val s = io { Api.call("GET", "/stats") }
                 if (s.toString() != stats?.toString()) stats = s
+                val p = io { Api.call("GET", "/profile") }
+                if (p.toString() != profile?.toString()) profile = p
                 online = s.optBoolean("online", false)
                 if (!shiftDragging) shiftSlider = if (online) 1f else 0f
             } catch (e: Exception) { }
@@ -200,38 +217,52 @@ fun DriverScreen(onLogout: () -> Unit) {
                         Pill(if (online) "ONLAYN" else "OFFLAYN", if (online) Color(0xFF173D2C) else Color(0xFF30343C), if (online) Color(0xFF7BE0A2) else Color.White.copy(alpha = 0.75f))
                     }
                     Text(if (online) "Ishdan chiqish uchun chapga suring" else "Ishga chiqish uchun o\u0027ngga suring", fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
-                    Slider(value = shiftSlider, onValueChange = { shiftDragging = true; shiftSlider = it }, onValueChangeFinished = { shiftDragging = false; setAvailability(shiftSlider >= 0.5f) })
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("◀ Ishdan chiqish", fontSize = 11.sp, color = Color.White.copy(alpha = 0.55f))
-                        Text("Ishga chiqish ▶", fontSize = 11.sp, color = Yellow, fontWeight = FontWeight.Bold)
+                    // Yandex Pro uslubidagi keng, qalin surish yo'lagi
+                    BoxWithConstraints(
+                        Modifier.fillMaxWidth().padding(top = 4.dp)
+                            .height(64.dp)
+                            .background(Color(0xFF252A32), RoundedCornerShape(32.dp))
+                            .pointerInput(online) {
+                                var dragValue = shiftSlider
+                                detectHorizontalDragGestures(
+                                    onDragStart = { shiftDragging = true; dragValue = shiftSlider },
+                                    onHorizontalDrag = { change, amount ->
+                                        change.consume()
+                                        dragValue = (dragValue + amount / size.width.toFloat()).coerceIn(0f, 1f)
+                                        shiftSlider = dragValue
+                                    },
+                                    onDragEnd = {
+                                        shiftDragging = false
+                                        setAvailability(dragValue >= 0.5f)
+                                    },
+                                    onDragCancel = {
+                                        shiftDragging = false
+                                        shiftSlider = if (online) 1f else 0f
+                                    },
+                                )
+                            },
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        Box(Modifier.fillMaxWidth(shiftSlider.coerceAtLeast(0.16f)).height(64.dp)
+                            .background(if (online) Color(0xFF237A4B) else Color(0xFF4A505B), RoundedCornerShape(32.dp)))
+                        Text(
+                            if (online) "◀  ISHDAN CHIQISH UCHUN SURING" else "ISHGA CHIQISH UCHUN SURING  ▶",
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 60.dp),
+                            fontSize = 11.sp, fontWeight = FontWeight.ExtraBold,
+                            color = Color.White, letterSpacing = 0.3.sp,
+                        )
+                        Box(
+                            Modifier.offset(x = (maxWidth - 58.dp) * shiftSlider)
+                                .size(58.dp).padding(5.dp)
+                                .background(Yellow, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text("➜", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Ink)
+                        }
                     }
                 }
 
-                stats?.let {
-                    Panel(color = Ink) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text("BUGUNGI NATIJA", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.65f), letterSpacing = 1.sp)
-                            Box(Modifier.weight(1f))
-                            Pill("HISOBOT", Color(0xFF30343C), Yellow)
-                        }
-                        Text("Bugungi daromad", fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
-                        Text(som(it.optLong("todaySum")), fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = Yellow)
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            StatItem("Bugun", "${it.optInt("todayCount")} ta", Modifier.weight(1f))
-                            StatItem("Reyting", if (it.optInt("ratingCount") > 0) String.format("%.1f ★", it.optDouble("rating")) else "—", Modifier.weight(1f))
-                            StatItem("Buyurtmalar", "${it.optInt("totalCount")} ta", Modifier.weight(1f))
-                        }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            StatItem("Naqd", som(it.optLong("todayCash")), Modifier.weight(1f))
-                            StatItem("Karta", som(it.optLong("todayCard")), Modifier.weight(1f))
-                            StatItem("Baholar", if (it.optInt("ratingCount") > 0) "${it.optInt("ratingCount")} ta" else "Hali yo\u0027q", Modifier.weight(1f))
-                        }
-                        Text(
-                            "Jami daromad: ${som(it.optLong("totalSum"))}",
-                            fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f),
-                        )
-                    }
-                }
+
 
                 BigLine(
                     "Yangi buyurtmalar",
@@ -252,7 +283,66 @@ fun DriverScreen(onLogout: () -> Unit) {
                         BigButton("Qabul qilish") { post("/orders/${o.optInt("id")}/accept") }
                     }
                 }
-            }
+
+                
+                // Hisob va shaxsiy kabinet — buyurtmalar ro'yxatidan keyingi pastki qatorlar
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Panel(Modifier.weight(1f).clickable { showAccount = !showAccount }) {
+                        Text("💳  HISOB", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                        Text("Daromad va buyurtmalar", fontSize = 11.sp, color = Muted)
+                    }
+                    Panel(Modifier.weight(1f).clickable { showCabinet = !showCabinet }) {
+                        Text("👤  SHAXSIY KABINET", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                        Text("Profil va ma'lumotlar", fontSize = 11.sp, color = Muted)
+                    }
+                }
+                if (showAccount) {
+                    Panel {
+                        BigLine("Hisob", "Haydovchilik faoliyatingiz bo'yicha ko'rsatkichlar")
+                        stats?.let {
+    Panel(color = Ink) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("BUGUNGI NATIJA", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.65f), letterSpacing = 1.sp)
+            Box(Modifier.weight(1f))
+            Pill("HISOBOT", Color(0xFF30343C), Yellow)
+        }
+        Text("Bugungi daromad", fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
+        Text(som(it.optLong("todaySum")), fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = Yellow)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatItem("Bugun", "${it.optInt("todayCount")} ta", Modifier.weight(1f))
+            StatItem("Reyting", if (it.optInt("ratingCount") > 0) String.format("%.1f ★", it.optDouble("rating")) else "—", Modifier.weight(1f))
+            StatItem("Buyurtmalar", "${it.optInt("totalCount")} ta", Modifier.weight(1f))
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatItem("Naqd", som(it.optLong("todayCash")), Modifier.weight(1f))
+            StatItem("Karta", som(it.optLong("todayCard")), Modifier.weight(1f))
+            StatItem("Baholar", if (it.optInt("ratingCount") > 0) "${it.optInt("ratingCount")} ta" else "Hali yo\u0027q", Modifier.weight(1f))
+        }
+        Text(
+            "Jami daromad: ${som(it.optLong("totalSum"))}",
+            fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f),
+        )
+    }
+}
+                    }
+                }
+                if (showCabinet) {
+                    Panel {
+                        BigLine("Shaxsiy kabinet", "Hisob ma'lumotlari")
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(48.dp).background(Color(0xFFFFF1C2), CircleShape), contentAlignment = Alignment.Center) {
+                                Text("👤", fontSize = 24.sp)
+                            }
+                            Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                                Text(profile?.optString("name").orEmpty().ifBlank { "Haydovchi" }, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                                Text(profile?.optString("phone").orEmpty(), fontSize = 13.sp, color = Muted)
+                            }
+                        }
+                        Text("Roli: Haydovchi", fontSize = 13.sp, color = Muted)
+                        Text("TOXA haydovchi profili", fontSize = 12.sp, color = Muted)
+                        GhostButton("Kabinetni yopish") { showCabinet = false }
+                    }
+                }            }
             ErrorText(msg)
         }
     }
