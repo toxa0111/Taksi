@@ -45,6 +45,7 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.9.2")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
     // Yandex MapKit Full: xarita, tirbandlik va avtomobil marshrutlari
     implementation("com.yandex.android:maps.mobile:4.45.0-full")
 }
