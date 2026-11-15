@@ -231,15 +231,28 @@ fun DriverScreen(onLogout: () -> Unit) {
                         BigButton("⚙  Sozlamalar") { selectedTab = "Sozlamalar" }
                         DangerButton("Hisobdan chiqish") { onLogout() }
                     }
-                    "Sozlamalar" -> Panel {
-                        BigLine("Sozlamalar", "Kabinet sozlamalari")
-                        Text("Sozlamalar bo'limi keyingi bosqichda to'ldiriladi.", color = Muted, fontSize = 13.sp)
+                    "Sozlamalar" -> {
+                        BigLine("Sozlamalar", "Kabinet va hisob ma'lumotlari")
+                        AccountSettingsContent(
+                            name = profile?.optString("name").orEmpty(),
+                            phone = profile?.optString("phone").orEmpty(),
+                            role = "Haydovchi",
+                            onRefresh = {
+                                scope.launch {
+                                    try {
+                                        profile = io { Api.call("GET", "/profile") }
+                                        msg = "Hisob ma'lumotlari yangilandi"
+                                    } catch (e: Exception) { msg = e.message ?: "Ma'lumotlarni yangilab bo'lmadi" }
+                                }
+                            },
+                        )
                         GhostButton("‹ Kabinetga qaytish") { selectedTab = "Kabinet" }
                     }
-                    "Qo'llab-quvvatlash" -> Panel {
-                        BigLine("Qo'llab-quvvatlash", "TOXA yordam xizmati")
-                        Text("Savol yoki muammo bo'yicha yordam xizmati bilan bog'lanish.", color = Muted, fontSize = 13.sp)
-                        Text("Aloqa kanali keyingi bosqichda ulanadi.", color = Muted, fontSize = 12.sp)
+                    "Qo'llab-quvvatlash" -> {
+                        BigLine("Qo'llab-quvvatlash", "TOXA yordam markazi")
+                        Text("Ko'p uchraydigan savollarga javoblar", fontSize = 13.sp, color = Muted)
+                        SupportFaq()
+                        Text("Bevosita operator bilan aloqa kanali hali sozlanmagan.", fontSize = 12.sp, color = Muted)
                     }
                 }
             } else if (active != null && pickup != null && dropoff != null) {
