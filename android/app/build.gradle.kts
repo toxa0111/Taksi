@@ -10,10 +10,12 @@ android {
 
     defaultConfig {
         applicationId = "uz.taksi"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = (project.findProperty("appVersionCode") as String? ?: "1").toInt()
         versionName = "1.0." + (project.findProperty("appVersionCode") as String? ?: "1")
+        val mapkitApiKey = System.getenv("YANDEX_MAPKIT_API_KEY") ?: ""
+        buildConfigField("String", "MAPKIT_API_KEY", "\"\${mapkitApiKey}\"")
     }
 
     signingConfigs {
@@ -25,7 +27,10 @@ android {
         }
     }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -40,6 +45,6 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.9.2")
-    // Xarita: OpenStreetMap (API kalit va to'lov shart emas)
-    implementation("org.osmdroid:osmdroid-android:6.1.18")
+    // Yandex MapKit Full: xarita, tirbandlik va avtomobil marshrutlari
+    implementation("com.yandex.android:maps.mobile:4.45.0-full")
 }
