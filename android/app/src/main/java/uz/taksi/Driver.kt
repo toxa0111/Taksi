@@ -120,6 +120,12 @@ fun DriverScreen(onLogout: () -> Unit) {
                 io { Api.call("POST", "/driver/availability", JSONObject().put("online", value)) }
                 online = value
                 shiftSlider = if (value) 1f else 0f
+                if (value) {
+                    // Ishga chiqqach haydovchi panelini yopib, xaritani asosiy ko'rinishda qoldiramiz.
+                    selectedTab = "Bosh sahifa"
+                    sheetExpanded = false
+                    mapOnlyMode = false
+                }
                 msg = ""
             } catch (e: Exception) {
                 shiftSlider = if (online) 1f else 0f
@@ -170,10 +176,30 @@ fun DriverScreen(onLogout: () -> Unit) {
                 onMapTap = { mapOnlyTap++ },
             )
             if (!mapOnlyMode) {
-                FloatingChip(
-                    "TOXA  •  HAYDOVCHI",
-                    Modifier.align(Alignment.TopStart).padding(12.dp),
-                ) {}
+                if (online) {
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopStart).padding(12.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .clickable { setAvailability(false) },
+                        color = Color(0xFF20252D),
+                        shape = RoundedCornerShape(18.dp),
+                        shadowElevation = 8.dp,
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text("⏻", color = Color(0xFFFF6B6B), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            Text("OFFLINE", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+                } else {
+                    FloatingChip(
+                        "TOXA  •  HAYDOVCHI",
+                        Modifier.align(Alignment.TopStart).padding(12.dp),
+                    ) {}
+                }
                 FloatingChip("📍 Mening joyim", Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
                     val m = me
                     if (m != null) { centerTo = m; centerKey++ }
