@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
+import androidx.compose.material3.Slider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,6 +46,9 @@ fun DriverScreen(onLogout: () -> Unit) {
     var available by remember { mutableStateOf(listOf<JSONObject>()) }
     var mine by remember { mutableStateOf(listOf<JSONObject>()) }
     var stats by remember { mutableStateOf<JSONObject?>(null) }
+    var online by remember { mutableStateOf(false) }
+    var shiftSlider by remember { mutableStateOf(0f) }
+    var shiftDragging by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf("") }
 
     ShareLocation(me)
@@ -61,6 +65,8 @@ fun DriverScreen(onLogout: () -> Unit) {
                 if (!a.sameAs(available)) available = a
                 val s = io { Api.call("GET", "/stats") }
                 if (s.toString() != stats?.toString()) stats = s
+                online = s.optBoolean("online", false)
+                if (!shiftDragging) shiftSlider = if (online) 1f else 0f
             } catch (e: Exception) { }
             delay(3000)
         }
@@ -70,6 +76,20 @@ fun DriverScreen(onLogout: () -> Unit) {
         scope.launch {
             try { io { Api.call("POST", path, body) }; msg = "" }
             catch (e: Exception) { msg = e.message ?: "Xato" }
+        }
+    }
+
+    fun setAvailability(value: Boolean) {
+        scope.launch {
+            try {
+                io { Api.call("POST", "/driver/availability", JSONObject().put("online", value)) }
+                online = value
+                shiftSlider = if (value) 1f else 0f
+                msg = ""
+            } catch (e: Exception) {
+                shiftSlider = if (online) 1f else 0f
+                msg = e.message ?: "Ish holatini o'zgartirib bo'lmadi"
+            }
         }
     }
 
@@ -171,6 +191,22 @@ fun DriverScreen(onLogout: () -> Unit) {
                     DangerButton("Buyurtmani rad etish") { post("/orders/$id/cancel") }
                 }
             } else {
+                Panel(color = Ink) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("HAYDOVCHI HOLATI", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.62f), letterSpacing = 1.sp)
+                            Text(if (online) "Ishdasiz" else "Hozir ishda emassiz", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = if (online) Color(0xFF7BE0A2) else Color.White)
+                        }
+                        Pill(if (online) "ONLAYN" else "OFFLAYN", if (online) Color(0xFF173D2C) else Color(0xFF30343C), if (online) Color(0xFF7BE0A2) else Color.White.copy(alpha = 0.75f))
+                    }
+                    Text(if (online) "Ishdan chiqish uchun chapga suring" else "Ishga chiqish uchun o\u0027ngga suring", fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
+                    Slider(value = shiftSlider, onValueChange = { shiftDragging = true; shiftSlider = it }, onValueChangeFinished = { shiftDragging = false; setAvailability(shiftSlider >= 0.5f) })
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("◀ Ishdan chiqish", fontSize = 11.sp, color = Color.White.copy(alpha = 0.55f))
+                        Text("Ishga chiqish ▶", fontSize = 11.sp, color = Yellow, fontWeight = FontWeight.Bold)
+                    }
+                }
+
                 stats?.let {
                     Panel(color = Ink) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -181,12 +217,17 @@ fun DriverScreen(onLogout: () -> Unit) {
                         Text("Bugungi daromad", fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
                         Text(som(it.optLong("todaySum")), fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = Yellow)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            StatItem("Safarlar", "${it.optInt("todayCount")} ta", Modifier.weight(1f))
+                            StatItem("Bugun", "${it.optInt("todayCount")} ta", Modifier.weight(1f))
+                            StatItem("Reyting", if (it.optInt("ratingCount") > 0) String.format("%.1f ★", it.optDouble("rating")) else "—", Modifier.weight(1f))
+                            StatItem("Buyurtmalar", "${it.optInt("totalCount")} ta", Modifier.weight(1f))
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             StatItem("Naqd", som(it.optLong("todayCash")), Modifier.weight(1f))
                             StatItem("Karta", som(it.optLong("todayCard")), Modifier.weight(1f))
+                            StatItem("Baholar", if (it.optInt("ratingCount") > 0) "${it.optInt("ratingCount")} ta" else "Hali yo\u0027q", Modifier.weight(1f))
                         }
                         Text(
-                            "Jami: ${it.optInt("totalCount")} ta safar · ${som(it.optLong("totalSum"))}",
+                            "Jami daromad: ${som(it.optLong("totalSum"))}",
                             fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f),
                         )
                     }
