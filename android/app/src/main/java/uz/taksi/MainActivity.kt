@@ -271,6 +271,8 @@ fun UpdateDialog() {
     var pendingInstallUri by remember { mutableStateOf<Uri?>(null) }
 
     fun openInstaller(uri: Uri) {
+        downloading = false
+        pendingInstallUri = null
         try {
             val installIntent = Intent(Intent.ACTION_INSTALL_PACKAGE)
                 .setData(uri)
@@ -291,6 +293,7 @@ fun UpdateDialog() {
             openInstaller(uri)
         } else if (uri != null) {
             downloading = false
+            pendingInstallUri = null
             android.widget.Toast.makeText(ctx, "TOXA uchun noma'lum ilovalarni o'rnatishga ruxsat bering, so'ng qayta urinib ko'ring.", android.widget.Toast.LENGTH_LONG).show()
         }
     }
