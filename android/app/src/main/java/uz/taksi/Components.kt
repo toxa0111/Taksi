@@ -136,6 +136,7 @@ fun TariffRow(price: Long, mins: Int, km: Double) {
             Text("≈ $mins daq", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Text(String.format("%.1f km", km), fontSize = 13.sp, color = Muted)
         }
+        }
     }
 }
 
