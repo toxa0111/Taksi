@@ -71,7 +71,18 @@ fun DriverScreen(onLogout: () -> Unit) {
     var shiftDragging by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf("") }
     var navVisible by remember { mutableStateOf(true) }
-    var sheetExpanded by remember { mutableStateOf(true) }
+    // Bosh ekran ixcham panel bilan ochiladi; xaritaga bosilganda vaqtincha faqat xarita qoladi.
+    var sheetExpanded by remember { mutableStateOf(false) }
+    var mapOnlyMode by remember { mutableStateOf(false) }
+    var mapOnlyTap by remember { mutableStateOf(0) }
+
+    LaunchedEffect(mapOnlyTap) {
+        if (mapOnlyTap > 0) {
+            mapOnlyMode = true
+            delay(3500)
+            mapOnlyMode = false
+        }
+    }
 
     ShareLocation(me)
     LaunchedEffect(me != null) {
@@ -156,19 +167,21 @@ fun DriverScreen(onLogout: () -> Unit) {
                 route = route?.points,
                 fitKey = fitKey,
                 centerKey = centerKey,
-                onMapTap = { navVisible = false; scope.launch { delay(3500); navVisible = true } },
+                onMapTap = { mapOnlyTap++ },
             )
-            FloatingChip(
-                "TOXA  •  HAYDOVCHI",
-                Modifier.align(Alignment.TopStart).padding(12.dp),
-            ) {}
-            FloatingChip("📍 Mening joyim", Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
-                val m = me
-                if (m != null) { centerTo = m; centerKey++ }
+            if (!mapOnlyMode) {
+                FloatingChip(
+                    "TOXA  •  HAYDOVCHI",
+                    Modifier.align(Alignment.TopStart).padding(12.dp),
+                ) {}
+                FloatingChip("📍 Mening joyim", Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
+                    val m = me
+                    if (m != null) { centerTo = m; centerKey++ }
+                }
             }
             }
 
-            if (sheetExpanded) Sheet(Modifier.align(Alignment.BottomCenter)) {
+            if (!mapOnlyMode && sheetExpanded) Sheet(Modifier.align(Alignment.BottomCenter)) {
             if (selectedTab != "Bosh sahifa") {
                 BigLine(selectedTab, "Kerakli bo'lim")
                 when (selectedTab) {
@@ -399,15 +412,20 @@ fun DriverScreen(onLogout: () -> Unit) {
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text("HAYDOVCHI PANELI", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.65f))
-                            Text("${available.size} ta yangi buyurtma  ·  ${if (online) "ONLAYN" else "OFFLAYN"}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Yangi buyurtmalar: ${available.size} ta  ·  ${if (online) "ONLAYN" else "OFFLAYN"}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                         Text("⌃", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Yellow)
                     }
                 }
             }
         }
-        AnimatedVisibility(visible = navVisible, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
-            DriverBottomNavigation(selectedTab = selectedTab, onSelect = { selectedTab = it })
+        if (!mapOnlyMode) {
+            AnimatedVisibility(visible = navVisible, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
+                DriverBottomNavigation(selectedTab = selectedTab, onSelect = {
+                    selectedTab = it
+                    sheetExpanded = true
+                })
+            }
         }
     }
 }
