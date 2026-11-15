@@ -3,7 +3,7 @@ name: APK yig'ish
 on:
   workflow_dispatch: {}
   push:
-    branches: [main, master]
+    branches: [main, master, "ui/fixed-bottom-navigation"]
   pull_request:
     branches: [main, master]
 
@@ -33,13 +33,14 @@ jobs:
           name: taksi-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
       - name: APK ni nomlash
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/ui/fixed-bottom-navigation')
         run: cp android/app/build/outputs/apk/debug/app-debug.apk taksi.apk
       - name: Release yaratish (ilova yangilanishi shu yerdan)
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/ui/fixed-bottom-navigation')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: Taksi ${{ github.run_number }}
+          name: TOXA ${{ github.run_number }}
           files: taksi.apk
-          make_latest: true
+          prerelease: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' }}
+          make_latest: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
