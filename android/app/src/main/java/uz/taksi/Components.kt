@@ -92,6 +92,7 @@ fun AddressRow(dot: Color, label: String, value: String, isPlaceholder: Boolean 
                 color = if (isPlaceholder) Muted else Ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
         }
+        }
     }
 }
 
