@@ -17,7 +17,7 @@ val DEFAULT_CENTER = Pair(41.311, 69.279)
 
 object Api {
     /** Emulyatorda 10.0.2.2 — kompyuterning localhost'i. Haqiqiy telefonda server manzilini kiriting. */
-    var base = "http://10.0.2.2:3000"
+    var base = "https://taksi-server.onrender.com"
     var token = ""
 
     fun call(method: String, path: String, body: JSONObject? = null): JSONObject {
