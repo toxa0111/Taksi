@@ -1,5 +1,8 @@
 package uz.taksi
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -67,6 +70,7 @@ fun DriverScreen(onLogout: () -> Unit) {
     var shiftSlider by remember { mutableStateOf(0f) }
     var shiftDragging by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf("") }
+    var navVisible by remember { mutableStateOf(true) }
 
     ShareLocation(me)
     LaunchedEffect(me != null) {
@@ -151,6 +155,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                 route = route?.points,
                 fitKey = fitKey,
                 centerKey = centerKey,
+                onMapTap = { navVisible = false; scope.launch { delay(3500); navVisible = true } },
             )
             FloatingChip(
                 "TOXA  •  HAYDOVCHI",
@@ -383,7 +388,9 @@ fun DriverScreen(onLogout: () -> Unit) {
             ErrorText(msg)
             }
         }
-        DriverBottomNavigation(selectedTab = selectedTab, onSelect = { selectedTab = it })
+        AnimatedVisibility(visible = navVisible, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
+            DriverBottomNavigation(selectedTab = selectedTab, onSelect = { selectedTab = it })
+        }
     }
 }
 
