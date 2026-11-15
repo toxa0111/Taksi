@@ -21,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -87,7 +86,7 @@ fun MapBox(
         object : InputListener {
             override fun onMapTap(map: Map, point: Point) {
                 mapTapRef.value?.invoke()
-                if (tappable) tapRef.value?.invoke(point.latitude, point.longitude)
+                if (tapRef.value != null) tapRef.value?.invoke(point.latitude, point.longitude)
             }
             override fun onMapLongTap(map: Map, point: Point) = Unit
         }
@@ -118,7 +117,6 @@ fun MapBox(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             try { mapView.onStop() } catch (_: Exception) { }
-            mapView.onDestroy()
         }
     }
 
