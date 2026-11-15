@@ -72,15 +72,6 @@ class MainActivity : ComponentActivity() {
         setContent { TaksiTheme { Surface(Modifier.fillMaxSize(), color = PageBg) { App(prefs) } } }
     }
 
-    override fun onStart() {
-        super.onStart()
-        if (mapKitReady) MapKitFactory.getInstance().onStart()
-    }
-
-    override fun onStop() {
-        if (mapKitReady) MapKitFactory.getInstance().onStop()
-        super.onStop()
-    }
 }
 
 @Composable
