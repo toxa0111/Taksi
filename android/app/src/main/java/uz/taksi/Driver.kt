@@ -48,6 +48,7 @@ fun DriverScreen(onLogout: () -> Unit) {
     var stats by remember { mutableStateOf<JSONObject?>(null) }
     var online by remember { mutableStateOf(false) }
     var shiftSlider by remember { mutableStateOf(0f) }
+    var shiftDragging by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf("") }
 
     ShareLocation(me)
@@ -65,7 +66,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                 val s = io { Api.call("GET", "/stats") }
                 if (s.toString() != stats?.toString()) stats = s
                 online = s.optBoolean("online", false)
-                shiftSlider = if (online) 1f else 0f
+                if (!shiftDragging) shiftSlider = if (online) 1f else 0f
             } catch (e: Exception) { }
             delay(3000)
         }
@@ -199,7 +200,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                         Pill(if (online) "ONLAYN" else "OFFLAYN", if (online) Color(0xFF173D2C) else Color(0xFF30343C), if (online) Color(0xFF7BE0A2) else Color.White.copy(alpha = 0.75f))
                     }
                     Text(if (online) "Ishdan chiqish uchun chapga suring" else "Ishga chiqish uchun o\u0027ngga suring", fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
-                    Slider(value = shiftSlider, onValueChange = { shiftSlider = it }, onValueChangeFinished = { setAvailability(shiftSlider >= 0.5f) })
+                    Slider(value = shiftSlider, onValueChange = { shiftDragging = true; shiftSlider = it }, onValueChangeFinished = { shiftDragging = false; setAvailability(shiftSlider >= 0.5f) })
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("◀ Ishdan chiqish", fontSize = 11.sp, color = Color.White.copy(alpha = 0.55f))
                         Text("Ishga chiqish ▶", fontSize = 11.sp, color = Yellow, fontWeight = FontWeight.Bold)
