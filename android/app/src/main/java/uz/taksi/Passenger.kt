@@ -265,17 +265,26 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 BigButton("⚙  Sozlamalar") { selectedTab = "Sozlamalar" }
                 DangerButton("Hisobdan chiqish") { onLogout() }
             } else if (selectedTab == "Sozlamalar") {
-                BigLine("Sozlamalar", "Kabinet sozlamalari")
-                Panel {
-                    Text("Profil va xavfsizlik sozlamalari keyingi bosqichda ulanadi.", fontSize = 13.sp, color = Muted)
-                    GhostButton("‹ Kabinetga qaytish") { selectedTab = "Kabinet" }
-                }
+                BigLine("Sozlamalar", "Kabinet va hisob ma'lumotlari")
+                AccountSettingsContent(
+                    name = profile?.optString("name").orEmpty(),
+                    phone = profile?.optString("phone").orEmpty(),
+                    role = "Yo'lovchi",
+                    onRefresh = {
+                        scope.launch {
+                            try {
+                                profile = io { Api.call("GET", "/profile") }
+                                msg = "Hisob ma'lumotlari yangilandi"
+                            } catch (e: Exception) { msg = e.message ?: "Ma'lumotlarni yangilab bo'lmadi" }
+                        }
+                    },
+                )
+                GhostButton("‹ Kabinetga qaytish") { selectedTab = "Kabinet" }
             } else if (selectedTab == "Qo'llab-quvvatlash") {
-                BigLine("Qo'llab-quvvatlash", "TOXA yordam xizmati")
-                Panel {
-                    Text("Safar, to'lov yoki hisob bo'yicha savolingiz bo'lsa, yordam xizmatiga murojaat qiling.", fontSize = 13.sp, color = Muted)
-                    Text("Aloqa kanali hali ulanmagan.", fontSize = 12.sp, color = Muted)
-                }
+                BigLine("Qo'llab-quvvatlash", "TOXA yordam markazi")
+                Text("Ko'p uchraydigan savollarga javoblar", fontSize = 13.sp, color = Muted)
+                SupportFaq()
+                Text("Bevosita operator bilan aloqa kanali hali sozlanmagan.", fontSize = 12.sp, color = Muted)
             } else if (active != null) {
                 // ───── Faol buyurtma ─────
                 val (bg, fg) = statusColors(aSt)
