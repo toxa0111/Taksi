@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.drawable.GradientDrawable
 import android.location.LocationListener
 import android.location.LocationManager
@@ -18,6 +19,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,10 +28,13 @@ import androidx.core.content.ContextCompat
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Polyline
 
 /** Xaritadagi nuqta. title — bosilganda chiqadigan yozuv. */
 data class Pin(val lat: Double, val lng: Double, val title: String, val color: Int)
@@ -39,20 +44,31 @@ val RED = 0xFFC62828.toInt()     // borish manzili
 val BLUE = 0xFF1565C0.toInt()    // men
 val ORANGE = 0xFFEF6C00.toInt()  // haydovchi / yo'lovchi (jonli)
 
+private const val ROUTE_COLOR = 0xFF2962FF.toInt()
+
 /** Xaritaning oxirgi holati: o'zgarmagan bo'lsa, qayta chizilmaydi. */
-private class MapState(val center: Pair<Double, Double>, val pins: List<Pin>, val tappable: Boolean)
+private class MapState(
+    val center: Pair<Double, Double>,
+    val centerKey: Int,
+    val pins: List<Pin>,
+    val tappable: Boolean,
+    val route: List<Pair<Double, Double>>?,
+    val fitDone: Any?,
+)
 
 private fun dot(color: Int) = GradientDrawable().apply {
     shape = GradientDrawable.OVAL
     setColor(color)
-    setSize(44, 44)
-    setStroke(6, Color.WHITE)
+    setSize(52, 52)
+    setStroke(7, Color.WHITE)
 }
 
 /**
  * OpenStreetMap xaritasi.
- * center o'zgargandagina xarita markazi siljiydi (foydalanuvchi surib ko'rayotganda sakramaydi).
- * onTap berilsa, xaritaga bosilganda koordinata qaytariladi.
+ * - center yoki centerKey o'zgargandagina xarita markazi siljiydi (foydalanuvchi surib ko'rayotganda sakramaydi).
+ * - route berilsa, ko'k chiziq chiziladi. fitKey o'zgarganda (va marshrut bor bo'lsa) xarita marshrutga moslab
+ *   BIR MARTA yaqinlashtiriladi.
+ * - onTap berilsa, xaritaga bosilganda koordinata qaytariladi.
  */
 @Composable
 fun MapBox(
@@ -60,7 +76,12 @@ fun MapBox(
     center: Pair<Double, Double>,
     modifier: Modifier = Modifier,
     onTap: ((Double, Double) -> Unit)? = null,
+    route: List<Pair<Double, Double>>? = null,
+    fitKey: Any? = null,
+    centerKey: Int = 0,
 ) {
+    val tapRef = rememberUpdatedState(onTap)
+    val tappable = onTap != null
     AndroidView(
         modifier = modifier.fillMaxWidth(),
         factory = { c ->
@@ -69,29 +90,33 @@ fun MapBox(
             MapView(c).apply {
                 setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(true)
+                setTilesScaledToDpi(true)
+                zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
                 controller.setZoom(15.0)
             }
         },
         update = { map ->
             // Faqat o'zgargan bo'lsa yangilaymiz: har 3 soniyada xaritani qayta chizish ilovani qotiradi.
             val prev = map.tag as? MapState
-            val tappable = onTap != null
-            if (prev == null || prev.center != center) {
+            if (prev == null || prev.center != center || prev.centerKey != centerKey) {
                 map.controller.setCenter(GeoPoint(center.first, center.second))
             }
-            if (prev == null || prev.pins != pins || prev.tappable != tappable) {
+            if (prev == null || prev.pins != pins || prev.tappable != tappable || prev.route != route) {
                 map.overlays.clear()
-                if (onTap != null) {
-                    map.overlays.add(
-                        MapEventsOverlay(object : MapEventsReceiver {
-                            override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
-                                if (p != null) onTap(p.latitude, p.longitude)
-                                return true
-                            }
-
-                            override fun longPressHelper(p: GeoPoint?): Boolean = false
-                        })
-                    )
+                if (route != null && route.size > 1) {
+                    val pts = route.map { GeoPoint(it.first, it.second) }
+                    val casing = Polyline()
+                    casing.setPoints(pts)
+                    casing.outlinePaint.color = Color.WHITE
+                    casing.outlinePaint.strokeWidth = 20f
+                    casing.outlinePaint.strokeCap = Paint.Cap.ROUND
+                    map.overlays.add(casing)
+                    val line = Polyline()
+                    line.setPoints(pts)
+                    line.outlinePaint.color = ROUTE_COLOR
+                    line.outlinePaint.strokeWidth = 12f
+                    line.outlinePaint.strokeCap = Paint.Cap.ROUND
+                    map.overlays.add(line)
                 }
                 pins.forEach { pin ->
                     val m = Marker(map)
@@ -101,9 +126,28 @@ fun MapBox(
                     m.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     map.overlays.add(m)
                 }
+                if (tappable) {
+                    // Eng ustiga qo'yiladi: tanlash rejimida bosilgan joy doim qabul qilinadi.
+                    map.overlays.add(
+                        MapEventsOverlay(object : MapEventsReceiver {
+                            override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
+                                if (p != null) tapRef.value?.invoke(p.latitude, p.longitude)
+                                return true
+                            }
+
+                            override fun longPressHelper(p: GeoPoint?): Boolean = false
+                        })
+                    )
+                }
                 map.invalidate()
             }
-            map.tag = MapState(center, pins, tappable)
+            var fitDone = prev?.fitDone
+            if (fitKey != null && route != null && route.size > 1 && fitDone != fitKey) {
+                fitDone = fitKey
+                val box = BoundingBox.fromGeoPoints(route.map { GeoPoint(it.first, it.second) })
+                map.post { map.zoomToBoundingBox(box, true, 110) }
+            }
+            map.tag = MapState(center, centerKey, pins, tappable, route, fitDone)
         },
         onRelease = { it.onDetach() },
     )

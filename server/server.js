@@ -19,8 +19,13 @@ function distKm(a, b, c, d) {
   const h = Math.sin(dl / 2) ** 2 + Math.cos(rad(a)) * Math.cos(rad(c)) * Math.sin(dn / 2) ** 2;
   return 2 * 6371 * Math.asin(Math.sqrt(h)) * 1.3;      // 1.3 — yo'l egriligi koeffitsiyenti
 }
-function quote(a, b, c, d) {
-  const km = Math.max(0.1, Math.round(distKm(a, b, c, d) * 10) / 10);
+// kmHint: mijoz OSRM'dan olgan haqiqiy yo'l masofasi. Faqat oqilona oraliqda qabul qilinadi:
+// to'g'ri chiziqdan (haversine) kichik bo'lmasligi va 4 baravardan oshmasligi kerak.
+function quote(a, b, c, d, kmHint) {
+  const straight = distKm(a, b, c, d) / 1.3;
+  let raw = distKm(a, b, c, d);
+  if (typeof kmHint === 'number' && isFinite(kmHint) && kmHint >= straight && kmHint <= straight * 4 + 2) raw = kmHint;
+  const km = Math.max(0.1, Math.round(raw * 10) / 10);
   const price = Math.max(MIN_FARE, Math.round((BASE + km * PER_KM) / 500) * 500);
   return { km, price };
 }
@@ -93,7 +98,7 @@ http.createServer(async (req, res) => {
     if (m === 'GET' && p === '/estimate') {
       const [a, b2, c, d] = ['flat', 'flng', 'tlat', 'tlng'].map(k => parseFloat(url.searchParams.get(k)));
       if ([a, b2, c, d].some(isNaN)) return send(res, 400, { error: 'Koordinata xato' });
-      return send(res, 200, quote(a, b2, c, d));
+      return send(res, 200, quote(a, b2, c, d, parseFloat(url.searchParams.get('km'))));
     }
 
     // Joriy joylashuvni yangilash (yo'lovchi ham, haydovchi ham)
@@ -111,7 +116,7 @@ http.createServer(async (req, res) => {
       if (db.orders.some(o => o.passengerId === user.id && isActive(o))) return send(res, 400, { error: 'Sizda faol buyurtma bor' });
       const [a, b2, c, d] = [num(b.fromLat), num(b.fromLng), num(b.toLat), num(b.toLng)];
       if ([a, b2, c, d].some(isNaN) || !b.from || !b.to) return send(res, 400, { error: 'Manzil to\'liq emas' });
-      const q = quote(a, b2, c, d);
+      const q = quote(a, b2, c, d, num(b.km));
       const o = {
         id: db.seq++, passengerId: user.id, driverId: null, status: 'searching',
         from: String(b.from).slice(0, 120), to: String(b.to).slice(0, 120),

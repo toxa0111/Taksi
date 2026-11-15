@@ -1,7 +1,6 @@
 package uz.taksi
 
 import android.content.Context
-import android.location.Geocoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -49,28 +48,6 @@ fun List<JSONObject>.sameAs(other: List<JSONObject>): Boolean =
     size == other.size && indices.all { this[it].toString() == other[it].toString() }
 
 fun som(n: Long): String = n.toString().reversed().chunked(3).joinToString(" ").reversed() + " so'm"
-
-/** Manzil matnini koordinataga aylantiradi (qurilmadagi Geocoder orqali). */
-fun geocode(ctx: Context, q: String): Pair<Double, Double>? {
-    if (!Geocoder.isPresent()) return null
-    return try {
-        @Suppress("DEPRECATION")
-        val r = Geocoder(ctx).getFromLocationName("$q, $CITY", 1)
-        val a = r?.firstOrNull()
-        if (a == null) null else Pair(a.latitude, a.longitude)
-    } catch (e: Exception) { null }
-}
-
-/** Koordinatadan manzil matni. Topilmasa — "Xaritadagi nuqta". */
-fun reverseGeocode(ctx: Context, lat: Double, lng: Double): String {
-    val fallback = "Xaritadagi nuqta"
-    if (!Geocoder.isPresent()) return fallback
-    return try {
-        @Suppress("DEPRECATION")
-        val r = Geocoder(ctx).getFromLocation(lat, lng, 1)
-        r?.firstOrNull()?.getAddressLine(0)?.take(80) ?: fallback
-    } catch (e: Exception) { fallback }
-}
 
 val STATUS = mapOf(
     "searching" to "🔎 Haydovchi qidirilmoqda",
