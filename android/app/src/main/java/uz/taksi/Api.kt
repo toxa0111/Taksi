@@ -92,3 +92,28 @@ fun locOf(o: JSONObject, key: String): Pair<Double, Double>? {
     val l = o.optJSONObject(key) ?: return null
     return Pair(l.optDouble("lat"), l.optDouble("lng"))
 }
+
+const val REPO = "toxa0111/taksi"
+
+fun currentVersionCode(ctx: Context): Int = try {
+    val i = ctx.packageManager.getPackageInfo(ctx.packageName, 0)
+    @Suppress("DEPRECATION") i.versionCode
+} catch (e: Exception) { 0 }
+
+/** Eng so'nggi release: Pair(versiya raqami, APK havolasi) yoki null */
+suspend fun latestRelease(): Pair<Int, String>? = withContext(Dispatchers.IO) {
+    try {
+        val c = URL("https://api.github.com/repos/$REPO/releases/latest").openConnection() as HttpURLConnection
+        c.connectTimeout = 8000; c.readTimeout = 8000
+        c.setRequestProperty("Accept", "application/vnd.github+json")
+        val j = JSONObject(c.inputStream.bufferedReader().readText())
+        val n = j.getString("tag_name").removePrefix("build-").toInt()
+        val assets = j.getJSONArray("assets")
+        var url = ""
+        for (i in 0 until assets.length()) {
+            val a = assets.getJSONObject(i)
+            if (a.getString("name").endsWith(".apk")) url = a.getString("browser_download_url")
+        }
+        if (url.isEmpty()) null else Pair(n, url)
+    } catch (e: Exception) { null }
+}

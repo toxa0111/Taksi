@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +59,7 @@ fun App(prefs: SharedPreferences) {
         Api.token = ""
         role = ""
     }
+    UpdateDialog()
     when (role) {
         "passenger" -> PassengerScreen(logout)
         "driver" -> DriverScreen(logout)
@@ -523,4 +525,27 @@ fun DriverScreen(onLogout: () -> Unit) {
 
         if (msg.isNotEmpty()) Text(msg, color = MaterialTheme.colorScheme.error)
     }
+}
+
+@Composable
+fun UpdateDialog() {
+    val ctx = LocalContext.current
+    var update by remember { mutableStateOf<Pair<Int, String>?>(null) }
+    LaunchedEffect(Unit) {
+        val r = latestRelease()
+        if (r != null && r.first > currentVersionCode(ctx)) update = r
+    }
+    val u = update ?: return
+    AlertDialog(
+        onDismissRequest = { update = null },
+        title = { Text("Yangi versiya bor") },
+        text = { Text("Taksi ilovasining yangi versiyasi chiqdi. Yangilaysizmi? Yuklangach, faylni bosib o'rnating.") },
+        confirmButton = {
+            Button(onClick = {
+                ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u.second)))
+                update = null
+            }) { Text("Yangilash") }
+        },
+        dismissButton = { TextButton(onClick = { update = null }) { Text("Keyinroq") } }
+    )
 }

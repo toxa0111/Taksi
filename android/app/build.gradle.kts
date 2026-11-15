@@ -12,8 +12,17 @@ android {
         applicationId = "uz.taksi"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = (project.findProperty("appVersionCode") as String? ?: "1").toInt()
+        versionName = "1.0." + (project.findProperty("appVersionCode") as String? ?: "1")
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildFeatures { compose = true }

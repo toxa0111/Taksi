@@ -5,6 +5,9 @@ on:
   push:
     branches: [main, master]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     # ubuntu-24.04: Android SDK shu rasmda tayyor o'rnatilgan
@@ -21,9 +24,18 @@ jobs:
         with:
           gradle-version: 8.9
       - name: Debug APK yig'ish
-        run: gradle assembleDebug --no-daemon
+        run: gradle assembleDebug --no-daemon -PappVersionCode=${{ github.run_number }}
         working-directory: android
       - uses: actions/upload-artifact@v4
         with:
           name: taksi-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+      - name: APK ni nomlash
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk taksi.apk
+      - name: Release yaratish (ilova yangilanishi shu yerdan)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Taksi ${{ github.run_number }}
+          files: taksi.apk
+          make_latest: true
