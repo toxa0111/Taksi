@@ -296,6 +296,20 @@ fun PassengerScreen(onLogout: () -> Unit) {
                     }
                 }
 
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        "Safaringizni rejalashtiring",
+                        fontSize = 21.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                        color = Ink,
+                    )
+                    Text(
+                        "Qayerdan va qayerga borishingizni tanlang",
+                        fontSize = 13.sp,
+                        color = Muted,
+                    )
+                }
+
                 AddressRow(Ok, "Qayerdan", pickupName.ifBlank { "Joylashuv aniqlanmoqda…" }, pickupName.isBlank()) {
                     field = "from"; query = ""; mapPick = false
                 }
