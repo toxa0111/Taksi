@@ -218,34 +218,35 @@ fun DriverScreen(onLogout: () -> Unit) {
                     if (m != null) { centerTo = m; centerKey++ }
                 }
             }
+            if (st == "started" && active != null) {
+                Row(
+                    Modifier.align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                        .background(Ink.copy(alpha = 0.96f), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    StatItem("MASOFA", route?.let { String.format("%.1f km", it.km) } ?: "—", Modifier.weight(1f))
+                    StatItem("VAQT", route?.let { "${it.min} daq" } ?: "Hisoblanmoqda", Modifier.weight(1f))
+                    StatItem("NARX", som(active.optLong("price")), Modifier.weight(1f))
+                    Text(
+                        "Yakunlash",
+                        modifier = Modifier
+                            .background(Yellow, RoundedCornerShape(10.dp))
+                            .clickable { post("/orders/$id/status", JSONObject().put("status", "done")) }
+                            .padding(horizontal = 10.dp, vertical = 9.dp),
+                        color = Ink,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                }
+                ErrorText(msg)
+            }
         }
 
-        if (st == "started" && active != null) {
-            Row(
-                Modifier.align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 8.dp)
-                    .background(Ink.copy(alpha = 0.96f), RoundedCornerShape(16.dp))
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                StatItem("MASOFA", route?.let { String.format("%.1f km", it.km) } ?: "—", Modifier.weight(1f))
-                StatItem("VAQT", route?.let { "${it.min} daq" } ?: "Hisoblanmoqda", Modifier.weight(1f))
-                StatItem("NARX", som(active.optLong("price")), Modifier.weight(1f))
-                Text(
-                    "Yakunlash",
-                    modifier = Modifier
-                        .background(Yellow, RoundedCornerShape(10.dp))
-                        .clickable { post("/orders/$id/status", JSONObject().put("status", "done")) }
-                        .padding(horizontal = 10.dp, vertical = 9.dp),
-                    color = Ink,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                )
-            }
-            ErrorText(msg)
-        } else {
+        if (st != "started") {
         Sheet {
             if (active != null && pickup != null && dropoff != null) {
                 val isCash = active.optString("payMethod") == "cash"
