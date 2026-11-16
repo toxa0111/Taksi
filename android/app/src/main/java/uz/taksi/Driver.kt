@@ -182,7 +182,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                 centerKey = centerKey,
                 zoom = if (follow && navActive) 17.0f else 15.0f,
             )
-            if (navActive && nextStep != null) {
+            if (st != "started" && navActive && nextStep != null) {
                 val dist = me?.let { meters(it, nextStep.lat, nextStep.lng) } ?: 0.0
                 Row(
                     Modifier.align(Alignment.TopCenter).padding(start = 12.dp, end = 12.dp, top = 56.dp)
@@ -202,22 +202,51 @@ fun DriverScreen(onLogout: () -> Unit) {
                     }
                 }
             }
-            FloatingChip(
-                if (online) "🟢 ONLAYN" else "⚪ OFFLAYN",
-                Modifier.align(Alignment.TopStart).padding(12.dp),
-            ) {
-                if (online) confirmOffline = true
+            if (st != "started") {
+                FloatingChip(
+                    if (online) "🟢 ONLAYN" else "⚪ OFFLAYN",
+                    Modifier.align(Alignment.TopStart).padding(12.dp),
+                ) {
+                    if (online) confirmOffline = true
+                }
+                FloatingChip(
+                    if (navActive && follow) "🧭 Kuzatish: yoqiq" else if (navActive) "🧭 Kuzatishni yoqish" else "📍 Mening joyim",
+                    Modifier.align(Alignment.BottomEnd).padding(12.dp),
+                ) {
+                    val m = me
+                    if (navActive) follow = !follow
+                    if (m != null) { centerTo = m; centerKey++ }
+                }
             }
-            FloatingChip(
-                if (navActive && follow) "🧭 Kuzatish: yoqiq" else if (navActive) "🧭 Kuzatishni yoqish" else "📍 Mening joyim",
-                Modifier.align(Alignment.BottomEnd).padding(12.dp),
-            ) {
-                val m = me
-                if (navActive) follow = !follow
-                if (m != null) { centerTo = m; centerKey++ }
+            if (st == "started" && active != null) {
+                Row(
+                    Modifier.align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                        .background(Ink.copy(alpha = 0.96f), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    StatItem("MASOFA", route?.let { String.format("%.1f km", it.km) } ?: "—", Modifier.weight(1f))
+                    StatItem("VAQT", route?.let { "${it.min} daq" } ?: "Hisoblanmoqda", Modifier.weight(1f))
+                    StatItem("NARX", som(active.optLong("price")), Modifier.weight(1f))
+                    Text(
+                        "Yakunlash",
+                        modifier = Modifier
+                            .background(Yellow, RoundedCornerShape(10.dp))
+                            .clickable { post("/orders/$id/status", JSONObject().put("status", "done")) }
+                            .padding(horizontal = 10.dp, vertical = 9.dp),
+                        color = Ink,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                }
+                ErrorText(msg)
             }
         }
 
+        if (st != "started") {
         Sheet {
             if (active != null && pickup != null && dropoff != null) {
                 val isCash = active.optString("payMethod") == "cash"
@@ -341,6 +370,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                 }
             }
             ErrorText(msg)
+        }
         }
     }
 }
