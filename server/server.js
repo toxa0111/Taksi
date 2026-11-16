@@ -65,10 +65,17 @@ function quote(a, b, c, d, kmHint) {
 
 // ---- Yordamchilar ----
 const send = (res, code, obj) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); };
-const readBody = req => new Promise(r => {
+const readBody = req => new Promise((resolve, reject) => {
   let s = '';
-  req.on('data', c => { s += c; if (s.length > 1e5) req.destroy(); });
-  req.on('end', () => { try { r(JSON.parse(s || '{}')); } catch { r({}); } });
+  req.on('data', c => {
+    s += c;
+    if (s.length > 6 * 1024 * 1024) {
+      reject(new Error('So‘rov hajmi 6 MB dan oshdi'));
+      req.destroy();
+    }
+  });
+  req.on('end', () => { try { resolve(JSON.parse(s || '{}')); } catch { resolve({}); } });
+  req.on('error', reject);
 });
 // Maxfiylik: buyurtma obyektida tomonlarning telefon raqami hech qachon uzatilmaydi.
 const pub = u => u && { name: u.name };
@@ -88,6 +95,15 @@ const view = o => {
 };
 const num = v => (typeof v === 'number' && isFinite(v)) ? v : NaN;
 const PHONE_RE = /^\+998\d{9}$/;
+
+const DRIVER_CLASSES = ['start', 'comfort', 'comfort_plus', 'electric', 'business'];
+const DRIVER_CLASS_LABELS = {
+  start: 'Start', comfort: 'Komfort', comfort_plus: 'Komfort+', electric: 'Elektr', business: 'Biznes',
+};
+const DOCUMENT_KEYS = ['licenseFront', 'licenseBack', 'vehicleDoc', 'platePhoto'];
+const validPhoto = value => typeof value === 'string' &&
+  value.startsWith('data:image/jpeg;base64,') && value.length <= 850000;
+const driverReview = u => u && u.role === 'driver' ? (u.documentStatus || 'pending') : 'not_required';
 
 http.createServer(async (req, res) => {
   try {
@@ -194,6 +210,44 @@ http.createServer(async (req, res) => {
         });
       }
 
+      if (m === 'GET' && p === '/admin/drivers/review') {
+        const status = url.searchParams.get('status') || 'pending';
+        const list = all.filter(u => u.role === 'driver' && driverReview(u) === status)
+          .sort((a, b) => (b.documentsSubmittedAt || 0) - (a.documentsSubmittedAt || 0))
+          .slice(0, 100).map(u => ({
+            id: u.id, name: u.name, phone: u.phone, online: u.online === true,
+            status: driverReview(u), reason: u.documentReason || '',
+            vehiclePlate: u.vehiclePlate || '', vehicleClass: u.vehicleClass || '',
+            submittedAt: u.documentsSubmittedAt || 0, documents: u.documents || {},
+          }));
+        return send(res, 200, { drivers: list, classes: DRIVER_CLASS_LABELS });
+      }
+      const vr = p.match(/^\\/admin\\/drivers\\/([\\w-]+)\\/review$/);
+      if (m === 'POST' && vr) {
+        const target = db.users[vr[1]];
+        if (!target || target.role !== 'driver') return send(res, 404, { error: 'Haydovchi topilmadi' });
+        const decision = String(b.status || '');
+        if (!['approved', 'rejected'].includes(decision)) return send(res, 400, { error: 'Tasdiqlash holati noto‘g‘ri' });
+        if (!target.documents || !DOCUMENT_KEYS.every(k => validPhoto(target.documents[k]))) {
+          return send(res, 400, { error: 'Haydovchi hujjatlari to‘liq emas' });
+        }
+        if (decision === 'approved') {
+          if (!DRIVER_CLASSES.includes(b.vehicleClass)) return send(res, 400, { error: 'Avtomobil toifasini tanlang' });
+          target.vehicleClass = b.vehicleClass;
+          target.documentReason = '';
+        } else {
+          const reason = String(b.reason || '').trim().slice(0, 300);
+          if (reason.length < 3) return send(res, 400, { error: 'Rad etish sababini yozing' });
+          target.documentReason = reason;
+          target.online = false;
+        }
+        target.documentStatus = decision;
+        target.reviewedAt = Date.now();
+        target.reviewedBy = user.id;
+        save();
+        return send(res, 200, { ok: true, status: decision, vehicleClass: target.vehicleClass || '' });
+      }
+
       if (m === 'GET' && p === '/admin/users') {
         const role = url.searchParams.get('role'), q = (url.searchParams.get('q') || '').toLowerCase();
         const list = all.filter(u => u.role !== 'admin' && (!role || u.role === role) &&
@@ -288,12 +342,43 @@ http.createServer(async (req, res) => {
     if (m === 'POST' && p === '/driver/availability') {
       if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
       const online = b.online === true;
+      if (online && driverReview(user) !== 'approved') {
+        return send(res, 403, { error: 'Ishga chiqishdan oldin hujjatlaringiz admin tomonidan tasdiqlanishi kerak' });
+      }
       if (!online && db.orders.some(o => o.driverId === user.id && ['accepted', 'arrived', 'started'].includes(o.status))) {
         return send(res, 400, { error: "Faol safar tugamaguncha ishdan chiqa olmaysiz" });
       }
       user.online = online;
       save();
       return send(res, 200, { ok: true, online: user.online });
+    }
+
+    // Haydovchi hujjatlari: suratlar faqat egasi va admin uchun ko‘rinadi.
+    if (m === 'GET' && p === '/driver/documents') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      return send(res, 200, {
+        status: driverReview(user), reason: user.documentReason || '',
+        vehiclePlate: user.vehiclePlate || '', vehicleClass: user.vehicleClass || '',
+        documents: user.documents || {},
+      });
+    }
+    if (m === 'POST' && p === '/driver/documents') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      const plate = String(b.vehiclePlate || '').trim().toUpperCase().replace(/\\s+/g, '');
+      if (!/^[0-9]{2}[A-Z][0-9]{3}[A-Z]{2}$/.test(plate)) {
+        return send(res, 400, { error: 'Davlat raqamini to‘g‘ri kiriting (masalan 01A123BC)' });
+      }
+      if (!DOCUMENT_KEYS.every(k => validPhoto(b[k]))) {
+        return send(res, 400, { error: 'Guvohnoma oldi-orqasi, texnik pasport va davlat raqami suratlarini yuklang. Har biri JPEG bo‘lsin va 600 KB dan oshmasin.' });
+      }
+      user.vehiclePlate = plate;
+      user.documents = Object.fromEntries(DOCUMENT_KEYS.map(k => [k, b[k]]));
+      user.documentStatus = 'pending';
+      user.documentReason = '';
+      user.online = false;
+      user.documentsSubmittedAt = Date.now();
+      save();
+      return send(res, 200, { ok: true, status: user.documentStatus });
     }
 
     // Joriy joylashuvni yangilash (yo'lovchi ham, haydovchi ham)
@@ -350,6 +435,8 @@ http.createServer(async (req, res) => {
       const t = done.filter(o => new Date(o.doneAt).toDateString() === today);
       const sum = a => a.reduce((s, o) => s + o.price, 0);
       return send(res, 200, {
+        documentStatus: driverReview(user), documentReason: user.documentReason || '',
+        vehiclePlate: user.vehiclePlate || '', vehicleClass: user.vehicleClass || '',
         todayCount: t.length, todaySum: sum(t),
         todayCash: sum(t.filter(o => o.payMethod === 'cash')),
         todayCard: sum(t.filter(o => o.payMethod === 'card')),
