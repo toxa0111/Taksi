@@ -126,8 +126,8 @@ suspend fun latestRelease(tag: String? = null): Pair<Int, String>? = withContext
 }
 
 /** Qo'llab-quvvatlash aloqa ma'lumotlari. Bo'sh bo'lsa, tegishli tugma ko'rsatilmaydi. */
-const val SUPPORT_PHONE = ""      // masalan: "+998901234567"
-const val SUPPORT_TELEGRAM = ""   // masalan: "toxa_support" (@ belgisiz)
+const val SUPPORT_PHONE = "+998973869030"      // masalan: "+998901234567"
+const val SUPPORT_TELEGRAM = "jackpoooot"   // masalan: "toxa_support" (@ belgisiz)
 
 /** Karta to'lovi provayderi ulangunga qadar o'chiq (server ham shunday rad etadi). */
 const val CARD_ENABLED = false
