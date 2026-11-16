@@ -93,7 +93,7 @@ fun MapBox(
     }
 
     if (BuildConfig.MAPKIT_API_KEY.isBlank()) {
-        Text("Yandex MapKit kaliti ulanmagan. GitHub Actions Secret sozlamasini tekshiring.")
+        Text(tr("Yandex MapKit kaliti ulanmagan. GitHub Actions Secret sozlamasini tekshiring.", "Ключ Yandex MapKit не подключён. Проверьте Secret в GitHub Actions.", "Yandex MapKit key is missing. Check the GitHub Actions secret."))
         return
     }
 
