@@ -385,12 +385,17 @@ fun UpdateDialog() {
     }
 
     LaunchedEffect(Unit) {
-        // Splash tugagach tekshiramiz: yangilanish oynasi brend ekran ostida qolib ketmasin.
-        delay(2300)
-        val installedVersion = currentVersionCode(ctx)
-        val release = latestRelease()
-        if (release != null && release.first > installedVersion) {
-            update = release
+        // Splash tugagach tekshiramiz. Tarmoq/GitHub vaqtincha javob bermasa,
+        // tekshiruvni qayta urinib ko'ramiz — xato jim yutilib ketmasin.
+        delay(2500)
+        repeat(3) { attempt ->
+            val installedVersion = currentVersionCode(ctx)
+            val release = latestRelease()
+            if (release != null && release.first > installedVersion) {
+                update = release
+                return@LaunchedEffect
+            }
+            if (attempt < 2) delay(3000)
         }
     }
 
