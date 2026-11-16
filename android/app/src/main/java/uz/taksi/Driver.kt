@@ -203,7 +203,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                         Modifier.align(Alignment.TopStart).padding(12.dp),
                     ) {}
                 }
-                FloatingChip("📍 Mening joyim", Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
+                FloatingChip(tr("📍 Mening joyim", "📍 Моё местоположение", "📍 My location"), Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
                     val m = me
                     if (m != null) { centerTo = m; centerKey++ }
                 }
@@ -276,7 +276,8 @@ fun DriverScreen(onLogout: () -> Unit) {
                                     color = if (online) Color(0xFF237A4B) else Muted)
                             }
                         }
-                        BigButton("⚙  Sozlamalar") { selectedTab = "Sozlamalar" }
+                        LanguageSelector()
+                        BigButton(tr("⚙  Sozlamalar", "⚙  Настройки", "⚙  Settings")) { selectedTab = "Sozlamalar" }
                         DangerButton("Hisobdan chiqish") { onLogout() }
                     }
                     "Sozlamalar" -> {
@@ -297,7 +298,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                         GhostButton("‹ Kabinetga qaytish") { selectedTab = "Kabinet" }
                     }
                     "Qo'llab-quvvatlash" -> {
-                        BigLine("Qo'llab-quvvatlash", "TOXA yordam markazi")
+                        BigLine(tr("Qo'llab-quvvatlash", "Поддержка", "Support"), tr("TOXA yordam markazi", "Центр помощи TOXA", "TOXA Help Center"))
                         Text("Ko'p uchraydigan savollarga javoblar", fontSize = 13.sp, color = Muted)
                         SupportFaq()
                         Text("Bevosita operator bilan aloqa kanali hali sozlanmagan.", fontSize = 12.sp, color = Muted)
@@ -461,16 +462,16 @@ fun DriverScreen(onLogout: () -> Unit) {
     if (showOfflineConfirm) {
         AlertDialog(
             onDismissRequest = { showOfflineConfirm = false },
-            title = { Text("Ishdan chiqasizmi?", fontWeight = FontWeight.Bold) },
-            text = { Text("OFFLINE holatiga o'tsangiz, yangi buyurtmalar kelmaydi.") },
+            title = { Text(tr("Ishdan chiqasizmi?", "Выйти из сети?", "Go offline?"), fontWeight = FontWeight.Bold) },
+            text = { Text(tr("OFFLINE holatiga o'tsangiz, yangi buyurtmalar kelmaydi.", "После перехода в режим OFFLINE новые заказы поступать не будут.", "When you go OFFLINE, you will no longer receive new orders.")) },
             confirmButton = {
                 TextButton(onClick = {
                     showOfflineConfirm = false
                     setAvailability(false)
-                }) { Text("Ha, ishdan chiqish", color = Color(0xFFC62828), fontWeight = FontWeight.Bold) }
+                }) { Text(tr("Ha, ishdan chiqish", "Да, выйти", "Yes, go offline"), color = Color(0xFFC62828), fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
-                TextButton(onClick = { showOfflineConfirm = false }) { Text("Bekor qilish") }
+                TextButton(onClick = { showOfflineConfirm = false }) { Text(tr("Bekor qilish", "Отмена", "Cancel")) }
             },
         )
     }
@@ -496,10 +497,10 @@ private fun DriverQuickStat(
 @Composable
 private fun DriverBottomNavigation(selectedTab: String, onSelect: (String) -> Unit) {
     val items = listOf(
-        Triple("Bosh sahifa", "⌂", "Bosh sahifa"),
-        Triple("Buyurtmalar", "▤", "Buyurtmalar"),
-        Triple("Kabinet", "♙", "Kabinet"),
-        Triple("Qo'llab-quvvatlash", "◉", "Yordam"),
+        Triple("Bosh sahifa", "⌂", tr("Bosh sahifa", "Главная", "Home")),
+        Triple("Buyurtmalar", "▤", tr("Buyurtmalar", "Заказы", "Orders")),
+        Triple("Kabinet", "♙", tr("Kabinet", "Кабинет", "Account")),
+        Triple("Qo'llab-quvvatlash", "◉", tr("Yordam", "Помощь", "Support")),
     )
     Surface(
         modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
