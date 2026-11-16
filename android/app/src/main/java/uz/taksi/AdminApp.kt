@@ -506,6 +506,34 @@ fun AdminProfile(prefs: SharedPreferences, onLogout: () -> Unit) {
             BigButton("Tariflarni ochish") { showTariffs = true }
         }
         Panel {
+            Text("Ekran ko‘rinishi", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text("Ilova rang rejimini tanlang.", fontSize = 13.sp, color = Muted)
+            Segmented(
+                listOf("light" to "☀ Kunduzgi", "dark" to "☾ Kechki"),
+                if (AppSettings.dark) "dark" else "light",
+            ) { AppSettings.changeDark(it == "dark") }
+        }
+        Panel {
+            Text("Ovoz sozlamalari", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text("Bildirishnomalar uchun ovoz holatini tanlang.", fontSize = 13.sp, color = Muted)
+            Segmented(
+                listOf("on" to "Ovoz", "vibrate" to "Vibratsiya", "off" to "O‘chiq"),
+                AppSettings.sound,
+            ) { AppSettings.changeSound(it) }
+        }
+        Panel {
+            Text("Shrift o‘lchami", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text("Matnlarni o‘qish qulayligiga moslang.", fontSize = 13.sp, color = Muted)
+            Segmented(
+                listOf("0.9" to "Kichik", "1.0" to "O‘rta", "1.15" to "Katta"),
+                when {
+                    AppSettings.fontScale < 0.95f -> "0.9"
+                    AppSettings.fontScale > 1.05f -> "1.15"
+                    else -> "1.0"
+                },
+            ) { AppSettings.changeFont(it.toFloat()) }
+        }
+        Panel {
             Text("Tizim ma'lumotlari", fontWeight = FontWeight.Bold)
             Text("Ilova versiyasi: ${adminVersion(ctx)}", fontSize = 13.sp, color = Muted)
             Text("Server: ${Api.base}", fontSize = 12.sp, color = Muted)
