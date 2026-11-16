@@ -1,14 +1,10 @@
 package uz.taksi
 
-import android.content.ActivityNotFoundException
 import android.content.Context
-import android.content.Intent
 import android.media.RingtoneManager
-import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
-import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,15 +45,59 @@ class RouteInfo(
     val km: Double,
     val min: Int,
     val toKey: String = "",
+    val steps: List<NavStep> = emptyList(),
 ) {
-    fun withKey(k: String) = RouteInfo(points, km, min, k)
+    fun withKey(k: String) = RouteInfo(points, km, min, k, steps)
+}
+
+/** Ichki navigatsiya qadami: manevr joyi (lat, lng), ko'rsatma matni va belgisi. */
+class NavStep(val lat: Double, val lng: Double, val arrow: String, val text: String, val meters: Double)
+
+private fun stepArrow(type: String, mod: String): String = when {
+    type == "arrive" -> "⚑"
+    type == "depart" -> "↑"
+    type == "roundabout" || type == "rotary" || type == "roundabout turn" -> "⟳"
+    mod == "left" -> "←"
+    mod == "right" -> "→"
+    mod == "slight left" -> "↖"
+    mod == "slight right" -> "↗"
+    mod == "sharp left" -> "↰"
+    mod == "sharp right" -> "↱"
+    mod == "uturn" -> "↶"
+    else -> "↑"
+}
+
+private fun stepText(type: String, mod: String, name: String, exit: Int): String {
+    val base = when {
+        type == "arrive" -> "Manzilga yetdingiz"
+        type == "depart" -> "Yo'lga chiqing"
+        type == "roundabout" || type == "rotary" ->
+            if (exit > 0) "Aylanada $exit-chiqishdan chiqing" else "Aylanadan chiqing"
+        mod == "left" -> "Chapga buriling"
+        mod == "right" -> "O'ngga buriling"
+        mod == "slight left" -> "Chapga biroz buriling"
+        mod == "slight right" -> "O'ngga biroz buriling"
+        mod == "sharp left" -> "Chapga keskin buriling"
+        mod == "sharp right" -> "O'ngga keskin buriling"
+        mod == "uturn" -> "Orqaga qayriling"
+        type == "merge" -> "Yo'lga qo'shiling"
+        else -> "To'g'ri yuring"
+    }
+    return if (name.isNotBlank() && type != "arrive") "$base — $name" else base
+}
+
+/** Ikki nuqta orasidagi masofa (metr). */
+fun meters(a: Pair<Double, Double>, bLat: Double, bLng: Double): Double {
+    val r = FloatArray(1)
+    android.location.Location.distanceBetween(a.first, a.second, bLat, bLng, r)
+    return r[0].toDouble()
 }
 
 object Osrm {
     fun route(a: Pair<Double, Double>, b: Pair<Double, Double>): RouteInfo? {
         return try {
             val url = "https://router.project-osrm.org/route/v1/driving/" +
-                "${a.second},${a.first};${b.second},${b.first}?overview=full&geometries=geojson"
+                "${a.second},${a.first};${b.second},${b.first}?overview=full&geometries=geojson&steps=true"
             val j = JSONObject(httpGet(url))
             if (j.optString("code") != "Ok") return null
             val r = j.getJSONArray("routes").getJSONObject(0)
@@ -76,7 +116,28 @@ object Osrm {
             pts.add(Pair(last.getDouble(1), last.getDouble(0)))
             val km = r.getDouble("distance") / 1000.0
             val min = maxOf(1, Math.ceil(r.getDouble("duration") / 60.0).toInt())
-            RouteInfo(pts, km, min)
+            val steps = ArrayList<NavStep>()
+            try {
+                val legs = r.getJSONArray("legs")
+                for (li in 0 until legs.length()) {
+                    val st = legs.getJSONObject(li).getJSONArray("steps")
+                    for (si in 0 until st.length()) {
+                        val o = st.getJSONObject(si)
+                        val m = o.getJSONObject("maneuver")
+                        val loc = m.getJSONArray("location")
+                        val type = m.optString("type")
+                        val mod = m.optString("modifier")
+                        steps.add(
+                            NavStep(
+                                loc.getDouble(1), loc.getDouble(0), stepArrow(type, mod),
+                                stepText(type, mod, o.optString("name"), m.optInt("exit", 0)),
+                                o.optDouble("distance", 0.0),
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) { steps.clear() }
+            RouteInfo(pts, km, min, "", steps)
         } catch (e: Exception) { null }
     }
 }
@@ -171,42 +232,6 @@ object Nominatim {
         } catch (e: Exception) { null }
     }
 }
-
-// ───────────────────────── Yandex Navigator va boshqa xaritalar ─────────────────────────
-
-private fun tryStart(ctx: Context, intent: Intent): Boolean = try {
-    ctx.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-    true
-} catch (e: ActivityNotFoundException) { false } catch (e: Exception) { false }
-
-private fun f(d: Double): String = String.format(Locale.US, "%.6f", d)
-
-/**
- * Yandex Navigator'da marshrut quradi. O'rnatilmagan bo'lsa Yandex Maps, u ham bo'lmasa
- * telefondagi boshqa xarita ilovasi ochiladi. Hech biri bo'lmasa, tushunarli xabar chiqadi.
- */
-fun openYandexNavigator(ctx: Context, from: Pair<Double, Double>?, to: Pair<Double, Double>, label: String) {
-    val navi = StringBuilder("yandexnavi://build_route_on_map?lat_to=${f(to.first)}&lon_to=${f(to.second)}")
-    if (from != null) navi.append("&lat_from=${f(from.first)}&lon_from=${f(from.second)}")
-    val i1 = Intent(Intent.ACTION_VIEW, Uri.parse(navi.toString())).setPackage("ru.yandex.yandexnavi")
-    if (tryStart(ctx, i1)) return
-
-    val rtext = (if (from != null) "${f(from.first)},${f(from.second)}~" else "~") + "${f(to.first)},${f(to.second)}"
-    val i2 = Intent(Intent.ACTION_VIEW, Uri.parse("yandexmaps://maps.yandex.ru/?rtext=$rtext&rtt=auto"))
-        .setPackage("ru.yandex.yandexmaps")
-    if (tryStart(ctx, i2)) return
-
-    Toast.makeText(ctx, "Yandex Navigator o'rnatilmagan. Boshqa xarita ochilmoqda…", Toast.LENGTH_LONG).show()
-    openOtherMap(ctx, to, label)
-}
-
-/** Telefondagi istalgan xarita/navigator ilovasida nuqtani ochadi (Google Maps, 2GIS…). */
-fun openOtherMap(ctx: Context, to: Pair<Double, Double>, label: String) {
-    val uri = Uri.parse("geo:${f(to.first)},${f(to.second)}?q=${f(to.first)},${f(to.second)}(${Uri.encode(label)})")
-    val ok = tryStart(ctx, Intent.createChooser(Intent(Intent.ACTION_VIEW, uri), "Xaritani tanlang"))
-    if (!ok) Toast.makeText(ctx, "Telefonda xarita yoki navigator ilovasi topilmadi", Toast.LENGTH_LONG).show()
-}
-
 
 /** Yangi buyurtma: qisqa tebranish va standart bildirishnoma ovozi. */
 @Suppress("DEPRECATION")

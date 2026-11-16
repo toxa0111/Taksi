@@ -389,8 +389,8 @@ fun SupportTab(role: String) {
             )
         } else {
             FaqItem(
-                "Yandex Navigator qanday ishlaydi?",
-                "Faol buyurtmada “Yandex Navigator” tugmasini bosing: yo'lovchi yoki manzil koordinatalari o'zi uzatiladi. O'rnatilmagan bo'lsa, boshqa xarita ochiladi. Ilovaga qaytsangiz, buyurtma saqlanib turadi.",
+                "Navigatsiya qanday ishlaydi?",
+                "Buyurtmani qabul qilsangiz, xaritada marshrut va burilish ko'rsatmalari ilovaning o'zida chiqadi. Boshqa ilova o'rnatish shart emas. Ilovadan chiqib ketsangiz ham buyurtma saqlanib turadi.",
             )
             FaqItem(
                 "Buyurtma qanday keladi?",

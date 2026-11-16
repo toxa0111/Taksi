@@ -4,14 +4,13 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Color
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.drawable.GradientDrawable
-import android.location.LocationListener
-import android.location.LocationManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -25,51 +24,51 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import org.osmdroid.config.Configuration
-import org.osmdroid.events.MapEventsReceiver
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.BoundingBox
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.CustomZoomButtonsController
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.MapEventsOverlay
-import org.osmdroid.views.overlay.Marker
-import org.osmdroid.views.overlay.Polyline
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.geometry.Polyline
+import com.yandex.mapkit.map.CameraPosition
+import com.yandex.mapkit.map.InputListener
+import com.yandex.mapkit.map.Map
+import com.yandex.mapkit.map.MapObjectCollection
+import com.yandex.mapkit.mapview.MapView
+import com.yandex.runtime.image.ImageProvider
+import android.location.LocationListener
+import android.location.LocationManager
+import java.lang.ref.WeakReference
 
 /** Xaritadagi nuqta. title — bosilganda chiqadigan yozuv. */
 data class Pin(val lat: Double, val lng: Double, val title: String, val color: Int)
 
-val GREEN = 0xFF2E7D32.toInt()   // yo'lovchi olinadigan joy
-val RED = 0xFFC62828.toInt()     // borish manzili
-val BLUE = 0xFF1565C0.toInt()    // men
-val ORANGE = 0xFFEF6C00.toInt()  // haydovchi / yo'lovchi (jonli)
+val GREEN = 0xFF2E7D32.toInt()
+val RED = 0xFFC62828.toInt()
+val BLUE = 0xFF1565C0.toInt()
+val ORANGE = 0xFFEF6C00.toInt()
 
-private const val ROUTE_COLOR = 0xFF2962FF.toInt()
-
-/** Xaritaning oxirgi holati: o'zgarmagan bo'lsa, qayta chizilmaydi. */
 private class MapState(
     val center: Pair<Double, Double>,
     val centerKey: Int,
     val pins: List<Pin>,
-    val tappable: Boolean,
     val route: List<Pair<Double, Double>>?,
     val fitDone: Any?,
+    val zoom: Float,
 )
 
-private fun dot(color: Int) = GradientDrawable().apply {
-    shape = GradientDrawable.OVAL
-    setColor(color)
-    setSize(52, 52)
-    setStroke(7, Color.WHITE)
+private fun pinImage(context: Context, color: Int): ImageProvider {
+    val bitmap = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
+    canvas.drawCircle(32f, 32f, 23f, paint)
+    paint.color = android.graphics.Color.WHITE
+    paint.style = Paint.Style.STROKE
+    paint.strokeWidth = 6f
+    canvas.drawCircle(32f, 32f, 23f, paint)
+    return ImageProvider.fromBitmap(bitmap)
 }
 
-/**
- * OpenStreetMap xaritasi.
- * - center yoki centerKey o'zgargandagina xarita markazi siljiydi (foydalanuvchi surib ko'rayotganda sakramaydi).
- * - route berilsa, ko'k chiziq chiziladi. fitKey o'zgarganda (va marshrut bor bo'lsa) xarita marshrutga moslab
- *   BIR MARTA yaqinlashtiriladi.
- * - onTap berilsa, xaritaga bosilganda koordinata qaytariladi.
- */
+/** Yandex MapKit xaritasi: markaz, nuqtalar, marshrut chizig'i va xaritaga bosish. */
 @Composable
 fun MapBox(
     pins: List<Pin>,
@@ -79,77 +78,110 @@ fun MapBox(
     route: List<Pair<Double, Double>>? = null,
     fitKey: Any? = null,
     centerKey: Int = 0,
+    zoom: Float = 15.0f,
+    onMapTap: (() -> Unit)? = null,
 ) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val tapRef = rememberUpdatedState(onTap)
+    val mapTapRef = rememberUpdatedState(onMapTap)
     val tappable = onTap != null
+    val inputListener = remember {
+        object : InputListener {
+            override fun onMapTap(map: Map, point: Point) {
+                mapTapRef.value?.invoke()
+                if (tapRef.value != null) tapRef.value?.invoke(point.latitude, point.longitude)
+            }
+            override fun onMapLongTap(map: Map, point: Point) = Unit
+        }
+    }
+
+    if (BuildConfig.MAPKIT_API_KEY.isBlank()) {
+        Text("Yandex MapKit kaliti ulanmagan. GitHub Actions Secret sozlamasini tekshiring.")
+        return
+    }
+
+    val mapView = remember {
+        MapView(context).apply {
+            mapWindow.map.move(CameraPosition(Point(center.first, center.second), 15.0f, 0.0f, 0.0f))
+            mapWindow.map.addInputListener(WeakReference(inputListener))
+        }
+    }
+
+    DisposableEffect(mapView, lifecycleOwner) {
+        var mapViewStarted = false
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> {
+                    if (!mapViewStarted) {
+                        com.yandex.mapkit.MapKitFactory.getInstance().onStart()
+                        mapView.onStart()
+                        mapViewStarted = true
+                    }
+                }
+                Lifecycle.Event.ON_STOP -> {
+                    if (mapViewStarted) {
+                        mapView.onStop()
+                        com.yandex.mapkit.MapKitFactory.getInstance().onStop()
+                        mapViewStarted = false
+                    }
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            if (mapViewStarted) {
+                try { mapView.onStop() } catch (_: Exception) { }
+                try { com.yandex.mapkit.MapKitFactory.getInstance().onStop() } catch (_: Exception) { }
+            }
+            try { mapView.destroy() } catch (_: Exception) { }
+        }
+    }
+
     AndroidView(
         modifier = modifier.fillMaxWidth(),
-        factory = { c ->
-            Configuration.getInstance().load(c, c.getSharedPreferences("osm", Context.MODE_PRIVATE))
-            Configuration.getInstance().userAgentValue = c.packageName
-            MapView(c).apply {
-                setTileSource(TileSourceFactory.MAPNIK)
-                setMultiTouchControls(true)
-                setTilesScaledToDpi(true)
-                zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
-                controller.setZoom(15.0)
+        factory = { mapView },
+        update = { view ->
+            val map = view.mapWindow.map
+            val previous = view.tag as? MapState
+            if (previous == null || previous.center != center || previous.centerKey != centerKey || previous.zoom != zoom) {
+                map.move(CameraPosition(Point(center.first, center.second), zoom, 0.0f, 0.0f))
             }
-        },
-        update = { map ->
-            // Faqat o'zgargan bo'lsa yangilaymiz: har 3 soniyada xaritani qayta chizish ilovani qotiradi.
-            val prev = map.tag as? MapState
-            if (prev == null || prev.center != center || prev.centerKey != centerKey) {
-                map.controller.setCenter(GeoPoint(center.first, center.second))
-            }
-            if (prev == null || prev.pins != pins || prev.tappable != tappable || prev.route != route) {
-                map.overlays.clear()
-                if (route != null && route.size > 1) {
-                    val pts = route.map { GeoPoint(it.first, it.second) }
-                    val casing = Polyline()
-                    casing.setPoints(pts)
-                    casing.outlinePaint.color = Color.WHITE
-                    casing.outlinePaint.strokeWidth = 20f
-                    casing.outlinePaint.strokeCap = Paint.Cap.ROUND
-                    map.overlays.add(casing)
-                    val line = Polyline()
-                    line.setPoints(pts)
-                    line.outlinePaint.color = ROUTE_COLOR
-                    line.outlinePaint.strokeWidth = 12f
-                    line.outlinePaint.strokeCap = Paint.Cap.ROUND
-                    map.overlays.add(line)
+            if (previous == null || previous.pins != pins || previous.route != route) {
+                val objects: MapObjectCollection = map.mapObjects
+                objects.clear()
+                route?.takeIf { it.size > 1 }?.let { points ->
+                    objects.addPolyline(Polyline(points.map { Point(it.first, it.second) }))
+                        .apply {
+                            setStrokeColor(0xFF2962FF.toInt())
+                            style = style.apply { strokeWidth = 5f }
+                        }
                 }
                 pins.forEach { pin ->
-                    val m = Marker(map)
-                    m.position = GeoPoint(pin.lat, pin.lng)
-                    m.title = pin.title
-                    m.icon = dot(pin.color)
-                    m.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                    map.overlays.add(m)
+                    objects.addPlacemark().apply {
+                        geometry = Point(pin.lat, pin.lng)
+                        setIcon(pinImage(context, pin.color))
+                        userData = pin.title
+                    }
                 }
-                if (tappable) {
-                    // Eng ustiga qo'yiladi: tanlash rejimida bosilgan joy doim qabul qilinadi.
-                    map.overlays.add(
-                        MapEventsOverlay(object : MapEventsReceiver {
-                            override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
-                                if (p != null) tapRef.value?.invoke(p.latitude, p.longitude)
-                                return true
-                            }
-
-                            override fun longPressHelper(p: GeoPoint?): Boolean = false
-                        })
-                    )
-                }
-                map.invalidate()
             }
-            var fitDone = prev?.fitDone
+            var fitDone = previous?.fitDone
             if (fitKey != null && route != null && route.size > 1 && fitDone != fitKey) {
                 fitDone = fitKey
-                val box = BoundingBox.fromGeoPoints(route.map { GeoPoint(it.first, it.second) })
-                map.post { map.zoomToBoundingBox(box, true, 110) }
+                val points = route.map { Point(it.first, it.second) }
+                val minLat = points.minOf { it.latitude }
+                val maxLat = points.maxOf { it.latitude }
+                val minLon = points.minOf { it.longitude }
+                val maxLon = points.maxOf { it.longitude }
+                val span = maxOf(maxLat - minLat, (maxLon - minLon) * 0.75, 0.0005)
+                val z = (Math.log(360.0 / span) / Math.log(2.0) - 1.2).coerceIn(10.0, 17.0).toFloat()
+                val target = Point((minLat + maxLat) / 2.0, (minLon + maxLon) / 2.0)
+                map.move(CameraPosition(target, z, 0.0f, 0.0f))
             }
-            map.tag = MapState(center, centerKey, pins, tappable, route, fitDone)
+            view.tag = MapState(center, centerKey, pins, route, fitDone, zoom)
         },
-        onRelease = { it.onDetach() },
     )
 }
 

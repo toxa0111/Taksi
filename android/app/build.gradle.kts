@@ -6,14 +6,17 @@ plugins {
 
 android {
     namespace = "uz.taksi"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "uz.taksi"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = (project.findProperty("appVersionCode") as String? ?: "1").toInt()
         versionName = "1.0." + (project.findProperty("appVersionCode") as String? ?: "1")
+        // Yandex MapKit kaliti kodga yozilmaydi: GitHub Actions Secret'dan olinadi
+        val mapkitApiKey = System.getenv("YANDEX_MAPKIT_API_KEY")?.trim().orEmpty()
+        buildConfigField("String", "MAPKIT_API_KEY", "\"${mapkitApiKey}\"")
     }
 
     signingConfigs {
@@ -59,6 +62,7 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.9.2")
-    // Xarita: OpenStreetMap (API kalit va to'lov shart emas)
-    implementation("org.osmdroid:osmdroid-android:6.1.18")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
+    // Yandex MapKit Full: xarita
+    implementation("com.yandex.android:maps.mobile:4.45.0-full")
 }

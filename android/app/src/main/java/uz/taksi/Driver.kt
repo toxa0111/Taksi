@@ -131,6 +131,18 @@ fun DriverScreen(onLogout: () -> Unit) {
         else -> null
     }
     val route = rememberRoute(if (routeTo != null) me else null, routeTo, 3)
+    // Ichki navigatsiya: keyingi burilish. Marshrut yangilanganda qaytadan hisoblanadi.
+    val steps = route?.steps ?: emptyList()
+    var stepIdx by remember(route) { mutableStateOf(if (steps.size > 1) 1 else 0) }
+    LaunchedEffect(me, route) {
+        val m = me
+        if (m != null) {
+            while (stepIdx < steps.size - 1 && meters(m, steps[stepIdx].lat, steps[stepIdx].lng) < 30.0) stepIdx++
+        }
+    }
+    val nextStep = steps.getOrNull(stepIdx)
+    var follow by remember { mutableStateOf(true) }
+    val navActive = active != null && route != null && me != null
     val fitKey: Any = if (active == null) "idle" else "order:$id:${if (st == "started") "trip" else "pickup"}"
 
     val pins = buildList {
@@ -164,20 +176,45 @@ fun DriverScreen(onLogout: () -> Unit) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             MapBox(
                 pins = pins,
-                center = centerTo ?: pickup ?: DEFAULT_CENTER,
+                center = if (follow && navActive) me!! else (centerTo ?: pickup ?: DEFAULT_CENTER),
                 modifier = Modifier.fillMaxSize(),
                 route = route?.points,
-                fitKey = fitKey,
+                fitKey = if (follow && navActive) null else fitKey,
                 centerKey = centerKey,
+                zoom = if (follow && navActive) 17.0f else 15.0f,
             )
+            if (navActive && nextStep != null) {
+                val dist = me?.let { meters(it, nextStep.lat, nextStep.lng) } ?: 0.0
+                Row(
+                    Modifier.align(Alignment.TopCenter).padding(start = 12.dp, end = 12.dp, top = 56.dp)
+                        .fillMaxWidth()
+                        .background(Ink, RoundedCornerShape(18.dp))
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Text(nextStep.arrow, fontSize = 34.sp, fontWeight = FontWeight.Black, color = Yellow)
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            if (dist >= 1000) String.format("%.1f km", dist / 1000.0) else "${(dist / 10).toInt() * 10} m",
+                            fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color.White,
+                        )
+                        Text(nextStep.text, fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f), maxLines = 2)
+                    }
+                }
+            }
             FloatingChip(
                 if (online) "🟢 ONLAYN" else "⚪ OFFLAYN",
                 Modifier.align(Alignment.TopStart).padding(12.dp),
             ) {
                 if (online) confirmOffline = true
             }
-            FloatingChip("📍 Mening joyim", Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
+            FloatingChip(
+                if (navActive && follow) "🧭 Kuzatish: yoqiq" else if (navActive) "🧭 Kuzatishni yoqish" else "📍 Mening joyim",
+                Modifier.align(Alignment.BottomEnd).padding(12.dp),
+            ) {
                 val m = me
+                if (navActive) follow = !follow
                 if (m != null) { centerTo = m; centerKey++ }
             }
         }
@@ -219,12 +256,6 @@ fun DriverScreen(onLogout: () -> Unit) {
                 if (next != null) {
                     BigButton(next.second) { post("/orders/$id/status", JSONObject().put("status", next.first)) }
                 }
-
-                val label = if (st == "started") "Manzil" else "Yo'lovchi"
-                DarkButton("🧭 Yandex Navigator", Modifier.fillMaxWidth()) {
-                    openYandexNavigator(ctx, me, goTo, label)
-                }
-                GhostButton("🗺 Boshqa xarita") { openOtherMap(ctx, goTo, label) }
 
                 if (st == "accepted" || st == "arrived") {
                     DangerButton("Buyurtmani rad etish") { post("/orders/$id/cancel") }

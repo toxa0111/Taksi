@@ -48,6 +48,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
+import com.yandex.mapkit.MapKitFactory
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -55,6 +56,10 @@ import org.json.JSONObject
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (BuildConfig.MAPKIT_API_KEY.isNotBlank()) {
+            MapKitFactory.setApiKey(BuildConfig.MAPKIT_API_KEY)
+            MapKitFactory.initialize(this)
+        }
         val prefs = getSharedPreferences("taksi", Context.MODE_PRIVATE)
         Api.token = prefs.getString("token", "") ?: ""
         Api.base = prefs.getString("base", Api.base) ?: Api.base
