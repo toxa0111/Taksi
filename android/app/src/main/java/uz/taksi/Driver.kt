@@ -288,27 +288,27 @@ fun DriverScreen(onLogout: () -> Unit) {
 
 
 
-                BigLine(
-                    "Yangi buyurtmalar",
-                    if (available.isEmpty()) "Kutilmoqda" else "${available.size} ta mavjud",
-                )
-                if (available.isEmpty()) {
-                    Panel {
-                        Text("⏳", fontSize = 28.sp)
-                        Text("Hozircha buyurtma yo'q", fontWeight = FontWeight.Bold)
-                        Text("Yangi buyurtmalar shu yerda avtomatik paydo bo'ladi.", fontSize = 13.sp, color = Muted)
-                    }
-                }
-                available.forEach { o ->
-                    OrderCard(o) {
-                        if (o.has("pickupKm")) {
-                            Text(String.format("Yo'lovchigacha: ~%.1f km", o.optDouble("pickupKm")), fontSize = 13.sp, color = Muted)
+                if (online) {
+                    BigLine(
+                        "Yangi buyurtmalar",
+                        if (available.isEmpty()) "Kutilmoqda" else "${available.size} ta mavjud",
+                    )
+                    if (available.isEmpty()) {
+                        Panel {
+                            Text("⏳", fontSize = 28.sp)
+                            Text("Hozircha buyurtma yo'q", fontWeight = FontWeight.Bold)
+                            Text("Yangi buyurtmalar shu yerda avtomatik paydo bo'ladi.", fontSize = 13.sp, color = Muted)
                         }
-                        BigButton("Qabul qilish") { post("/orders/${o.optInt("id")}/accept") }
+                    }
+                    available.forEach { o ->
+                        OrderCard(o) {
+                            if (o.has("pickupKm")) {
+                                Text(String.format("Yo'lovchigacha: ~%.1f km", o.optDouble("pickupKm")), fontSize = 13.sp, color = Muted)
+                            }
+                            BigButton("Qabul qilish") { post("/orders/${o.optInt("id")}/accept") }
+                        }
                     }
                 }
-
-                
             }
             ErrorText(msg)
         }
