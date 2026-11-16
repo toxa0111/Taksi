@@ -481,6 +481,134 @@ fun AdminProfile(prefs: SharedPreferences, onLogout: () -> Unit) {
     val scope = rememberCoroutineScope()
     var info by remember { mutableStateOf("") }
     var installUrl by remember { mutableStateOf<String?>(null) }
+    var showTariffs by remember { mutableStateOf(false) }
+    installUrl?.let { InstallDialog(it, "TOXA Admin") { installUrl = null } }
+
+    if (showTariffs) {
+        AdminTariffs(onBack = { showTariffs = false })
+        return
+    }
+
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        TabTitle("Sozlamalar")
+        Panel {
+            Text("Admin profili", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(prefs.getString("name", "").orEmpty().ifBlank { "Admin" }, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+            Text(prefs.getString("phone", "").orEmpty(), fontSize = 14.sp, color = Muted)
+            Pill("🛡 Administrator", Color(0xFFFFF1C2), Color(0xFF8A6100))
+        }
+        Panel {
+            Text("Tariflarni boshqarish", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text("Minimal narx, boshlang‘ich to‘lov va har kilometr narxini o‘zgartiring. Yangi buyurtmalarga darhol qo‘llanadi.", fontSize = 13.sp, color = Muted)
+            BigButton("Tariflarni ochish") { showTariffs = true }
+        }
+        Panel {
+            Text("Tizim ma'lumotlari", fontWeight = FontWeight.Bold)
+            Text("Ilova versiyasi: ${adminVersion(ctx)}", fontSize = 13.sp, color = Muted)
+            Text("Server: ${Api.base}", fontSize = 12.sp, color = Muted)
+            GhostButton("Yangilanishni tekshirish") {
+                scope.launch {
+                    info = "Tekshirilmoqda…"
+                    val r = latestRelease("toxa-admin")
+                    if (r != null && r.first > currentVersionCode(ctx)) {
+                        info = "Yangi versiya bor"
+                        installUrl = r.second
+                    } else info = "Yangi versiya topilmadi"
+                }
+            }
+            if (info.isNotEmpty()) Text(info, fontSize = 12.sp, color = Muted)
+        }
+        Panel {
+            Text("Xavfsizlik", fontWeight = FontWeight.Bold)
+            Text("Admin huquqlari server tomonidan tekshiriladi. Tarif va boshqaruv amallari faqat admin hisobida ishlaydi.", fontSize = 13.sp, color = Muted)
+            DangerButton("Hisobdan chiqish", onClick = onLogout)
+        }
+    }
+}
+
+@Composable
+private fun AdminTariffs(onBack: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var tick by remember { mutableStateOf(0) }
+    val data by rememberPoll("/admin/tariffs", tick)
+    var base by remember { mutableStateOf("") }
+    var perKm by remember { mutableStateOf("") }
+    var minimum by remember { mutableStateOf("") }
+    var initialized by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf(false) }
+
+    LaunchedEffect(data) {
+        val t = data?.optJSONObject("tariffs")
+        if (t != null && !initialized) {
+            base = t.optLong("base", 5000).toString()
+            perKm = t.optLong("perKm", 2500).toString()
+            minimum = t.optLong("minimum", 8000).toString()
+            initialized = true
+        }
+    }
+
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onBack) { Text("← Orqaga", color = Ink) }
+            Text("Tariflar", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+        }
+        Panel {
+            Text("Standart tarif", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text("Narxlar so‘mda kiritiladi. O‘zgarish faqat keyingi yangi buyurtmalarga ta’sir qiladi.", fontSize = 13.sp, color = Muted)
+            Field(base, { base = it.filter(Char::isDigit) }, "Boshlang‘ich narx (so‘m)", keyboard = KeyboardType.Number)
+            Field(perKm, { perKm = it.filter(Char::isDigit) }, "1 km narxi (so‘m)", keyboard = KeyboardType.Number)
+            Field(minimum, { minimum = it.filter(Char::isDigit) }, "Minimal safar narxi (so‘m)", keyboard = KeyboardType.Number)
+            if (initialized) {
+                val km = 5.0
+                val preview = maxOf(minimum.toLongOrNull() ?: 0L,
+                    (((base.toLongOrNull() ?: 0L) + km * (perKm.toLongOrNull() ?: 0L)) / 500.0).toLong() * 500L)
+                Text("Misol: 5 km safar ≈ ${som(preview)}", fontSize = 13.sp, color = Muted)
+            }
+            ErrorText(if (error) message else "")
+            if (!error && message.isNotBlank()) Text(message, color = Color(0xFF14753F), fontSize = 13.sp)
+            BigButton("Tariflarni saqlash", enabled = initialized && !busy &&
+                (base.toLongOrNull() ?: -1) >= 0 && (perKm.toLongOrNull() ?: 0) >= 100 &&
+                (minimum.toLongOrNull() ?: 0) >= 1000) {
+                scope.launch {
+                    busy = true; message = ""; error = false
+                    try {
+                        val body = JSONObject()
+                            .put("base", base.toLong())
+                            .put("perKm", perKm.toLong())
+                            .put("minimum", minimum.toLong())
+                        io { Api.call("POST", "/admin/tariffs", body) }
+                        message = "Tariflar saqlandi. Yangi buyurtmalarda qo‘llanadi."
+                        tick++
+                    } catch (e: Exception) {
+                        message = e.message ?: "Saqlashda xato"; error = true
+                    }
+                    busy = false
+                }
+            }
+            if (busy) Text("Saqlanmoqda…", fontSize = 12.sp, color = Muted)
+        }
+        Panel {
+            Text("Hisoblash qoidasi", fontWeight = FontWeight.Bold)
+            Text("Safar narxi = boshlang‘ich narx + masofa × 1 km narxi. Yakuniy summa 500 so‘mga yaxlitlanadi va minimal narxdan past bo‘lmaydi.", fontSize = 13.sp, color = Muted)
+        }
+    }
+}
+
+private fun adminVersion(ctx: Context): String = try {
+    ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "-"
+} catch (e: Exception) { "-" }
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var info by remember { mutableStateOf("") }
+    var installUrl by remember { mutableStateOf<String?>(null) }
     installUrl?.let { InstallDialog(it, "TOXA Admin") { installUrl = null } }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
