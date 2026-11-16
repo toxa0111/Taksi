@@ -404,16 +404,16 @@ fun UpdateDialog() {
     AlertDialog(
         onDismissRequest = { if (!downloading) update = null },
         shape = RoundedCornerShape(24.dp),
-        containerColor = Color.White,
-        title = { Text("TOXA yangilanishi mavjud", fontWeight = FontWeight.Bold) },
+        containerColor = CardBg,
+        title = { Text(tr("TOXA yangilanishi mavjud", "Доступно обновление TOXA", "TOXA update available"), fontWeight = FontWeight.Bold, color = Ink) },
         text = {
             Text(
-                if (downloading) "Yangi versiya yuklanmoqda. Tugagach, Android o'rnatish oynasi ochiladi."
-                else "Yangi versiya ${available.first} tayyor. Yangilash tugmasini bossangiz, APK yuklanadi va o'rnatish oynasi ochiladi."
+                if (downloading) tr("Yangi versiya yuklanmoqda. Tugagach, Android o'rnatish oynasi ochiladi.", "Загружается новая версия. После загрузки откроется установка Android.", "Downloading the update. Android installation will open when the download finishes.")
+                else tr("Yangi versiya ${available.first} tayyor. Yangilash tugmasini bossangiz, APK yuklanadi va o'rnatish oynasi ochiladi.", "Доступна версия ${available.first}. Нажмите «Обновить», чтобы загрузить APK и открыть установщик.", "Version ${available.first} is ready. Tap Update to download the APK and open the installer.")
             )
         },
         confirmButton = {
-            BigButton(if (downloading) "Yuklanmoqda…" else "Yangilash", Modifier.width(150.dp)) {
+            BigButton(if (downloading) tr("Yuklanmoqda…", "Загрузка…", "Downloading…") else tr("Yangilash", "Обновить", "Update"), Modifier.width(150.dp)) {
                 if (!downloading) {
                     downloading = true
                     var receiver: android.content.BroadcastReceiver? = null
