@@ -3,7 +3,7 @@ name: APK yig'ish
 on:
   workflow_dispatch: {}
   push:
-    branches: [main, master, 'claude/**']
+    branches: [main, master, 'claude/**', 'admin/**']
 
 permissions:
   contents: write
@@ -67,11 +67,12 @@ jobs:
           name: Taksi ${{ github.run_number }}
           files: taksi.apk
           make_latest: true
-      - name: Release (TOXA Admin, alohida; "latest" bo'lmaydi)
-        if: github.ref == 'refs/heads/main'
+      - name: Release (TOXA Admin, alohida yangilanish kanali)
+        if: startsWith(github.ref, 'refs/heads/admin/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: toxa-admin
           name: TOXA Admin ${{ github.run_number }}
           files: toxa-admin.apk
+          overwrite_files: true
           make_latest: false

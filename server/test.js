@@ -115,6 +115,14 @@ async function login(phone, name, role) {
     const va = await call('POST', '/auth/verify', { phone: AP, code: ra.j.devCode, name: 'Admin', admin: true });
     const A = va.j.token;
     ok(va.s === 200 && va.j.user.role === 'admin', 'admin kirdi');
+    ok((await call('GET', '/admin/tariffs', null, P)).s === 403, 'tarif boshqaruvi oddiy foydalanuvchiga yopiq');
+    const initialTariff = await call('GET', '/admin/tariffs', null, A);
+    ok(initialTariff.s === 200 && initialTariff.j.tariffs.minimum === 8000, 'standart tariflar yuklandi');
+    const savedTariff = await call('POST', '/admin/tariffs', { base: 10000, perKm: 3000, minimum: 12000 }, A);
+    ok(savedTariff.s === 200 && savedTariff.j.tariffs.perKm === 3000, 'admin yangi tarifni saqladi');
+    const updatedEstimate = await call('GET', '/estimate?flat=41.311&flng=69.279&tlat=41.340&tlng=69.285', null, P);
+    ok(updatedEstimate.j.price > q.j.price, 'yangi tarif narx hisobiga qo‘llandi');
+    ok((await call('POST', '/admin/tariffs', { base: -1, perKm: 0, minimum: 1 }, A)).s === 400, 'noto‘g‘ri tarif qiymatlari rad etildi');
     ok((await call('GET', '/admin/overview', null, P)).s === 403, 'oddiy foydalanuvchiga admin API yopiq');
     const ov = await call('GET', '/admin/overview', null, A);
     ok(ov.j.users.drivers >= 1 && ov.j.orders.total >= 1, 'umumiy ko\'rsatkichlar: ' + JSON.stringify(ov.j.users));
