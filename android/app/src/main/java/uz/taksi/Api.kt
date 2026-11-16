@@ -117,7 +117,28 @@ suspend fun latestRelease(): Pair<Int, String>? = withContext(Dispatchers.IO) {
         }
         if (bestVersion > 0 && bestUrl.isNotBlank()) Pair(bestVersion, bestUrl) else null
     } catch (e: Exception) {
-        android.util.Log.w("TOXA_UPDATE", "Yangilanish tekshiruvida xato", e)
-        null
+        android.util.Log.w("TOXA_UPDATE", "GitHub API tekshiruvi bajarilmadi, Atom feed zaxira usuli ishga tushadi", e)
+        try {
+            // GitHub API rate-limit yoki vaqtinchalik xatoda releases Atom feed ishlatiladi.
+            val feed = URL("https://github.com/$REPO/releases.atom").openConnection() as HttpURLConnection
+            feed.connectTimeout = 15000
+            feed.readTimeout = 15000
+            feed.useCaches = false
+            feed.setRequestProperty("User-Agent", "TOXA-Android-App")
+            val xml = feed.inputStream.bufferedReader().use { it.readText() }
+            feed.disconnect()
+            val versions = Regex("""releases/tag/(build-([0-9]+))""")
+                .findAll(xml)
+                .mapNotNull { match ->
+                    val version = match.groupValues[2].toIntOrNull() ?: return@mapNotNull null
+                    version to match.groupValues[1]
+                }
+                .toList()
+            val newest = versions.maxByOrNull { it.first }
+            newest?.let { it.first to "https://github.com/$REPO/releases/download/${it.second}/taksi.apk" }
+        } catch (fallbackError: Exception) {
+            android.util.Log.w("TOXA_UPDATE", "Atom feed orqali ham tekshirib bo'lmadi", fallbackError)
+            null
+        }
     }
 }
