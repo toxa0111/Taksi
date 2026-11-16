@@ -302,7 +302,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 val mins = route?.min
                 when (aSt) {
                     "searching" -> BigLine(
-                        tr("Haydovchi qidirilmoqda…", "Поиск водителя…", "Finding a driver…"),
+                        tr(tr("Haydovchi qidirilmoqda…", "Поиск водителя…", "Finding a driver…"), "Поиск водителя…", "Finding a driver…"),
                         if (mins != null) tr("Safar ≈ $mins daq · ${String.format("%.1f", active.optDouble("km"))} km", "Поездка ≈ $mins мин · ${String.format("%.1f", active.optDouble("km"))} км", "Trip ≈ $mins min · ${String.format("%.1f", active.optDouble("km"))} km") else "",
                     )
                     "accepted" -> BigLine(
@@ -312,7 +312,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                     "arrived" -> BigLine(tr("Haydovchi sizni kutmoqda", "Водитель ожидает вас", "Your driver is waiting"), tr("Mashinaga o'tiring", "Садитесь в машину", "Please get in the car"))
                     "started" -> BigLine(
                         if (mins != null) tr("Manzilga ~$mins daqiqa", "До места назначения ~$mins мин", "~$mins min to destination") else tr("Safar davom etmoqda", "Поездка продолжается", "Trip in progress"),
-                        tr("Yaxshi yo'l!", "Счастливого пути!", "Have a safe trip!"),
+                        tr(tr("Yaxshi yo'l!", "Счастливого пути!", "Have a safe trip!"), "Счастливого пути!", "Have a safe trip!"),
                     )
                 }
                 Route(active.optString("from"), active.optString("to"))
@@ -441,7 +441,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                     if (recent.isNotEmpty()) {
                         Text(tr("Oldingi manzillar", "Предыдущие адреса", "Recent destinations"), fontSize = 13.sp, color = Muted, modifier = Modifier.padding(start = 4.dp))
                         recent.forEach { o ->
-                            SuggestionRow("🕘", o.optString("to"), "Oldingi safar") {
+                            SuggestionRow("🕘", o.optString("to"), tr("Oldingi safar", "Предыдущая поездка", "Previous trip")) {
                                 dest = Pair(o.optDouble("toLat"), o.optDouble("toLng"))
                                 destName = o.optString("to")
                                 centerTo = dest; centerKey++
