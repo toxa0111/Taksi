@@ -215,7 +215,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text("⏻", color = Color(0xFFFF6B6B), fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                            Text("OFFLINE", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                            Text(tr("OFFLINE", "ОФЛАЙН", "OFFLINE"), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                         }
                     }
                 } else {
@@ -339,7 +339,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                 if (st == "arrived") {
                     BigLine(tr("Yo'lovchini kutmoqdasiz", "Ожидайте пассажира", "Waiting for passenger"), tr("Yo'lovchi chiqqach, safarni boshlang", "Начните поездку, когда пассажир сядет в машину", "Start the trip when the passenger is in the car"))
                 } else if (route != null) {
-                    BigLine("$what ${route.min} daq", String.format("%.1f km", route.km))
+                    BigLine(tr("$what ${route.min} daq", "$what ${route.min} мин", "$what ${route.min} min"), String.format("%.1f km", route.km))
                 } else {
                     BigLine("$what marshrut hisoblanmoqda…", if (me == null) tr("GPS kutilmoqda", "Ожидание GPS", "Waiting for GPS") else "")
                 }
@@ -421,7 +421,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                         Text(if (available.isEmpty()) tr("Yangi takliflar kutilmoqda", "Ожидаются новые предложения", "Waiting for new offers") else tr("Sizga ${available.size} ta taklif bor", "Для вас предложений: ${available.size}", "You have ${available.size} offers"), fontSize = 12.sp, color = Muted)
                     }
                     Box(Modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xFFFFF3CD)).padding(horizontal = 11.dp, vertical = 7.dp)) {
-                        Text("${available.size} ta", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ink)
+                        Text(tr("${available.size} ta", "${available.size} шт.", "${available.size}"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ink)
                     }
                 }
                 if (available.isEmpty()) {
@@ -456,7 +456,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                             Text("T", fontSize = 21.sp, fontWeight = FontWeight.Black, color = Ink)
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("HAYDOVCHI PANELI", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.65f))
+                            Text(tr("HAYDOVCHI PANELI", "ПАНЕЛЬ ВОДИТЕЛЯ", "DRIVER PANEL"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.65f))
                             Text("Yangi buyurtmalar: ${available.size} ta  ·  ${if (online) tr("ONLAYN", "ОНЛАЙН", "ONLINE") else tr("OFFLAYN", "ОФЛАЙН", "OFFLINE")}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                         Text("⌃", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Yellow)
