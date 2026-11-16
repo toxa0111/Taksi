@@ -180,7 +180,7 @@ fun Field(
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Ink, unfocusedBorderColor = Hairline,
             focusedLabelColor = Ink, cursorColor = Ink,
-            focusedContainerColor = Color.White, unfocusedContainerColor = Color.White,
+            focusedContainerColor = CardBg, unfocusedContainerColor = CardBg,
         ),
     )
 }
@@ -189,14 +189,14 @@ fun Field(
 @Composable
 fun Panel(
     modifier: Modifier = Modifier,
-    color: Color = Color.White,
+    color: Color = CardBg,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = color),
-        border = BorderStroke(1.dp, if (color == Color.White) Color(0xFFE9EBEF) else color.copy(alpha = 0.35f)),
+        border = BorderStroke(1.dp, if (color == CardBg) Hairline else color.copy(alpha = 0.35f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
@@ -212,14 +212,14 @@ fun Segmented(
     onSelect: (String) -> Unit,
 ) {
     Row(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xFFEAECEF)).padding(4.dp),
+        modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (AppPreferences.darkMode) Color(0xFF2A303A) else Color(0xFFEAECEF)).padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         options.forEach { (key, label) ->
             val sel = key == selected
             Box(
                 Modifier.weight(1f).clip(RoundedCornerShape(11.dp))
-                    .background(if (sel) Color.White else Color.Transparent)
+                    .background(if (sel) CardBg else Color.Transparent)
                     .clickable { onSelect(key) }
                     .padding(vertical = 11.dp),
                 contentAlignment = Alignment.Center,
