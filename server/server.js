@@ -222,7 +222,7 @@ http.createServer(async (req, res) => {
           }));
         return send(res, 200, { drivers: list, classes: DRIVER_CLASS_LABELS });
       }
-      const vr = p.match(/^\\/admin\\/drivers\\/([\\w-]+)\\/review$/);
+      const vr = p.match(/^\/admin\/drivers\/([\w-]+)\/review$/);
       if (m === 'POST' && vr) {
         const target = db.users[vr[1]];
         if (!target || target.role !== 'driver') return send(res, 404, { error: 'Haydovchi topilmadi' });
