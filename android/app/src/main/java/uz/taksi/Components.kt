@@ -250,13 +250,29 @@ private fun PreferenceSwitch(title: String, checked: Boolean, onChange: (Boolean
 @Composable
 fun SupportFaq() {
     var expanded by remember { mutableStateOf(-1) }
-    val questions = listOf(
-        "Buyurtmani qanday beraman?" to "Bosh sahifada qayerdan va qayerga manzillarini tanlang, narxni tekshiring va buyurtmani tasdiqlang.",
-        "Buyurtmani bekor qilish mumkinmi?" to "Faol buyurtma oynasidagi bekor qilish tugmasidan foydalaning. Haydovchi safarni boshlab yuborganidan keyin bekor qilish cheklanishi mumkin.",
-        "Narx qanday hisoblanadi?" to "Narx safar masofasi va tarif hisob-kitobiga ko'ra ilovada buyurtmadan oldin ko'rsatiladi.",
-        "GPS ishlamasa nima qilaman?" to "Telefon sozlamalarida TOXA uchun joylashuv ruxsatini yoqing, GPSni faollashtiring va ochiq joyda qayta urinib ko'ring.",
-        "Haydovchi buyurtmalarni ko'rmayapti" to "Haydovchi ilovasida Ishga chiqish holatini yoqing va internet hamda joylashuv ruxsatini tekshiring."
-    )
+    val questions = when (AppLanguage.code) {
+        "ru" -> listOf(
+            "Как заказать такси?" to "На главной странице выберите адреса отправления и назначения, проверьте цену и подтвердите заказ.",
+            "Можно отменить заказ?" to "Используйте кнопку отмены в активном заказе. После начала поездки отмена может быть ограничена.",
+            "Как рассчитывается цена?" to "Цена рассчитывается по расстоянию и тарифу и показывается до подтверждения заказа.",
+            "Что делать, если не работает GPS?" to "Разрешите доступ к геолокации для TOXA в настройках телефона, включите GPS и попробуйте снова на открытом месте.",
+            "Водитель не видит заказы" to "Водителю нужно выйти на линию и проверить интернет и разрешение на геолокацию."
+        )
+        "en" -> listOf(
+            "How do I order a taxi?" to "On the home screen, choose pickup and destination, review the fare, and confirm the order.",
+            "Can I cancel an order?" to "Use the cancel button in the active order. Cancellation may be restricted after the trip starts.",
+            "How is the fare calculated?" to "The fare is calculated from the trip distance and tariff and shown before you confirm.",
+            "What if GPS does not work?" to "Allow TOXA to access location in phone settings, turn on GPS, and try again outdoors.",
+            "The driver cannot see orders" to "The driver should go online and check the internet connection and location permission."
+        )
+        else -> listOf(
+            "Buyurtmani qanday beraman?" to "Bosh sahifada qayerdan va qayerga manzillarini tanlang, narxni tekshiring va buyurtmani tasdiqlang.",
+            "Buyurtmani bekor qilish mumkinmi?" to "Faol buyurtma oynasidagi bekor qilish tugmasidan foydalaning. Haydovchi safarni boshlab yuborganidan keyin bekor qilish cheklanishi mumkin.",
+            "Narx qanday hisoblanadi?" to "Narx safar masofasi va tarif hisob-kitobiga ko'ra ilovada buyurtmadan oldin ko'rsatiladi.",
+            "GPS ishlamasa nima qilaman?" to "Telefon sozlamalarida TOXA uchun joylashuv ruxsatini yoqing, GPSni faollashtiring va ochiq joyda qayta urinib ko'ring.",
+            "Haydovchi buyurtmalarni ko'rmayapti" to "Haydovchi ilovasida Ishga chiqish holatini yoqing va internet hamda joylashuv ruxsatini tekshiring."
+        )
+    }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         questions.forEachIndexed { index, qa ->
             Surface(
