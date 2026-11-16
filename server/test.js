@@ -30,10 +30,11 @@ async function login(phone, name, role) {
 
   const card = { from: 'A', to: 'B', fromLat: 41.311, fromLng: 69.279, toLat: 41.34, toLng: 69.285, payMethod: 'card' };
   const o = await call('POST', '/orders', card, P);
-  ok(o.s === 200 && o.j.order.status === 'searching' && o.j.order.payMethod === 'card', 'karta buyurtmasi yaratildi');
+  ok(o.s === 200 && o.j.order?.status === 'searching' && o.j.order?.payMethod === 'card', 'karta buyurtmasi yaratildi: ' + JSON.stringify(o.j));
   ok(o.j.order.driverLoc === undefined, 'qidiruv paytida joylashuv ko\'rinmaydi');
   ok((await call('POST', '/orders', card, P)).s === 400, 'ikkinchi faol buyurtma rad etildi');
   ok((await call('POST', '/orders', card, D)).s === 403, 'haydovchi buyurtma bera olmaydi');
+  ok((await call('POST', '/driver/availability', { online: true }, D)).s === 200, 'haydovchi ishga chiqdi');
 
   const id = o.j.order.id;
   const av = await call('GET', '/orders/available', null, D);
