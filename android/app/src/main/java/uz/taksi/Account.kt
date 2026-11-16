@@ -241,21 +241,21 @@ fun CabinetTab(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
         Panel {
             Text("Sozlamalar", fontWeight = FontWeight.Bold, fontSize = 17.sp)
             Text("Til", fontSize = 13.sp, color = Muted)
-            Segmented(LANGS, AppSettings.lang) { AppSettings.setLang(it) }
+            Segmented(LANGS, AppSettings.lang) { AppSettings.changeLang(it) }
             Text("Ko'rinish", fontSize = 13.sp, color = Muted)
             Segmented(listOf("light" to "☀ Yorug'", "dark" to "🌙 Qorong'i"), if (AppSettings.dark) "dark" else "light") {
-                AppSettings.setDark(it == "dark")
+                AppSettings.changeDark(it == "dark")
             }
             Text("Ovoz", fontSize = 13.sp, color = Muted)
             Segmented(listOf("on" to "🔔 Ovozli", "vibrate" to "📳 Tebranish", "off" to "🔕 Ovozsiz"), AppSettings.sound) {
-                AppSettings.setSound(it)
+                AppSettings.changeSound(it)
             }
             Text("Yangi buyurtma ovozi va tebranishi", fontSize = 11.sp, color = Muted)
             Text("Shrift o'lchami", fontSize = 13.sp, color = Muted)
             Segmented(
                 listOf("0.85" to "Kichik", "1.0" to "O'rta", "1.2" to "Katta"),
                 when { AppSettings.fontScale < 0.95f -> "0.85"; AppSettings.fontScale > 1.1f -> "1.2"; else -> "1.0" },
-            ) { AppSettings.setFontScale(it.toFloat()) }
+            ) { AppSettings.changeFont(it.toFloat()) }
             Text("Matn o'lchami butun ilovada o'zgaradi", fontSize = 11.sp, color = Muted)
         }
         Panel {

@@ -38,10 +38,10 @@ object AppSettings {
         fontScale = p.getFloat("font", 1.0f)
     }
 
-    fun setLang(v: String) { lang = v; prefs?.edit()?.putString("lang", v)?.apply() }
-    fun setDark(v: Boolean) { dark = v; prefs?.edit()?.putBoolean("dark", v)?.apply() }
-    fun setSound(v: String) { sound = v; prefs?.edit()?.putString("sound", v)?.apply() }
-    fun setFontScale(v: Float) { fontScale = v; prefs?.edit()?.putFloat("font", v)?.apply() }
+    fun changeLang(v: String) { lang = v; prefs?.edit()?.putString("lang", v)?.apply() }
+    fun changeDark(v: Boolean) { dark = v; prefs?.edit()?.putBoolean("dark", v)?.apply() }
+    fun changeSound(v: String) { sound = v; prefs?.edit()?.putString("sound", v)?.apply() }
+    fun changeFont(v: Float) { fontScale = v; prefs?.edit()?.putFloat("font", v)?.apply() }
 }
 
 val LANGS = listOf("uz" to "O'zbekcha", "ru" to "Русский", "en" to "English")
@@ -53,6 +53,6 @@ fun LangBar(modifier: Modifier = Modifier) {
         modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Segmented(LANGS, AppSettings.lang) { AppSettings.setLang(it) }
+        Segmented(LANGS, AppSettings.lang) { AppSettings.changeLang(it) }
     }
 }
