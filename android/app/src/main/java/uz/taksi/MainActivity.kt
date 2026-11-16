@@ -131,6 +131,10 @@ private fun AppEntry(prefs: SharedPreferences) {
 
 @Composable
 fun App(prefs: SharedPreferences) {
+    remember {
+        AppLanguage.code = prefs.getString("language", "uz") ?: "uz"
+        AppLanguage.onChanged = { prefs.edit().putString("language", it).apply() }
+    }
     var role by remember { mutableStateOf(prefs.getString("role", "") ?: "") }
     val logout = {
         prefs.edit().remove("token").remove("role").apply()
@@ -142,6 +146,35 @@ fun App(prefs: SharedPreferences) {
         "passenger" -> PassengerScreen(logout)
         "driver" -> DriverScreen(logout)
         else -> LoginScreen(prefs) { role = it }
+    }
+}
+
+// ───────────────────────── Ilova tili ─────────────────────────
+
+object AppLanguage {
+    var code by mutableStateOf("uz")
+    var onChanged: ((String) -> Unit)? = null
+
+    fun set(value: String) {
+        code = value
+        onChanged?.invoke(value)
+    }
+}
+
+fun tr(uz: String, ru: String, en: String): String = when (AppLanguage.code) {
+    "ru" -> ru
+    "en" -> en
+    else -> uz
+}
+
+@Composable
+fun LanguageSelector() {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(tr("Ilova tili", "Язык приложения", "App language"), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+        Segmented(
+            listOf("uz" to "O'zbek", "ru" to "Русский", "en" to "English"),
+            AppLanguage.code,
+        ) { AppLanguage.set(it) }
     }
 }
 
@@ -237,25 +270,26 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
                 )
                 Spacer(Modifier.height(16.dp))
                 Text("TOXA", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = Ink, letterSpacing = 4.sp)
-                Text("Shahar ichida tez va qulay safar", fontSize = 15.sp, color = Ink.copy(alpha = 0.75f))
+                Text(tr("Shahar ichida tez va qulay safar", "Быстрые и удобные поездки по городу", "Fast and convenient city rides"), fontSize = 15.sp, color = Ink.copy(alpha = 0.75f))
             }
         }
 
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            LanguageSelector()
             Panel {
                 Text(
-                    if (sent) "Tasdiqlash kodi" else "Kirish",
+                    if (sent) tr("Tasdiqlash kodi", "Код подтверждения", "Verification code") else tr("Kirish", "Вход", "Sign in"),
                     fontSize = 20.sp, fontWeight = FontWeight.Bold,
                 )
                 Segmented(
-                    listOf("passenger" to "🧍 Yo'lovchi", "driver" to "🚖 Haydovchi"),
+                    listOf("passenger" to tr("🧍 Yo'lovchi", "🧍 Пассажир", "🧍 Passenger"), "driver" to tr("🚖 Haydovchi", "🚖 Водитель", "🚖 Driver")),
                     role,
                 ) { role = it }
-                Field(phone, { phone = it }, "Telefon raqam", keyboard = KeyboardType.Phone)
-                Field(name, { name = it }, "Ismingiz (birinchi marta kirganda)")
+                Field(phone, { phone = it }, tr("Telefon raqam", "Номер телефона", "Phone number"), keyboard = KeyboardType.Phone)
+                Field(name, { name = it }, tr("Ismingiz (birinchi marta kirganda)", "Ваше имя (при первом входе)", "Your name (first sign-in)"))
 
                 if (!sent) {
-                    BigButton("Kod olish", enabled = !busy) {
+                    BigButton(tr("Kod olish", "Получить код", "Get code"), enabled = !busy) {
                         scope.launch {
                             busy = true; msg = ""
                             try {
@@ -277,8 +311,8 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
                             Text("Test kodi: $devCode", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     }
-                    Field(code, { code = it }, "SMS kod", keyboard = KeyboardType.Number)
-                    BigButton("Kirish", enabled = !busy) {
+                    Field(code, { code = it }, tr("SMS kod", "SMS-код", "SMS code"), keyboard = KeyboardType.Number)
+                    BigButton(tr("Kirish", "Войти", "Sign in"), enabled = !busy) {
                         scope.launch {
                             busy = true
                             try {
@@ -299,17 +333,17 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
                     TextButton(
                         onClick = { sent = false; code = ""; msg = ""; devCode = "" },
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Raqamni o'zgartirish", color = Muted) }
+                    ) { Text(tr("Raqamni o'zgartirish", "Изменить номер", "Change number"), color = Muted) }
                 }
-                if (busy) Text("Server javob kutilmoqda… (birinchi marta 30–60 soniya ketishi mumkin)", fontSize = 12.sp, color = Muted)
+                if (busy) Text(tr("Server javob kutilmoqda… (birinchi marta 30–60 soniya ketishi mumkin)", "Ожидание ответа сервера… (при первом входе это может занять 30–60 секунд)", "Waiting for server… (first sign-in may take 30–60 seconds)"), fontSize = 12.sp, color = Muted)
                 ErrorText(msg)
             }
 
             // Server manzili: odatda o'zgartirish shart emas
             TextButton(onClick = { showServer = !showServer }, modifier = Modifier.fillMaxWidth()) {
-                Text("⚙ Server sozlamalari", color = Muted, fontSize = 13.sp)
+                Text(tr("⚙ Server sozlamalari", "⚙ Настройки сервера", "⚙ Server settings"), color = Muted, fontSize = 13.sp)
             }
-            if (showServer) Field(base, { base = it }, "Server manzili", keyboard = KeyboardType.Uri)
+            if (showServer) Field(base, { base = it }, tr("Server manzili", "Адрес сервера", "Server address"), keyboard = KeyboardType.Uri)
         }
     }
 }
