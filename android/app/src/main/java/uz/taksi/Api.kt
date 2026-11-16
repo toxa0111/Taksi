@@ -69,6 +69,22 @@ fun statusText(status: String): String = when (status) {
     else -> status
 }
 
+fun localizedError(message: String): String = when (message) {
+    "Qaytadan kiring" -> tr("Qaytadan kiring", "Войдите снова", "Please sign in again")
+    "Ismingizni kiriting" -> tr("Ismingizni kiriting", "Введите имя", "Enter your name")
+    "Kod noto'g'ri" -> tr("Kod noto'g'ri", "Неверный код", "Incorrect code")
+    "Kod eskirgan, qaytadan so'rang" -> tr("Kod eskirgan, qaytadan so'rang", "Срок действия кода истёк. Запросите новый код", "Code expired. Request a new one")
+    "Karta to'lovi provayderi hali ulanmagan" -> tr("Karta to'lovi provayderi hali ulanmagan", "Платёжный провайдер для карт ещё не подключён", "Card payment provider is not connected yet")
+    "Server xatosi" -> tr("Server xatosi", "Ошибка сервера", "Server error")
+    "SMS yuborilmadi, birozdan keyin urinib ko'ring" -> tr("SMS yuborilmadi, birozdan keyin urinib ko'ring", "Не удалось отправить SMS. Попробуйте позже", "SMS could not be sent. Try again later")
+    "Buyurtma topilmadi" -> tr("Buyurtma topilmadi", "Заказ не найден", "Order not found")
+    "Avval ishga chiqing" -> tr("Avval ishga chiqing", "Сначала выйдите на линию", "Go online first")
+    "Faol buyurtma bor" -> tr("Faol buyurtma bor", "У вас уже есть активный заказ", "You already have an active order")
+    "Koordinata xato" -> tr("Koordinata xato", "Некорректные координаты", "Invalid coordinates")
+    "SMS xizmati sozlanmagan. Administrator Eskiz SMS xizmatini ulashi kerak." -> tr("SMS xizmati sozlanmagan. Administrator Eskiz SMS xizmatini ulashi kerak.", "SMS-сервис не настроен. Администратор должен подключить Eskiz.", "SMS service is not configured. The administrator must connect Eskiz.")
+    else -> message
+}
+
 fun payText(o: JSONObject): String {
     val method = if (o.optString("payMethod") == "card")
         tr("💳 Karta", "💳 Карта", "💳 Card")
