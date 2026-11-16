@@ -83,22 +83,46 @@ fun currentVersionCode(ctx: Context): Int = try {
  * tag berilsa (masalan "toxa-admin"): shu tegdagi release, versiya raqami nomining oxiridan olinadi.
  */
 suspend fun latestRelease(tag: String? = null): Pair<Int, String>? = withContext(Dispatchers.IO) {
+    val path = if (tag == null) "releases/latest" else "releases/tags/$tag"
+    val endpoint = "https://api.github.com/repos/$REPO/$path"
+    val c = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+        connectTimeout = 15000
+        readTimeout = 15000
+        requestMethod = "GET"
+        useCaches = false
+        setRequestProperty("Accept", "application/vnd.github+json")
+        setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
+        setRequestProperty("User-Agent", "TOXA-Android-Updater")
+    }
     try {
-        val path = if (tag == null) "releases/latest" else "releases/tags/$tag"
-        val c = URL("https://api.github.com/repos/$REPO/$path").openConnection() as HttpURLConnection
-        c.connectTimeout = 8000; c.readTimeout = 8000
-        c.setRequestProperty("Accept", "application/vnd.github+json")
-        val j = JSONObject(c.inputStream.bufferedReader().readText())
-        val n = if (tag == null) j.getString("tag_name").removePrefix("build-").toInt()
-        else Regex("(\\d+)\\s*$").find(j.optString("name"))!!.groupValues[1].toInt()
-        val assets = j.getJSONArray("assets")
-        var url = ""
-        for (i in 0 until assets.length()) {
-            val a = assets.getJSONObject(i)
-            if (a.getString("name").endsWith(".apk")) url = a.getString("browser_download_url")
+        val code = c.responseCode
+        val stream = if (code in 200..299) c.inputStream else c.errorStream
+        val response = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+        if (code !in 200..299) {
+            val detail = try { JSONObject(response).optString("message").ifBlank { "HTTP $code" } }
+                         catch (_: Exception) { "HTTP $code" }
+            throw Exception("GitHub yangilanish serveri: $detail (HTTP $code)")
         }
-        if (url.isEmpty()) null else Pair(n, url)
-    } catch (e: Exception) { null }
+        val j = JSONObject(response)
+        val version = if (tag == null) {
+            j.getString("tag_name").removePrefix("build-").toIntOrNull()
+        } else {
+            Regex("(\\d+)\\s*$").find(j.optString("name"))?.groupValues?.get(1)?.toIntOrNull()
+        } ?: throw Exception("Release versiya raqami noto'g'ri")
+        val assets = j.optJSONArray("assets") ?: throw Exception("APK ro'yxati topilmadi")
+        var apkUrl: String? = null
+        for (i in 0 until assets.length()) {
+            val asset = assets.optJSONObject(i) ?: continue
+            val assetName = asset.optString("name")
+            if (if (tag == "toxa-admin") assetName == "toxa-admin.apk" else assetName.endsWith(".apk")) {
+                apkUrl = asset.optString("browser_download_url").takeIf { it.startsWith("https://") }
+                if (apkUrl != null) break
+            }
+        }
+        apkUrl?.let { Pair(version, it) } ?: throw Exception("Release ichida APK fayli topilmadi")
+    } finally {
+        c.disconnect()
+    }
 }
 
 /** Qo'llab-quvvatlash aloqa ma'lumotlari. Bo'sh bo'lsa, tegishli tugma ko'rsatilmaydi. */
