@@ -81,15 +81,21 @@ fun currentVersionCode(ctx: Context): Int = try {
 suspend fun latestRelease(): Pair<Int, String>? = withContext(Dispatchers.IO) {
     try {
         val c = URL("https://api.github.com/repos/$REPO/releases?per_page=30").openConnection() as HttpURLConnection
-        c.connectTimeout = 10000
-        c.readTimeout = 10000
+        c.connectTimeout = 20000
+        c.readTimeout = 20000
+        c.useCaches = false
+        c.instanceFollowRedirects = true
         c.setRequestProperty("Accept", "application/vnd.github+json")
         c.setRequestProperty("User-Agent", "TOXA-Android-App")
         c.setRequestProperty("Cache-Control", "no-cache")
         c.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
         val code = c.responseCode
-        if (code !in 200..299) return@withContext null
+        if (code !in 200..299) {
+            android.util.Log.w("TOXA_UPDATE", "GitHub release tekshiruvi HTTP $code")
+            return@withContext null
+        }
         val releases = JSONArray(c.inputStream.bufferedReader().use { it.readText() })
+        c.disconnect()
         var bestVersion = -1
         var bestUrl = ""
         for (i in 0 until releases.length()) {
@@ -110,5 +116,8 @@ suspend fun latestRelease(): Pair<Int, String>? = withContext(Dispatchers.IO) {
             }
         }
         if (bestVersion > 0 && bestUrl.isNotBlank()) Pair(bestVersion, bestUrl) else null
-    } catch (e: Exception) { null }
+    } catch (e: Exception) {
+        android.util.Log.w("TOXA_UPDATE", "Yangilanish tekshiruvida xato", e)
+        null
+    }
 }
