@@ -212,9 +212,9 @@ fun SettingsPreferencesContent() {
         Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = CardBg, border = BorderStroke(1.dp, Hairline)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Ovoz va tebranish", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
-                PreferenceSwitch("Yangi buyurtma ovozi", AppPreferences.orderSound, AppPreferences::setOrderSound)
-                PreferenceSwitch("Bildirishnoma ovozi", AppPreferences.notificationSound, AppPreferences::setNotificationSound)
-                PreferenceSwitch("Tebranish", AppPreferences.vibration, AppPreferences::setVibration)
+                PreferenceSwitch("Yangi buyurtma ovozi", AppPreferences.orderSound, AppPreferences::updateOrderSound)
+                PreferenceSwitch("Bildirishnoma ovozi", AppPreferences.notificationSound, AppPreferences::updateNotificationSound)
+                PreferenceSwitch("Tebranish", AppPreferences.vibration, AppPreferences::updateVibration)
                 Text("Eslatma: ovoz va tebranish tanlovlari saqlanadi. Ularni ishga tushiradigan buyurtma/bildirishnoma hodisalari ilovaga ulanganda qo'llanadi.", fontSize = 11.sp, color = Muted)
             }
         }
