@@ -90,8 +90,8 @@ http.createServer(async (req, res) => {
     // ---- Kirish (telefon + kod) ----
     if (m === 'POST' && p === '/auth/request') {
       const phone = String(b.phone || '').trim();
-      if (!SMS_ENABLED && !DEV_SMS) return send(res, 503, { error: 'SMS xizmati sozlanmagan. Administrator Eskiz SMS xizmatini ulashi kerak.' });
       if (!PHONE_RE.test(phone)) return send(res, 400, { error: 'Telefon raqam +998XXXXXXXXX ko\'rinishida bo\'lsin' });
+      if (!SMS_ENABLED && !DEV_SMS) return send(res, 503, { error: 'SMS xizmati sozlanmagan. Administrator Eskiz SMS xizmatini ulashi kerak.' });
       // Haqiqiy SMS yoqilgan bo'lsa: bir raqamga 60 soniyada bir martadan ko'p yuborilmaydi (pul va spamdan himoya)
       const prev = db.codes[phone];
       if (prev && prev.sent && Date.now() - prev.sent < 60000) {
