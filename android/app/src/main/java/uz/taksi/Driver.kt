@@ -70,7 +70,6 @@ fun DriverScreen(onLogout: () -> Unit) {
     var shiftSlider by remember { mutableStateOf(0f) }
     var shiftDragging by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf("") }
-    var navVisible by remember { mutableStateOf(true) }
     // Bosh ekran ixcham panel bilan ochiladi; xaritaga bosilganda vaqtincha faqat xarita qoladi.
     var sheetExpanded by remember { mutableStateOf(false) }
     var mapOnlyMode by remember { mutableStateOf(false) }
@@ -440,14 +439,12 @@ fun DriverScreen(onLogout: () -> Unit) {
                 }
             }
         }
-        if (!mapOnlyMode) {
-            AnimatedVisibility(visible = navVisible, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
-                DriverBottomNavigation(selectedTab = selectedTab, onSelect = {
-                    selectedTab = it
-                    sheetExpanded = true
-                })
-            }
-        }
+        // Pastki navigatsiya doim ko'rinadi; xaritaga bosish faqat haydovchi panelini yashiradi.
+        DriverBottomNavigation(selectedTab = selectedTab, onSelect = {
+            selectedTab = it
+            sheetExpanded = true
+            mapOnlyMode = false
+        })
     }
 
     if (showOfflineConfirm) {
