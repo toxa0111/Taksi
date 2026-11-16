@@ -110,7 +110,7 @@ fun SuggestionRow(icon: String, title: String, sub: String = "", onClick: () -> 
             .padding(horizontal = 4.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(38.dp).clip(CircleShape).background(Color(0xFFF3F4F6)), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(38.dp).clip(CircleShape).background(if (AppPreferences.darkMode) Color(0xFF303744) else Color(0xFFF3F4F6)), contentAlignment = Alignment.Center) {
             Text(icon, fontSize = 16.sp)
         }
         Spacer(Modifier.width(12.dp))
@@ -127,8 +127,8 @@ fun TariffRow(price: Long, mins: Int, km: Double) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        color = Color(0xFFFFF8E8),
-        border = BorderStroke(1.dp, Color(0xFFF2E4B8)),
+        color = if (AppPreferences.darkMode) Color(0xFF3A321F) else Color(0xFFFFF8E8),
+        border = BorderStroke(1.dp, if (AppPreferences.darkMode) Color(0xFF66552B) else Color(0xFFF2E4B8)),
         shadowElevation = 1.dp,
     ) {
         Row(
@@ -163,24 +163,24 @@ fun AccountSettingsContent(name: String, phone: String, role: String, onRefresh:
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        color = Color(0xFFF8F9FB),
-        border = BorderStroke(1.dp, Color(0xFFE8EBF0)),
+        color = CardBg,
+        border = BorderStroke(1.dp, Hairline),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Hisob ma'lumotlari", fontSize = 15.sp, fontWeight = FontWeight.Bold)
-            listOf("Ism" to name, "Telefon" to phone, "Hisob turi" to role).forEach { item ->
+            Text(tr("Hisob ma'lumotlari", "Данные аккаунта", "Account details"), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            listOf(tr("Ism", "Имя", "Name") to name, tr("Telefon", "Телефон", "Phone") to phone, tr("Hisob turi", "Тип аккаунта", "Account type") to role).forEach { item ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(item.first, color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                    Text(item.second.ifBlank { "Ko'rsatilmagan" }, color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text(item.second.ifBlank { tr("Ko'rsatilmagan", "Не указано", "Not provided") }, color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
-            Text("Telefon raqamini o'zgartirish hozircha ilova ichida mavjud emas. Hisobga kirish SMS tasdiqlash orqali amalga oshiriladi.", fontSize = 12.sp, color = Muted)
+            Text(tr("Telefon raqamini o'zgartirish hozircha ilova ichida mavjud emas. Hisobga kirish SMS tasdiqlash orqali amalga oshiriladi.", "Изменение номера телефона пока недоступно в приложении. Вход выполняется по SMS-коду.", "Changing the phone number is not yet available in the app. Sign-in uses SMS verification."), fontSize = 12.sp, color = Muted)
             Surface(
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onRefresh),
                 shape = RoundedCornerShape(13.dp),
-                color = Color(0xFFFFF3D1),
+                color = if (AppPreferences.darkMode) Color(0xFF3A321F) else Color(0xFFFFF3D1),
             ) {
-                Text("↻  Ma'lumotlarni yangilash", Modifier.padding(13.dp), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ink)
+                Text(tr("↻  Ma'lumotlarni yangilash", "↻  Обновить данные", "↻  Refresh details"), Modifier.padding(13.dp), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ink)
             }
         }
     }
@@ -194,15 +194,15 @@ fun SettingsPreferencesContent() {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = CardBg, border = BorderStroke(1.dp, Hairline)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Ko'rinish", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
-                Text("Rang rejimi", fontSize = 13.sp, color = Muted)
+                Text(tr("Ko'rinish", "Внешний вид", "Appearance"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
+                Text(tr("Rang rejimi", "Цветовая тема", "Color theme"), fontSize = 13.sp, color = Muted)
                 Segmented(
-                    listOf("light" to "Kunduzgi", "dark" to "Tungi"),
+                    listOf("light" to tr("Kunduzgi", "Светлая", "Light"), "dark" to tr("Tungi", "Тёмная", "Dark")),
                     if (AppPreferences.darkMode) "dark" else "light",
                 ) { AppPreferences.setDark(it == "dark") }
-                Text("Matn o'lchami", fontSize = 13.sp, color = Muted)
+                Text(tr("Matn o'lchami", "Размер текста", "Text size"), fontSize = 13.sp, color = Muted)
                 Segmented(
-                    listOf("small" to "Kichik", "normal" to "O'rtacha", "large" to "Katta"),
+                    listOf("small" to tr("Kichik", "Маленький", "Small"), "normal" to tr("O'rtacha", "Средний", "Medium"), "large" to tr("Katta", "Большой", "Large")),
                     when (AppPreferences.fontScale) { in 0.8f..0.95f -> "small"; in 1.05f..1.3f -> "large"; else -> "normal" },
                 ) {
                     AppPreferences.setFont(when (it) { "small" -> 0.90f; "large" -> 1.15f; else -> 1f })
@@ -211,17 +211,17 @@ fun SettingsPreferencesContent() {
         }
         Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = CardBg, border = BorderStroke(1.dp, Hairline)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Ovoz va tebranish", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
-                PreferenceSwitch("Yangi buyurtma ovozi", AppPreferences.orderSound, AppPreferences::updateOrderSound)
-                PreferenceSwitch("Bildirishnoma ovozi", AppPreferences.notificationSound, AppPreferences::updateNotificationSound)
-                PreferenceSwitch("Tebranish", AppPreferences.vibration, AppPreferences::updateVibration)
-                Text("Eslatma: ovoz va tebranish tanlovlari saqlanadi. Ularni ishga tushiradigan buyurtma/bildirishnoma hodisalari ilovaga ulanganda qo'llanadi.", fontSize = 11.sp, color = Muted)
+                Text(tr("Ovoz va tebranish", "Звук и вибрация", "Sound and vibration"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
+                PreferenceSwitch(tr("Yangi buyurtma ovozi", "Звук нового заказа", "New order sound"), AppPreferences.orderSound, AppPreferences::updateOrderSound)
+                PreferenceSwitch(tr("Bildirishnoma ovozi", "Звук уведомлений", "Notification sound"), AppPreferences.notificationSound, AppPreferences::updateNotificationSound)
+                PreferenceSwitch(tr("Tebranish", "Вибрация", "Vibration"), AppPreferences.vibration, AppPreferences::updateVibration)
+                Text(tr("Yangi buyurtma ovozi va tebranishi yangi buyurtma kelganda ishlaydi. Bildirishnoma ovozi alohida bildirishnomalar ulanganda ishlaydi.", "Звук нового заказа и вибрация срабатывают при поступлении нового заказа. Звук уведомлений заработает после подключения системных уведомлений.", "New-order sound and vibration activate when a new order arrives. Notification sound will work when system notifications are connected."), fontSize = 11.sp, color = Muted)
             }
         }
         Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = CardBg, border = BorderStroke(1.dp, Hairline)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Maxfiylik va xavfsizlik", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
-                Text("TOXA joylashuv ruxsatidan safar va haydovchi xaritasini ko'rsatish uchun foydalanadi. Ruxsatlarni Android sozlamalarida istalgan vaqtda o'zgartirishingiz mumkin.", fontSize = 12.sp, color = Muted)
+                Text(tr("Maxfiylik va xavfsizlik", "Конфиденциальность и безопасность", "Privacy and security"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
+                Text(tr("TOXA joylashuv ruxsatidan safar va haydovchi xaritasini ko'rsatish uchun foydalanadi. Ruxsatlarni Android sozlamalarida istalgan vaqtda o'zgartirishingiz mumkin.", "TOXA использует геолокацию для поездок и отображения водителя на карте. Разрешения можно изменить в настройках Android.", "TOXA uses location to manage trips and show the driver on the map. You can change permissions in Android settings at any time."), fontSize = 12.sp, color = Muted)
                 Surface(
                     Modifier.fillMaxWidth().clickable {
                         val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -230,7 +230,7 @@ fun SettingsPreferencesContent() {
                     },
                     shape = RoundedCornerShape(13.dp), color = if (AppPreferences.darkMode) Color(0xFF303744) else Color(0xFFFFF3D1),
                 ) {
-                    Text("⚙  Ilova ruxsatlari va xavfsizlik", Modifier.padding(13.dp), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ink)
+                    Text(tr("⚙  Ilova ruxsatlari va xavfsizlik", "⚙  Разрешения и безопасность", "⚙  App permissions and security"), Modifier.padding(13.dp), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ink)
                 }
             }
         }
@@ -262,8 +262,8 @@ fun SupportFaq() {
             Surface(
                 modifier = Modifier.fillMaxWidth().clickable { expanded = if (expanded == index) -1 else index },
                 shape = RoundedCornerShape(15.dp),
-                color = Color(0xFFF8F9FB),
-                border = BorderStroke(1.dp, Color(0xFFE8EBF0)),
+                color = CardBg,
+                border = BorderStroke(1.dp, Hairline),
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
