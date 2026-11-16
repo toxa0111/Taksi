@@ -397,7 +397,7 @@ fun AdminUsers() {
             val blocked = u.optBoolean("blocked")
             Panel {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(modifier) {
+                    Column(Modifier.weight(1f)) {
                         Text(u.optString("name").ifBlank { "—" }, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         Text(u.optString("phone"), fontSize = 13.sp, color = Muted)
                     }
