@@ -45,7 +45,7 @@ fun Sheet(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> 
     Surface(
         modifier = modifier.fillMaxWidth().heightIn(max = maxH),
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        color = Color.White,
+        color = CardBg,
         shadowElevation = 16.dp,
     ) {
         Column(
@@ -65,7 +65,7 @@ fun Sheet(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> 
 /** Xarita ustidagi suzuvchi oq tugma. */
 @Composable
 fun FloatingChip(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Surface(modifier = modifier, shape = RoundedCornerShape(50), color = Color.White, shadowElevation = 6.dp) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(50), color = CardBg, shadowElevation = 6.dp) {
         Box(
             Modifier.clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp),
             contentAlignment = Alignment.Center,
@@ -81,8 +81,8 @@ fun AddressRow(dot: Color, label: String, value: String, isPlaceholder: Boolean 
     Surface(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
-        color = Color(0xFFF8F9FB),
-        border = BorderStroke(1.dp, Color(0xFFE8EBF0)),
+        color = if (AppPreferences.darkMode) Color(0xFF252B35) else Color(0xFFF8F9FB),
+        border = BorderStroke(1.dp, Hairline),
         shadowElevation = 0.dp,
     ) {
         Row(
