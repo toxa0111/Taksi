@@ -29,6 +29,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,26 +47,69 @@ import androidx.compose.ui.unit.sp
 // ───────────────────────── Ranglar ─────────────────────────
 
 val Yellow = Color(0xFFFFC21A)
-val Ink = Color(0xFF16181D)
-val PageBg = Color(0xFFF4F5F7)
-val Muted = Color(0xFF6B7280)
+val Ink: Color get() = if (AppPreferences.darkMode) Color(0xFFF3F4F6) else Color(0xFF16181D)
+val PageBg: Color get() = if (AppPreferences.darkMode) Color(0xFF111318) else Color(0xFFF4F5F7)
+val Muted: Color get() = if (AppPreferences.darkMode) Color(0xFFADB3BE) else Color(0xFF6B7280)
+val CardBg: Color get() = if (AppPreferences.darkMode) Color(0xFF1D222B) else Color.White
 val Ok = Color(0xFF1F9D55)
 val Bad = Color(0xFFD64545)
-val Hairline = Color(0xFFE3E5E9)
+val Hairline: Color get() = if (AppPreferences.darkMode) Color(0xFF343B46) else Color(0xFFE3E5E9)
 
-private val Scheme = lightColorScheme(
-    primary = Yellow, onPrimary = Ink,
-    secondary = Ink, onSecondary = Color.White,
-    background = PageBg, onBackground = Ink,
-    surface = Color.White, onSurface = Ink,
-    surfaceVariant = Color(0xFFEDEEF1), onSurfaceVariant = Muted,
-    outline = Hairline, error = Bad,
-    primaryContainer = Color(0xFFFFF1C2), onPrimaryContainer = Ink,
+private val LightScheme = lightColorScheme(
+    primary = Yellow, onPrimary = Color(0xFF16181D),
+    secondary = Color(0xFF16181D), onSecondary = Color.White,
+    background = Color(0xFFF4F5F7), onBackground = Color(0xFF16181D),
+    surface = Color.White, onSurface = Color(0xFF16181D),
+    surfaceVariant = Color(0xFFEDEEF1), onSurfaceVariant = Color(0xFF6B7280),
+    outline = Color(0xFFE3E5E9), error = Bad,
+    primaryContainer = Color(0xFFFFF1C2), onPrimaryContainer = Color(0xFF16181D),
 )
+private val DarkScheme = androidx.compose.material3.darkColorScheme(
+    primary = Yellow, onPrimary = Color(0xFF16181D),
+    secondary = Color(0xFFE5E7EB), onSecondary = Color(0xFF16181D),
+    background = Color(0xFF111318), onBackground = Color(0xFFF3F4F6),
+    surface = Color(0xFF1D222B), onSurface = Color(0xFFF3F4F6),
+    surfaceVariant = Color(0xFF2A303A), onSurfaceVariant = Color(0xFFADB3BE),
+    outline = Color(0xFF343B46), error = Color(0xFFFF7777),
+    primaryContainer = Color(0xFF4A3A0A), onPrimaryContainer = Color(0xFFFFE7A0),
+)
+
+object AppPreferences {
+    var darkMode by mutableStateOf(false)
+    var fontScale by mutableStateOf(1f)
+    var orderSound by mutableStateOf(true)
+    var notificationSound by mutableStateOf(true)
+    var vibration by mutableStateOf(true)
+    private var save: ((String, Any) -> Unit)? = null
+
+    fun load(prefs: android.content.SharedPreferences) {
+        darkMode = prefs.getBoolean("pref_dark_mode", false)
+        fontScale = prefs.getFloat("pref_font_scale", 1f)
+        orderSound = prefs.getBoolean("pref_order_sound", true)
+        notificationSound = prefs.getBoolean("pref_notification_sound", true)
+        vibration = prefs.getBoolean("pref_vibration", true)
+        save = { key, value ->
+            val editor = prefs.edit()
+            when (value) {
+                is Boolean -> editor.putBoolean(key, value)
+                is Float -> editor.putFloat(key, value)
+                else -> editor
+            }.apply()
+        }
+    }
+    fun setDark(value: Boolean) { darkMode = value; save?.invoke("pref_dark_mode", value) }
+    fun setFont(value: Float) { fontScale = value; save?.invoke("pref_font_scale", value) }
+    fun setOrderSound(value: Boolean) { orderSound = value; save?.invoke("pref_order_sound", value) }
+    fun setNotificationSound(value: Boolean) { notificationSound = value; save?.invoke("pref_notification_sound", value) }
+    fun setVibration(value: Boolean) { vibration = value; save?.invoke("pref_vibration", value) }
+}
 
 @Composable
 fun TaksiTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = Scheme, content = content)
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides density.copy(fontScale = density.fontScale * AppPreferences.fontScale)) {
+        MaterialTheme(colorScheme = if (AppPreferences.darkMode) DarkScheme else LightScheme, content = content)
+    }
 }
 
 // ───────────────────────── Tugmalar ─────────────────────────
