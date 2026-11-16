@@ -3,7 +3,7 @@
 const http = require('http'), fs = require('fs'), crypto = require('crypto'), path = require('path');
 
 const PORT = +process.env.PORT || 3000;
-const DEV_SMS = process.env.DEV_SMS !== '0';           // true: kod javobda qaytariladi (SMS yo'q)
+const DEV_SMS = process.env.DEV_SMS === '1';             // faqat sinovda: kod javobda qaytariladi
 const PAY_DEV = process.env.PAY_DEV === '1';           // faqat maxsus sinov muhiti: haqiqiy pul yechilmaydi
 // ---- Haqiqiy SMS (Eskiz.uz). ESKIZ_EMAIL va ESKIZ_PASSWORD berilsa yoqiladi; bo'lmasa eski rejim ----
 const ESKIZ_EMAIL = process.env.ESKIZ_EMAIL || '', ESKIZ_PASSWORD = process.env.ESKIZ_PASSWORD || '';
@@ -90,10 +90,11 @@ http.createServer(async (req, res) => {
     // ---- Kirish (telefon + kod) ----
     if (m === 'POST' && p === '/auth/request') {
       const phone = String(b.phone || '').trim();
+      if (!SMS_ENABLED && !DEV_SMS) return send(res, 503, { error: 'SMS xizmati sozlanmagan. Administrator Eskiz SMS xizmatini ulashi kerak.' });
       if (!PHONE_RE.test(phone)) return send(res, 400, { error: 'Telefon raqam +998XXXXXXXXX ko\'rinishida bo\'lsin' });
       // Haqiqiy SMS yoqilgan bo'lsa: bir raqamga 60 soniyada bir martadan ko'p yuborilmaydi (pul va spamdan himoya)
       const prev = db.codes[phone];
-      if (SMS_ENABLED && prev && prev.sent && Date.now() - prev.sent < 60000) {
+      if (prev && prev.sent && Date.now() - prev.sent < 60000) {
         return send(res, 429, { error: 'Kodni 60 soniyadan keyin qayta so\'rang' });
       }
       const code = String(crypto.randomInt(100000, 1000000));
