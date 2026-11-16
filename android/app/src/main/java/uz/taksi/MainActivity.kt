@@ -214,7 +214,7 @@ fun PersonRow(role: String, name: String, phone: String) {
             Text(name.ifBlank { role }, fontWeight = FontWeight.Bold)
             Text("$role · $phone", fontSize = 12.sp, color = Muted)
         }
-        DarkButton("📞 Qo'ng'iroq") {
+        DarkButton(tr("📞 Qo'ng'iroq", "📞 Позвонить", "📞 Call")) {
             try { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))) } catch (e: Exception) { }
         }
     }
@@ -309,7 +309,7 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
                             Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
                                 .background(Color(0xFFFFF1C2)).padding(12.dp),
                         ) {
-                            Text("Test kodi: $devCode", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(tr("Test kodi: $devCode", "Тестовый код: $devCode", "Test code: $devCode"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     }
                     Field(code, { code = it }, tr("SMS kod", "SMS-код", "SMS code"), keyboard = KeyboardType.Number)
@@ -477,7 +477,7 @@ fun UpdateDialog() {
             }
         },
         dismissButton = {
-            TextButton(onClick = { if (!downloading) update = null }) { Text("Keyinroq", color = Muted) }
+            TextButton(onClick = { if (!downloading) update = null }) { Text(tr("Keyinroq", "Позже", "Later"), color = Muted) }
         },
     )
 }
