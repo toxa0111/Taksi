@@ -302,17 +302,17 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 val mins = route?.min
                 when (aSt) {
                     "searching" -> BigLine(
-                        "Haydovchi qidirilmoqda…",
-                        if (mins != null) "Safar ≈ $mins daq · ${String.format("%.1f", active.optDouble("km"))} km" else "",
+                        tr("Haydovchi qidirilmoqda…", "Поиск водителя…", "Finding a driver…"),
+                        if (mins != null) tr("Safar ≈ $mins daq · ${String.format("%.1f", active.optDouble("km"))} km", "Поездка ≈ $mins мин · ${String.format("%.1f", active.optDouble("km"))} км", "Trip ≈ $mins min · ${String.format("%.1f", active.optDouble("km"))} km") else "",
                     )
                     "accepted" -> BigLine(
-                        if (mins != null) "Haydovchi ~$mins daqiqada keladi" else "Haydovchi yo'lda",
-                        if (dLoc == null) "Haydovchi joylashuvi kutilmoqda…" else "",
+                        if (mins != null) tr("Haydovchi ~$mins daqiqada keladi", "Водитель будет через ~$mins мин", "Driver arrives in ~$mins min") else tr("Haydovchi yo'lda", "Водитель в пути", "Driver is on the way"),
+                        if (dLoc == null) tr("Haydovchi joylashuvi kutilmoqda…", "Ожидается местоположение водителя…", "Waiting for driver location…") else "",
                     )
                     "arrived" -> BigLine(tr("Haydovchi sizni kutmoqda", "Водитель ожидает вас", "Your driver is waiting"), tr("Mashinaga o'tiring", "Садитесь в машину", "Please get in the car"))
                     "started" -> BigLine(
-                        if (mins != null) "Manzilga ~$mins daqiqa" else "Safar davom etmoqda",
-                        "Yaxshi yo'l!",
+                        if (mins != null) tr("Manzilga ~$mins daqiqa", "До места назначения ~$mins мин", "~$mins min to destination") else tr("Safar davom etmoqda", "Поездка продолжается", "Trip in progress"),
+                        tr("Yaxshi yo'l!", "Счастливого пути!", "Have a safe trip!"),
                     )
                 }
                 Route(active.optString("from"), active.optString("to"))
@@ -321,7 +321,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                     fontSize = 13.sp, color = Muted,
                 )
                 val d = active.optJSONObject("driver")
-                if (d != null) PersonRow("Haydovchi", d.optString("name"), d.optString("phone"))
+                if (d != null) PersonRow(tr("Haydovchi", "Водитель", "Driver"), d.optString("name"), d.optString("phone"))
                 if (aSt != "started") {
                     DangerButton(tr("Buyurtmani bekor qilish", "Отменить заказ", "Cancel order")) {
                         scope.launch {
@@ -335,8 +335,8 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 val isFrom = field == "from"
                 if (mapPick) {
                     BigLine(
-                        if (isFrom) "Olinadigan joyni belgilang" else "Borish manzilini belgilang",
-                        "Xaritaga bosing",
+                        if (isFrom) tr("Olinadigan joyni belgilang", "Укажите место посадки", "Choose pickup location") else tr("Borish manzilini belgilang", "Укажите пункт назначения", "Choose destination"),
+                        tr("Xaritaga bosing", "Нажмите на карту", "Tap the map"),
                     )
                     GhostButton(tr("Qidiruvga qaytish", "Вернуться к поиску", "Back to search")) { mapPick = false }
                 } else {
@@ -359,7 +359,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                     if (q.length < 3) {
                         val recent = orders.filter { it.optString("status") == "done" }.distinctBy { it.optString("to") }.take(4)
                         recent.forEach { o ->
-                            SuggestionRow("🕘", o.optString("to"), "Oldingi safar") {
+                            SuggestionRow("🕘", o.optString("to"), tr("Oldingi safar", "Предыдущая поездка", "Previous trip")) {
                                 choose(Pair(o.optDouble("toLat"), o.optDouble("toLng")), o.optString("to"))
                             }
                         }
@@ -387,19 +387,19 @@ fun PassengerScreen(onLogout: () -> Unit) {
 
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        "Safaringizni rejalashtiring",
+                        tr("Safaringizni rejalashtiring", "Запланируйте поездку", "Plan your trip"),
                         fontSize = 21.sp,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
                         color = Ink,
                     )
                     Text(
-                        "Qayerdan va qayerga borishingizni tanlang",
+                        tr("Qayerdan va qayerga borishingizni tanlang", "Выберите пункт отправления и назначения", "Choose pickup and destination"),
                         fontSize = 13.sp,
                         color = Muted,
                     )
                 }
 
-                AddressRow(Ok, tr("Qayerdan", "Откуда", "Pickup"), pickupName.ifBlank { "Joylashuv aniqlanmoqda…" }, pickupName.isBlank()) {
+                AddressRow(Ok, tr("Qayerdan", "Откуда", "Pickup"), pickupName.ifBlank { tr("Joylashuv aniqlanmoqda…", "Определение местоположения…", "Locating…") }, pickupName.isBlank()) {
                     field = "from"; query = ""; mapPick = false
                 }
                 AddressRow(Bad, tr("Qayerga", "Куда", "Destination"), destName.ifBlank { tr("Qayerga boramiz?", "Куда едем?", "Where to?") }, destName.isBlank()) {
@@ -423,8 +423,8 @@ fun PassengerScreen(onLogout: () -> Unit) {
                                 busy = true
                                 try {
                                     val body = JSONObject()
-                                        .put("from", pickupName.ifBlank { "Xaritadagi nuqta" })
-                                        .put("to", destName.ifBlank { "Xaritadagi nuqta" })
+                                        .put("from", pickupName.ifBlank { tr("Xaritadagi nuqta", "Точка на карте", "Map point") })
+                                        .put("to", destName.ifBlank { tr("Xaritadagi nuqta", "Точка на карте", "Map point") })
                                         .put("fromLat", a.first).put("fromLng", a.second)
                                         .put("toLat", b.first).put("toLng", b.second)
                                         .put("payMethod", "cash")
