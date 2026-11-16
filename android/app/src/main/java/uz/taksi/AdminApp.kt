@@ -669,7 +669,7 @@ private fun ReviewDocumentPhoto(data: String, label: String, modifier: Modifier 
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
         } catch (_: Exception) { null }
     }
-    Column(Modifier.weight(1f)) {
+    Column(modifier) {
         if (bitmap != null) {
             Image(bitmap, contentDescription = label, modifier = Modifier.fillMaxWidth().height(112.dp)
                 .clip(RoundedCornerShape(10.dp)), contentScale = ContentScale.Crop)
