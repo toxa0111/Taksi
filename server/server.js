@@ -15,7 +15,7 @@ const SMS_ENABLED = !!(ESKIZ_EMAIL && ESKIZ_PASSWORD);
 const ADMIN_PHONES = (process.env.ADMIN_PHONES || '').split(',').map(x => x.trim()).filter(Boolean);
 const DB_FILE = process.env.DB_FILE || path.join(__dirname, 'db.json');
 
-let db = { users: {}, sessions: {}, codes: {}, orders: [], seq: 1, tickets: [], tseq: 1 };
+let db = { users: {}, sessions: {}, codes: {}, orders: [], seq: 1, tickets: [], tseq: 1, tariffs: { base: 5000, perKm: 2500, minimum: 8000 } };
 try { db = Object.assign(db, JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))); } catch {}
 const save = () => fs.writeFileSync(DB_FILE, JSON.stringify(db));
 
@@ -41,7 +41,10 @@ async function sendSms(phone, text) {
 }
 
 // ---- Narx ----
-const BASE = 5000, PER_KM = 2500, MIN_FARE = 8000;
+const DEFAULT_TARIFFS = { base: 5000, perKm: 2500, minimum: 8000 };
+if (!db.tariffs || typeof db.tariffs !== 'object') db.tariffs = { ...DEFAULT_TARIFFS };
+else db.tariffs = { ...DEFAULT_TARIFFS, ...db.tariffs };
+
 const rad = x => x * Math.PI / 180;
 function distKm(a, b, c, d) {
   const dl = rad(c - a), dn = rad(d - b);
@@ -55,7 +58,8 @@ function quote(a, b, c, d, kmHint) {
   let raw = distKm(a, b, c, d);
   if (typeof kmHint === 'number' && isFinite(kmHint) && kmHint >= straight && kmHint <= straight * 4 + 2) raw = kmHint;
   const km = Math.max(0.1, Math.round(raw * 10) / 10);
-  const price = Math.max(MIN_FARE, Math.round((BASE + km * PER_KM) / 500) * 500);
+  const tariffs = db.tariffs || DEFAULT_TARIFFS;
+  const price = Math.max(tariffs.minimum, Math.round((tariffs.base + km * tariffs.perKm) / 500) * 500);
   return { km, price };
 }
 
@@ -155,6 +159,21 @@ http.createServer(async (req, res) => {
         passenger: db.users[o.passengerId] && { name: db.users[o.passengerId].name, phone: db.users[o.passengerId].phone },
         driver: db.users[o.driverId] && { name: db.users[o.driverId].name, phone: db.users[o.driverId].phone },
       });
+
+      if (m === 'GET' && p === '/admin/tariffs') {
+        return send(res, 200, { tariffs: db.tariffs || DEFAULT_TARIFFS });
+      }
+      if (m === 'POST' && p === '/admin/tariffs') {
+        const base = Number(b.base), perKm = Number(b.perKm), minimum = Number(b.minimum);
+        if (![base, perKm, minimum].every(Number.isSafeInteger) ||
+            base < 0 || base > 1000000 || perKm < 100 || perKm > 1000000 ||
+            minimum < 1000 || minimum > 10000000) {
+          return send(res, 400, { error: 'Tarif qiymatlari noto‘g‘ri. Summalarni tekshiring.' });
+        }
+        db.tariffs = { base, perKm, minimum, updatedAt: Date.now(), updatedBy: user.id };
+        save();
+        return send(res, 200, { ok: true, tariffs: db.tariffs });
+      }
 
       if (m === 'GET' && p === '/admin/overview') {
         const done = db.orders.filter(o => o.status === 'done');
