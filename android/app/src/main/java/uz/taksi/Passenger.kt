@@ -226,7 +226,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
 
         Sheet {
             if (selectedTab == "Buyurtmalar") {
-                BigLine("Buyurtmalarim", "Safarlaringiz tarixi va holati")
+                BigLine(tr("Buyurtmalarim", "Мои заказы", "My orders"), tr("Safarlaringiz tarixi va holati", "История и статус поездок", "Your trip history and status"))
                 if (orders.isEmpty()) {
                     Panel {
                         Text(tr("Hozircha buyurtmalar yo'q", "Пока нет заказов", "No orders yet"), fontWeight = FontWeight.Bold)
@@ -251,11 +251,11 @@ fun PassengerScreen(onLogout: () -> Unit) {
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(passengerName, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                            Text("TOXA yo'lovchisi", fontSize = 12.sp, color = Color.White.copy(alpha = 0.68f))
+                            Text(tr("TOXA yo'lovchisi", "Пассажир TOXA", "TOXA passenger"), fontSize = 12.sp, color = Color.White.copy(alpha = 0.68f))
                         }
                     }
                 }
-                BigLine("Shaxsiy ma'lumotlar", "Hisobingizga tegishli ma'lumotlar")
+                BigLine(tr("Shaxsiy ma'lumotlar", "Личные данные", "Personal details"), tr("Hisobingizga tegishli ma'lumotlar", "Данные вашего аккаунта", "Your account information"))
                 Panel {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(tr("Telefon raqami", "Номер телефона", "Phone number"), color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
@@ -263,12 +263,12 @@ fun PassengerScreen(onLogout: () -> Unit) {
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(tr("Hisob turi", "Тип аккаунта", "Account type"), color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                        Text("Yo'lovchi", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text(tr("Yo'lovchi", "Пассажир", "Passenger"), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
                 }
                 LanguageSelector()
                 BigButton(tr("⚙  Sozlamalar", "⚙  Настройки", "⚙  Settings")) { selectedTab = "Sozlamalar" }
-                DangerButton("Hisobdan chiqish") { onLogout() }
+                DangerButton(tr("Hisobdan chiqish", "Выйти из аккаунта", "Sign out")) { onLogout() }
             } else if (selectedTab == "Sozlamalar") {
                 BigLine(tr("Sozlamalar", "Настройки", "Settings"), tr("Kabinet va hisob ma'lumotlari", "Кабинет и данные аккаунта", "Account and profile details"))
                 SettingsPreferencesContent()
@@ -285,7 +285,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                         }
                     },
                 )
-                GhostButton("‹ Kabinetga qaytish") { selectedTab = "Kabinet" }
+                GhostButton(tr("‹ Kabinetga qaytish", "‹ Вернуться в кабинет", "‹ Back to account")) { selectedTab = "Kabinet" }
             } else if (selectedTab == "Qo'llab-quvvatlash") {
                 BigLine(tr("Qo'llab-quvvatlash", "Поддержка", "Support"), tr("TOXA yordam markazi", "Центр помощи TOXA", "TOXA Help Center"))
                 Text(tr("Ko'p uchraydigan savollarga javoblar", "Ответы на частые вопросы", "Frequently asked questions"), fontSize = 13.sp, color = Muted)
@@ -309,7 +309,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                         if (mins != null) "Haydovchi ~$mins daqiqada keladi" else "Haydovchi yo'lda",
                         if (dLoc == null) "Haydovchi joylashuvi kutilmoqda…" else "",
                     )
-                    "arrived" -> BigLine("Haydovchi sizni kutmoqda", "Mashinaga o'tiring")
+                    "arrived" -> BigLine(tr("Haydovchi sizni kutmoqda", "Водитель ожидает вас", "Your driver is waiting"), tr("Mashinaga o'tiring", "Садитесь в машину", "Please get in the car"))
                     "started" -> BigLine(
                         if (mins != null) "Manzilga ~$mins daqiqa" else "Safar davom etmoqda",
                         "Yaxshi yo'l!",
@@ -323,7 +323,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 val d = active.optJSONObject("driver")
                 if (d != null) PersonRow("Haydovchi", d.optString("name"), d.optString("phone"))
                 if (aSt != "started") {
-                    DangerButton("Buyurtmani bekor qilish") {
+                    DangerButton(tr("Buyurtmani bekor qilish", "Отменить заказ", "Cancel order")) {
                         scope.launch {
                             try { io { Api.call("POST", "/orders/$aId/cancel", JSONObject()) } }
                             catch (e: Exception) { msg = e.message ?: "Xato" }
@@ -338,7 +338,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                         if (isFrom) "Olinadigan joyni belgilang" else "Borish manzilini belgilang",
                         "Xaritaga bosing",
                     )
-                    GhostButton("Qidiruvga qaytish") { mapPick = false }
+                    GhostButton(tr("Qidiruvga qaytish", "Вернуться к поиску", "Back to search")) { mapPick = false }
                 } else {
                     val fr = remember { FocusRequester() }
                     LaunchedEffect(field) {
@@ -346,14 +346,14 @@ fun PassengerScreen(onLogout: () -> Unit) {
                         try { fr.requestFocus() } catch (e: Exception) { }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Field(query, { query = it }, if (isFrom) "Qayerdan" else "Qayerga", Modifier.weight(1f).focusRequester(fr))
-                        TextButton(onClick = { field = ""; query = ""; found = emptyList() }) { Text("Bekor", color = Muted) }
+                        Field(query, { query = it }, if (isFrom) tr("Qayerdan", "Откуда", "Pickup") else tr("Qayerga", "Куда", "Destination"), Modifier.weight(1f).focusRequester(fr))
+                        TextButton(onClick = { field = ""; query = ""; found = emptyList() }) { Text(tr("Bekor", "Отмена", "Cancel"), color = Muted) }
                     }
                     val m = me
                     if (isFrom && m != null) {
-                        SuggestionRow("📍", "Mening joyim", "GPS bo'yicha") { choose(m, "Mening joyim") }
+                        SuggestionRow("📍", tr("Mening joyim", "Моё местоположение", "My location"), tr("GPS bo'yicha", "По GPS", "Using GPS")) { choose(m, "Mening joyim") }
                     }
-                    SuggestionRow("🗺", "Xaritadan tanlash", "Xaritaga bosib belgilang") { mapPick = true }
+                    SuggestionRow("🗺", tr("Xaritadan tanlash", "Выбрать на карте", "Choose on map"), tr("Xaritaga bosib belgilang", "Нажмите на карту, чтобы отметить точку", "Tap the map to choose a point")) { mapPick = true }
 
                     val q = query.trim()
                     if (q.length < 3) {
@@ -364,9 +364,9 @@ fun PassengerScreen(onLogout: () -> Unit) {
                             }
                         }
                     } else if (searchedFor != q) {
-                        Text("Qidirilmoqda…", fontSize = 13.sp, color = Muted, modifier = Modifier.padding(4.dp))
+                        Text(tr("Qidirilmoqda…", "Поиск…", "Searching…"), fontSize = 13.sp, color = Muted, modifier = Modifier.padding(4.dp))
                     } else if (found.isEmpty()) {
-                        Text("Topilmadi. Boshqacha yozing yoki xaritadan tanlang.", fontSize = 13.sp, color = Muted, modifier = Modifier.padding(4.dp))
+                        Text(tr("Topilmadi. Boshqacha yozing yoki xaritadan tanlang.", "Не найдено. Измените запрос или выберите точку на карте.", "No results. Try another search or choose a point on the map."), fontSize = 13.sp, color = Muted, modifier = Modifier.padding(4.dp))
                     } else {
                         found.forEach { p -> SuggestionRow("📍", p.name, p.sub) { choose(Pair(p.lat, p.lng), p.name) } }
                     }
@@ -399,10 +399,10 @@ fun PassengerScreen(onLogout: () -> Unit) {
                     )
                 }
 
-                AddressRow(Ok, "Qayerdan", pickupName.ifBlank { "Joylashuv aniqlanmoqda…" }, pickupName.isBlank()) {
+                AddressRow(Ok, tr("Qayerdan", "Откуда", "Pickup"), pickupName.ifBlank { "Joylashuv aniqlanmoqda…" }, pickupName.isBlank()) {
                     field = "from"; query = ""; mapPick = false
                 }
-                AddressRow(Bad, "Qayerga", destName.ifBlank { "Qayerga boramiz?" }, destName.isBlank()) {
+                AddressRow(Bad, tr("Qayerga", "Куда", "Destination"), destName.ifBlank { tr("Qayerga boramiz?", "Куда едем?", "Where to?") }, destName.isBlank()) {
                     field = "to"; query = ""; mapPick = false
                 }
 
@@ -411,14 +411,14 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 if (a != null && b != null) {
                     val q = quote?.takeIf { quoteKey == "$pk|$dk" }
                     if (q == null) {
-                        Text("Narx hisoblanmoqda…", fontSize = 13.sp, color = Muted, modifier = Modifier.padding(4.dp))
+                        Text(tr("Narx hisoblanmoqda…", "Расчёт стоимости…", "Calculating fare…"), fontSize = 13.sp, color = Muted, modifier = Modifier.padding(4.dp))
                     } else {
                         val km = q.optDouble("km")
                         val mins = route?.min ?: maxOf(1, Math.round(km * 2.5).toInt())
                         TariffRow(q.optLong("price"), mins, km)
                         Segmented(listOf("cash" to tr("💵 Naqd", "💵 Наличные", "💵 Cash")), "cash") { pay = "cash" }
                         Text(tr("Karta orqali to'lov hozircha mavjud emas.", "Оплата картой пока недоступна.", "Card payment is not available yet."), fontSize = 12.sp, color = Muted)
-                        BigButton("Taksi chaqirish", enabled = !busy) {
+                        BigButton(tr("Taksi chaqirish", "Заказать такси", "Order taxi"), enabled = !busy) {
                             scope.launch {
                                 busy = true
                                 try {
@@ -439,7 +439,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 } else if (b == null) {
                     val recent = orders.filter { it.optString("status") == "done" }.distinctBy { it.optString("to") }.take(3)
                     if (recent.isNotEmpty()) {
-                        Text("Oldingi manzillar", fontSize = 13.sp, color = Muted, modifier = Modifier.padding(start = 4.dp))
+                        Text(tr("Oldingi manzillar", "Предыдущие адреса", "Recent destinations"), fontSize = 13.sp, color = Muted, modifier = Modifier.padding(start = 4.dp))
                         recent.forEach { o ->
                             SuggestionRow("🕘", o.optString("to"), "Oldingi safar") {
                                 dest = Pair(o.optDouble("toLat"), o.optDouble("toLng"))
