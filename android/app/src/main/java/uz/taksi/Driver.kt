@@ -39,7 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,7 +57,6 @@ fun StatItem(label: String, value: String, modifier: Modifier = Modifier) {
 /** Haydovchi ekrani: tepada xarita, pastda sheet. */
 @Composable
 fun DriverScreen(onLogout: () -> Unit) {
-    val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val me by rememberMyLocation()
     var centerTo by remember { mutableStateOf<Pair<Double, Double>?>(null) }
@@ -313,7 +311,6 @@ fun DriverScreen(onLogout: () -> Unit) {
                     Text(som(active.optLong("price")), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
                 }
 
-                val goTo = if (st == "started") dropoff else pickup
                 val what = if (st == "started") "Manzilgacha" else "Yo'lovchigacha"
                 if (st == "arrived") {
                     BigLine("Yo'lovchini kutmoqdasiz", "Yo'lovchi chiqqach, safarni boshlang")
@@ -340,12 +337,6 @@ fun DriverScreen(onLogout: () -> Unit) {
                 if (next != null) {
                     BigButton(next.second) { post("/orders/$id/status", JSONObject().put("status", next.first)) }
                 }
-
-                val label = if (st == "started") "Manzil" else "Yo'lovchi"
-                DarkButton("🧭 Yandex Navigator", Modifier.fillMaxWidth()) {
-                    openYandexNavigator(ctx, me, goTo, label)
-                }
-                GhostButton("🗺 Boshqa xarita") { openOtherMap(ctx, goTo, label) }
 
                 if (st == "accepted" || st == "arrived") {
                     DangerButton("Buyurtmani rad etish") { post("/orders/$id/cancel") }
