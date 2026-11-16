@@ -70,6 +70,7 @@ class MainActivity : ComponentActivity() {
             mapKitReady = true
         }
         val prefs = getSharedPreferences("taksi", Context.MODE_PRIVATE)
+        AppPreferences.load(prefs)
         Api.token = prefs.getString("token", "") ?: ""
         Api.base = prefs.getString("base", Api.base) ?: Api.base
         // Holat paneli sariq, belgilari qora
