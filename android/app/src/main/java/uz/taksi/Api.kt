@@ -85,6 +85,8 @@ suspend fun latestRelease(): Pair<Int, String>? = withContext(Dispatchers.IO) {
         c.readTimeout = 10000
         c.setRequestProperty("Accept", "application/vnd.github+json")
         c.setRequestProperty("User-Agent", "TOXA-Android-App")
+        c.setRequestProperty("Cache-Control", "no-cache")
+        c.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
         val code = c.responseCode
         if (code !in 200..299) return@withContext null
         val releases = JSONArray(c.inputStream.bufferedReader().use { it.readText() })
@@ -100,7 +102,8 @@ suspend fun latestRelease(): Pair<Int, String>? = withContext(Dispatchers.IO) {
                 val asset = assets.optJSONObject(j) ?: continue
                 val name = asset.optString("name")
                 val downloadUrl = asset.optString("browser_download_url")
-                if (name.endsWith(".apk", ignoreCase = true) && downloadUrl.startsWith("https://") && version > bestVersion) {
+                // Faqat foydalanuvchi ilovasi APK sini tanlaymiz; admin APK yangilanish sifatida olinmasin.
+                if (name.equals("taksi.apk", ignoreCase = true) && downloadUrl.startsWith("https://") && version > bestVersion) {
                     bestVersion = version
                     bestUrl = downloadUrl
                 }
