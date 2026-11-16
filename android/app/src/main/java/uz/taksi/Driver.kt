@@ -75,6 +75,7 @@ fun DriverScreen(onLogout: () -> Unit) {
     var mapOnlyMode by remember { mutableStateOf(false) }
     var mapOnlyTap by remember { mutableStateOf(0) }
     var showOfflineConfirm by remember { mutableStateOf(false) }
+    var previousAvailableIds by remember { mutableStateOf<Set<Int>?>(null) }
 
     LaunchedEffect(mapOnlyTap) {
         if (mapOnlyTap > 0) {
@@ -82,6 +83,29 @@ fun DriverScreen(onLogout: () -> Unit) {
             delay(3500)
             mapOnlyMode = false
         }
+    }
+
+    val appContext = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(available, online) {
+        val currentIds = available.map { it.optInt("id") }.toSet()
+        val previousIds = previousAvailableIds
+        if (previousIds != null && online && currentIds.any { it !in previousIds }) {
+            if (AppPreferences.orderSound) {
+                try {
+                    val tone = android.media.ToneGenerator(android.media.AudioManager.STREAM_NOTIFICATION, 80)
+                    tone.startTone(android.media.ToneGenerator.TONE_PROP_BEEP, 350)
+                    delay(400)
+                    tone.release()
+                } catch (_: Exception) { }
+            }
+            if (AppPreferences.vibration) {
+                try {
+                    val vibrator = androidx.core.content.ContextCompat.getSystemService(appContext, android.os.Vibrator::class.java)
+                    vibrator?.vibrate(android.os.VibrationEffect.createOneShot(250L, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+                } catch (_: Exception) { }
+            }
+        }
+        previousAvailableIds = currentIds
     }
 
     ShareLocation(me)
@@ -260,15 +284,15 @@ fun DriverScreen(onLogout: () -> Unit) {
                         BigLine("Shaxsiy ma'lumotlar", "Hisobingizga tegishli ma'lumotlar")
                         Panel {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text("Telefon raqami", color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                Text(tr("Telefon raqami", "Номер телефона", "Phone number"), color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
                                 Text(driverPhone, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                             }
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text("Hisob turi", color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                Text(tr("Hisob turi", "Тип аккаунта", "Account type"), color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
                                 Text("Haydovchi", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                             }
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text("Ish holati", color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                Text(tr("Ish holati", "Статус работы", "Work status"), color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
                                 Text(if (online) "Ishda" else "Dam olishda", fontWeight = FontWeight.SemiBold, fontSize = 13.sp,
                                     color = if (online) Color(0xFF237A4B) else Muted)
                             }
@@ -278,7 +302,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                         DangerButton("Hisobdan chiqish") { onLogout() }
                     }
                     "Sozlamalar" -> {
-                        BigLine("Sozlamalar", "Kabinet va hisob ma'lumotlari")
+                        BigLine(tr("Sozlamalar", "Настройки", "Settings"), tr("Kabinet va hisob ma'lumotlari", "Кабинет и данные аккаунта", "Account and profile details"))
                         SettingsPreferencesContent()
                         AccountSettingsContent(
                             name = profile?.optString("name").orEmpty(),
@@ -297,9 +321,9 @@ fun DriverScreen(onLogout: () -> Unit) {
                     }
                     "Qo'llab-quvvatlash" -> {
                         BigLine(tr("Qo'llab-quvvatlash", "Поддержка", "Support"), tr("TOXA yordam markazi", "Центр помощи TOXA", "TOXA Help Center"))
-                        Text("Ko'p uchraydigan savollarga javoblar", fontSize = 13.sp, color = Muted)
+                        Text(tr("Ko'p uchraydigan savollarga javoblar", "Ответы на частые вопросы", "Frequently asked questions"), fontSize = 13.sp, color = Muted)
                         SupportFaq()
-                        Text("Bevosita operator bilan aloqa kanali hali sozlanmagan.", fontSize = 12.sp, color = Muted)
+                        Text(tr("Bevosita operator bilan aloqa kanali hali sozlanmagan.", "Связь с оператором пока не настроена.", "Direct contact with support is not set up yet."), fontSize = 12.sp, color = Muted)
                     }
                 }
             } else if (active != null && pickup != null && dropoff != null) {
@@ -475,7 +499,7 @@ private fun DriverQuickStat(
     detail: String,
     modifier: Modifier = Modifier,
 ) {
-    Surface(modifier = modifier, shape = RoundedCornerShape(18.dp), color = Color.White, shadowElevation = 1.dp) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(18.dp), color = CardBg, shadowElevation = 1.dp) {
         Column(Modifier.padding(horizontal = 11.dp, vertical = 13.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Muted, letterSpacing = 0.55.sp, maxLines = 1)
             Text(value, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Ink, maxLines = 1)
@@ -494,7 +518,7 @@ private fun DriverBottomNavigation(selectedTab: String, onSelect: (String) -> Un
     )
     Surface(
         modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
-        color = Color.White,
+        color = CardBg,
         shadowElevation = 12.dp,
     ) {
         Row(
@@ -507,13 +531,13 @@ private fun DriverBottomNavigation(selectedTab: String, onSelect: (String) -> Un
                 Column(
                     Modifier.weight(1f).fillMaxSize()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(if (active) Color(0xFFFFF5D8) else Color.Transparent)
+                        .background(if (active) { if (AppPreferences.darkMode) Color(0xFF4A3A0A) else Color(0xFFFFF5D8) } else Color.Transparent)
                         .clickable { onSelect(item.first) }
                         .padding(vertical = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Text(item.second, fontSize = 23.sp, color = if (active) Ink else Color(0xFF858B96), fontWeight = FontWeight.Bold)
+                    Text(item.second, fontSize = 23.sp, color = if (active) Ink else Muted, fontWeight = FontWeight.Bold)
                     Text(item.third, fontSize = 10.sp, color = if (active) Ink else Color(0xFF858B96), fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
                     if (active) {
                         Box(Modifier.padding(top = 3.dp).size(width = 20.dp, height = 3.dp).background(Yellow, RoundedCornerShape(2.dp)))
