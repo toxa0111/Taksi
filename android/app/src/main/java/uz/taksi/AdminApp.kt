@@ -706,18 +706,30 @@ private fun AdminDriverReview(onBack: () -> Unit) {
         drivers?.forEach { driver ->
             var vehicleClass by remember(driver.optString("id")) { mutableStateOf("start") }
             var reason by remember(driver.optString("id")) { mutableStateOf("") }
+            var docs by remember(driver.optString("id")) { mutableStateOf<JSONObject?>(null) }
+            var loadingDocs by remember(driver.optString("id")) { mutableStateOf(false) }
             Panel {
                 Text(driver.optString("name"), fontSize = 17.sp, fontWeight = FontWeight.Bold)
                 Text("Tel: " + driver.optString("phone"), fontSize = 13.sp, color = Muted)
                 Text("Davlat raqami: " + driver.optString("vehiclePlate"), fontWeight = FontWeight.Bold)
-                val docs = driver.optJSONObject("documents") ?: JSONObject()
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ReviewDocumentPhoto(docs.optString("licenseFront"), "Guvohnoma oldi", Modifier.weight(1f))
-                    ReviewDocumentPhoto(docs.optString("licenseBack"), "Guvohnoma orqasi", Modifier.weight(1f))
+                BigButton(if (docs == null) "Hujjat suratlarini ko‘rish" else "Suratlarni yashirish", enabled = !loadingDocs) {
+                    if (docs != null) docs = null
+                    else scope.launch {
+                        loadingDocs = true
+                        try { docs = io { Api.call("GET", "/admin/drivers/${driver.optString("id")}/documents").getJSONObject("documents") } }
+                        catch (e: Exception) { message = e.message ?: "Suratlarni yuklashda xato" }
+                        loadingDocs = false
+                    }
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ReviewDocumentPhoto(docs.optString("vehicleDoc"), "Texnik pasport", Modifier.weight(1f))
-                    ReviewDocumentPhoto(docs.optString("platePhoto"), "Davlat raqami", Modifier.weight(1f))
+                if (docs != null) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ReviewDocumentPhoto(docs?.optString("licenseFront") ?: "", "Guvohnoma oldi", Modifier.weight(1f))
+                        ReviewDocumentPhoto(docs?.optString("licenseBack") ?: "", "Guvohnoma orqasi", Modifier.weight(1f))
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ReviewDocumentPhoto(docs?.optString("vehicleDoc") ?: "", "Texnik pasport", Modifier.weight(1f))
+                        ReviewDocumentPhoto(docs?.optString("platePhoto") ?: "", "Davlat raqami", Modifier.weight(1f))
+                    }
                 }
                 if (filter != "approved") {
                     Text("Avtomobil toifasi", fontWeight = FontWeight.Bold)
