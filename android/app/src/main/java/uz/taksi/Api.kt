@@ -91,8 +91,8 @@ suspend fun latestRelease(): Pair<Int, String>? = withContext(Dispatchers.IO) {
         c.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
         val code = c.responseCode
         if (code !in 200..299) {
-            android.util.Log.w("TOXA_UPDATE", "GitHub release tekshiruvi HTTP $code")
-            return@withContext null
+            android.util.Log.w("TOXA_UPDATE", "GitHub release tekshiruvi HTTP $code; zaxira Atom feed tekshiriladi")
+            throw java.io.IOException("GitHub HTTP $code")
         }
         val releases = JSONArray(c.inputStream.bufferedReader().use { it.readText() })
         c.disconnect()
