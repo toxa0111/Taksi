@@ -24,8 +24,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -42,11 +42,28 @@ import androidx.compose.ui.unit.sp
 
 val Yellow = Color(0xFFFFC21A)
 val Ink = Color(0xFF16181D)
-val PageBg = Color(0xFFF4F5F7)
-val Muted = Color(0xFF6B7280)
 val Ok = Color(0xFF1F9D55)
 val Bad = Color(0xFFD64545)
-val Hairline = Color(0xFFE3E5E9)
+
+// Yorug' / qorong'i rejimga qarab o'zgaradigan ranglar (AppSettings.dark o'zgarsa, ekran qayta chiziladi)
+val PageBg: Color get() = if (AppSettings.dark) Color(0xFF0E1013) else Color(0xFFF4F5F7)
+val Card: Color get() = if (AppSettings.dark) Color(0xFF1C2026) else Color.White
+val Chip: Color get() = if (AppSettings.dark) Color(0xFF2A2F37) else Color(0xFFEDEEF1)
+val Muted: Color get() = if (AppSettings.dark) Color(0xFFA3A9B4) else Color(0xFF6B7280)
+val Hairline: Color get() = if (AppSettings.dark) Color(0xFF30353E) else Color(0xFFE3E5E9)
+/** Oddiy matn rangi (Ink — qora; qorong'i rejimda oqish). */
+val Fg: Color get() = if (AppSettings.dark) Color(0xFFF2F3F5) else Ink
+/** Yumshoq sariq fon (eslatma kartalari). */
+val Soft: Color get() = if (AppSettings.dark) Color(0xFF3A3220) else Color(0xFFFFF1C2)
+
+private val DarkScheme = darkColorScheme(
+    primary = Yellow, onPrimary = Ink,
+    secondary = Yellow, onSecondary = Ink,
+    background = Color(0xFF0E1013), onBackground = Color(0xFFF2F3F5),
+    surface = Color(0xFF1C2026), onSurface = Color(0xFFF2F3F5),
+    surfaceVariant = Color(0xFF2A2F37), onSurfaceVariant = Color(0xFFA3A9B4),
+    outline = Color(0xFF30353E), error = Bad,
+)
 
 private val Scheme = lightColorScheme(
     primary = Yellow, onPrimary = Ink,
@@ -60,7 +77,7 @@ private val Scheme = lightColorScheme(
 
 @Composable
 fun TaksiTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = Scheme, content = content)
+    MaterialTheme(colorScheme = if (AppSettings.dark) DarkScheme else Scheme, content = content)
 }
 
 // ───────────────────────── Tugmalar ─────────────────────────
@@ -74,7 +91,7 @@ fun BigButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = tr
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Yellow, contentColor = Ink,
-            disabledContainerColor = Color(0xFFE5E7EB), disabledContentColor = Muted,
+            disabledContainerColor = Chip, disabledContentColor = Muted,
         ),
     ) { Text(text, fontWeight = FontWeight.Bold, fontSize = 16.sp) }
 }
@@ -88,7 +105,7 @@ fun DarkButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = t
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Ink, contentColor = Color.White,
-            disabledContainerColor = Color(0xFFE5E7EB), disabledContentColor = Muted,
+            disabledContainerColor = Chip, disabledContentColor = Muted,
         ),
     ) { Text(text, fontWeight = FontWeight.Bold, fontSize = 15.sp) }
 }
@@ -100,7 +117,7 @@ fun GhostButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = 
         onClick = onClick, enabled = enabled,
         modifier = modifier.fillMaxWidth().height(50.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = Ink),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = Fg),
     ) { Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp) }
 }
 
@@ -129,9 +146,9 @@ fun Field(
         shape = RoundedCornerShape(16.dp),
         keyboardOptions = KeyboardOptions(keyboardType = keyboard),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Ink, unfocusedBorderColor = Hairline,
-            focusedLabelColor = Ink, cursorColor = Ink,
-            focusedContainerColor = Color.White, unfocusedContainerColor = Color.White,
+            focusedBorderColor = Fg, unfocusedBorderColor = Hairline,
+            focusedLabelColor = Fg, cursorColor = Fg,
+            focusedContainerColor = Card, unfocusedContainerColor = Card,
         ),
     )
 }
@@ -140,7 +157,7 @@ fun Field(
 @Composable
 fun Panel(
     modifier: Modifier = Modifier,
-    color: Color = Color.White,
+    color: Color = Card,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
@@ -162,14 +179,14 @@ fun Segmented(
     onSelect: (String) -> Unit,
 ) {
     Row(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xFFEAECEF)).padding(4.dp),
+        modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Chip).padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         options.forEach { (key, label) ->
             val sel = key == selected
             Box(
                 Modifier.weight(1f).clip(RoundedCornerShape(11.dp))
-                    .background(if (sel) Color.White else Color.Transparent)
+                    .background(if (sel) Card else Color.Transparent)
                     .clickable { onSelect(key) }
                     .padding(vertical = 11.dp),
                 contentAlignment = Alignment.Center,
@@ -177,7 +194,7 @@ fun Segmented(
                 Text(
                     label, fontSize = 14.sp,
                     fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
-                    color = if (sel) Ink else Muted,
+                    color = if (sel) Fg else Muted,
                 )
             }
         }

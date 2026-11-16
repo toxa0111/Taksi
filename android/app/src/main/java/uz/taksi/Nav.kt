@@ -236,6 +236,7 @@ object Nominatim {
 /** Yangi buyurtma: qisqa tebranish va standart bildirishnoma ovozi. */
 @Suppress("DEPRECATION")
 fun alertNewOrder(ctx: Context) {
+    if (AppSettings.sound == "off") return
     try {
         val v = ctx.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         if (v != null) {
@@ -243,6 +244,7 @@ fun alertNewOrder(ctx: Context) {
             else v.vibrate(450)
         }
     } catch (e: Exception) { }
+    if (AppSettings.sound != "on") return
     try {
         RingtoneManager.getRingtone(ctx, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))?.play()
     } catch (e: Exception) { }

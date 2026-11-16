@@ -7,7 +7,6 @@ import android.os.Build
 import android.provider.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -108,7 +107,7 @@ fun InstallDialog(url: String, appName: String, onClose: () -> Unit) {
     AlertDialog(
         onDismissRequest = { if (state != "loading") onClose() },
         shape = RoundedCornerShape(24.dp),
-        containerColor = Color.White,
+        containerColor = Card,
         title = {
             Text(
                 when (state) {

@@ -28,7 +28,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,10 +65,16 @@ class MainActivity : ComponentActivity() {
         // Holat paneli sariq, belgilari qora
                 window.statusBarColor = 0xFFFFC21A.toInt()
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = true
+        AppSettings.load(this)
         setContent {
-            TaksiTheme {
-                Surface(Modifier.fillMaxSize(), color = PageBg) {
-                    if (BuildConfig.IS_ADMIN) AdminApp(prefs) else App(prefs)
+            val d = androidx.compose.ui.platform.LocalDensity.current
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(d.density, d.fontScale * AppSettings.fontScale),
+            ) {
+                TaksiTheme {
+                    Surface(Modifier.fillMaxSize(), color = PageBg, contentColor = Fg) {
+                        if (BuildConfig.IS_ADMIN) AdminApp(prefs) else App(prefs)
+                    }
                 }
             }
         }
@@ -118,7 +123,7 @@ fun OrderCard(o: JSONObject, extra: @Composable ColumnScope.() -> Unit = {}) {
 fun PersonRow(role: String, name: String, phone: String) {
     val ctx = LocalContext.current
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(40.dp).clip(CircleShape).background(Color(0xFFEDEEF1)), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(40.dp).clip(CircleShape).background(Chip), contentAlignment = Alignment.Center) {
             Text("👤", fontSize = 18.sp)
         }
         Spacer(Modifier.width(12.dp))
@@ -170,6 +175,7 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
     var busy by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().background(PageBg).verticalScroll(rememberScrollState())) {
+        LangBar()
         // Sariq sarlavha
         Box(
             Modifier.fillMaxWidth()
@@ -220,7 +226,7 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
                     if (devCode.isNotEmpty()) {
                         Box(
                             Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                                .background(Color(0xFFFFF1C2)).padding(12.dp),
+                                .background(Soft).padding(12.dp),
                         ) {
                             Text("Test kodi: $devCode", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
@@ -280,7 +286,7 @@ fun UpdateDialog(tag: String? = null, appName: String = "TOXA") {
     AlertDialog(
         onDismissRequest = { update = null },
         shape = RoundedCornerShape(24.dp),
-        containerColor = Color.White,
+        containerColor = Card,
         title = { Text("Yangi versiya bor", fontWeight = FontWeight.Bold) },
         text = { Text("$appName ilovasining yangi versiyasi chiqdi. Ilovaning o'zida yuklab o'rnatiladi.") },
         confirmButton = {

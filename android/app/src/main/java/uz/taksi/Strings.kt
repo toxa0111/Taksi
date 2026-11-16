@@ -1,0 +1,415 @@
+package uz.taksi
+
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
+
+/**
+ * Ilova matnlari o'zbek tilida yoziladi. Boshqa tillar shu jadval orqali, ekranga chiqish paytida
+ * tarjima qilinadi. Qator: o'zbekcha § ruscha § inglizcha.
+ * "~" bilan boshlangan qator — regex (guruhlar \1, \2). "=" bilan boshlangan qator — matn bo'lagi (qismini almashtiradi).
+ */
+private const val TABLE = """
+Yuklanmoqda…§Загрузка…§Loading…
+Bugungi daromad§Доход за сегодня§Today's earnings
+Jami daromad§Общий доход§Total earnings
+Hozir barcha to'lovlar naqd: pulni yo'lovchidan o'zingiz olasiz.§Сейчас все платежи наличными: вы получаете деньги от пассажира.§All payments are cash for now: you collect the money from the passenger.
+Jami sarflangan§Всего потрачено§Total spent
+To'lanmagan safar§Неоплаченная поездка§Unpaid trip
+to'lash§оплатить§pay
+Hozir to'lov naqd: haydovchiga beriladi. Karta to'lovi tez orada.§Сейчас оплата наличными водителю. Оплата картой скоро.§Payment is cash to the driver for now. Card payment is coming soon.
+Safarlar tarixi§История поездок§Trip history
+Hali safarlar yo'q§Поездок пока нет§No trips yet
+Bekor qilingan§Отменена§Cancelled
+Telefon ko'rsatilmagan§Телефон не указан§No phone number
+🚖 Haydovchi§🚖 Водитель§🚖 Driver
+🧍 Yo'lovchi§🧍 Пассажир§🧍 Passenger
+So'nggi 30 ta buyurtma bo'yicha§По последним 30 заказам§Based on the last 30 orders
+=Versiya: §Версия: §Version:
+Yangilanishni tekshirish§Проверить обновления§Check for updates
+Tekshirilmoqda…§Проверка…§Checking…
+Yangi versiya bor§Есть новая версия§New version available
+Yangi versiya topilmadi§Новых версий нет§No new version
+Joylashuv ruxsatlari§Разрешения геолокации§Location permissions
+Hisobdan chiqish§Выйти из аккаунта§Log out
+Savol yoki muammo yozing§Напишите вопрос или проблему§Write a question or problem
+Xabaringiz qo'llab-quvvatlash xizmatiga boradi, javob shu yerda chiqadi.§Сообщение уйдёт в службу поддержки, ответ появится здесь.§Your message goes to support; the reply will appear here.
+Javob keldi§Ответ получен§Reply received
+Javob kutilmoqda§Ожидание ответа§Awaiting reply
+=Javob: §Ответ: §Reply:
+Ko'p so'raladigan savollar§Частые вопросы§FAQ
+SMS kod kelmasa nima qilaman?§Что делать, если не приходит SMS-код?§What if the SMS code doesn't arrive?
+Kod kelmasa, 1 daqiqadan keyin qayta so'rang. Server uxlab qolgan bo'lsa, birinchi so'rov 30–60 soniya olishi mumkin.§Если код не пришёл, запросите снова через 1 минуту. Если сервер «спал», первый запрос может занять 30–60 секунд.§If the code doesn't arrive, request it again after 1 minute. If the server was asleep, the first request can take 30–60 seconds.
+Narx qanday hisoblanadi?§Как рассчитывается цена?§How is the price calculated?
+Minimal narx 8 000 so'm. Narx 5 000 so'm + har kilometr uchun 2 500 so'm, 500 so'mgacha yaxlitlanadi. Kilometr yo'l bo'yicha hisoblanadi.§Минимальная цена 8 000 сум. Цена: 5 000 сум + 2 500 сум за каждый километр, округляется до 500 сум. Километры считаются по дороге.§Minimum fare is 8,000 UZS. Price is 5,000 UZS + 2,500 UZS per kilometre, rounded to 500 UZS. Distance is measured along the road.
+Buyurtmani qanday bekor qilaman?§Как отменить заказ?§How do I cancel an order?
+Haydovchi qidirilayotganda yoki yo'lda bo'lsa, safar ekranida “Buyurtmani bekor qilish” tugmasi bor. Safar boshlangach bekor qilib bo'lmaydi.§Пока ищется водитель или он в пути, на экране поездки есть кнопка «Отменить заказ». После начала поездки отменить нельзя.§While a driver is being found or on the way, the trip screen has a “Cancel order” button. You can't cancel once the trip has started.
+Qanday to'layman?§Как оплатить?§How do I pay?
+Hozir to'lov naqd: safar tugagach pulni haydovchiga berasiz. Karta to'lovi tez orada ulanadi.§Сейчас оплата наличными: по окончании поездки вы отдаёте деньги водителю. Оплата картой скоро подключится.§Payment is cash for now: give the money to the driver at the end of the trip. Card payment will be added soon.
+Manzilni qanday tanlayman?§Как выбрать адрес?§How do I choose an address?
+“Qayerga” qatorini bosing va yozing, yoki “Xaritadan tanlash” ni bosib xaritaga tegining. Oldingi manzillaringiz ham taklif qilinadi.§Нажмите на строку «Куда» и введите адрес или выберите «Выбрать на карте» и коснитесь карты. Ваши прежние адреса тоже предлагаются.§Tap the “Where to” field and type, or tap “Pick on map” and touch the map. Your previous addresses are suggested too.
+Haydovchini qanday baholayman?§Как оценить водителя?§How do I rate the driver?
+Safar tugagach Safar bo'limida yulduzchalar chiqadi. Baho haydovchi reytingiga qo'shiladi.§После поездки в разделе «Поездка» появятся звёзды. Оценка добавится к рейтингу водителя.§After the trip, stars appear in the Trip tab. Your rating is added to the driver's rating.
+Navigatsiya qanday ishlaydi?§Как работает навигация?§How does navigation work?
+Buyurtmani qabul qilsangiz, xaritada marshrut va burilish ko'rsatmalari ilovaning o'zida chiqadi. Boshqa ilova o'rnatish shart emas. Ilovadan chiqib ketsangiz ham buyurtma saqlanib turadi.§После принятия заказа маршрут и подсказки поворотов показываются прямо в приложении. Другое приложение не нужно. Если вы выйдете из приложения, заказ сохранится.§After you accept an order, the route and turn-by-turn directions appear inside the app. No other app is needed. The order is kept even if you leave the app.
+Buyurtma qanday keladi?§Как приходят заказы?§How do orders arrive?
+Safar bo'limida “Ishga chiqish” tugmasini suring. Onlayn bo'lsangiz, yangi buyurtma tushganda telefon tebranadi va ovoz chiqadi.§Сдвиньте ползунок «Выйти на работу» в разделе «Поездка». Когда вы онлайн, при новом заказе телефон вибрирует и звучит сигнал.§Swipe the “Go online” slider in the Trip tab. While online, the phone vibrates and sounds when a new order comes in.
+Naqd to'lovda nima qilaman?§Что делать при оплате наличными?§What do I do with cash payments?
+Pulni yo'lovchidan o'zingiz olasiz va “Yakunlash” ni bosasiz.§Вы получаете деньги от пассажира и нажимаете «Завершить».§You collect the money from the passenger and tap “Finish”.
+Buyurtmani rad qilsam nima bo'ladi?§Что будет, если отклонить заказ?§What happens if I decline an order?
+Yo'lovchiga yetib kelguncha rad etishingiz mumkin: buyurtma boshqa haydovchilarga qayta ko'rsatiladi.§Отклонить можно до прибытия к пассажиру: заказ снова покажут другим водителям.§You can decline until you reach the passenger: the order is shown to other drivers again.
+Xarita yoki joylashuv ishlamayapti§Карта или геолокация не работает§Map or location not working
+Telefonda GPS ni yoqing va ilovaga joylashuv ruxsatini bering (Kabinet → Joylashuv ruxsatlari). Internet aloqasini ham tekshiring.§Включите GPS на телефоне и дайте приложению доступ к геолокации (Кабинет → Разрешения геолокации). Проверьте и интернет.§Turn on GPS and grant the app location permission (Cabinet → Location permissions). Check your internet connection too.
+TOXA Admin§TOXA Admin§TOXA Admin
+Boshqaruv paneli§Панель управления§Control panel
+Tasdiqlash kodi§Код подтверждения§Verification code
+Admin kirishi§Вход для администратора§Admin sign-in
+Telefon raqam§Номер телефона§Phone number
+Ismingiz (birinchi marta kirganda)§Ваше имя (при первом входе)§Your name (first time only)
+Kod olish§Получить код§Get code
+=Test kodi: §Тестовый код: §Test code:
+SMS kod§SMS-код§SMS code
+Kirish§Войти§Sign in
+Bu hisob admin emas§Этот аккаунт не администратор§This account is not an admin
+Raqamni o'zgartirish§Изменить номер§Change number
+Server javob kutilmoqda… (birinchi marta 30–60 soniya ketishi mumkin)§Ожидание ответа сервера… (в первый раз может занять 30–60 секунд)§Waiting for server… (the first time may take 30–60 seconds)
+Qabul qilingan§Принят§Accepted
+Yetib kelgan§Прибыл§Arrived
+Bugungi tushum§Выручка за сегодня§Today's revenue
+=Jami: §Всего: §Total:
+Faol buyurtmalar§Активные заказы§Active orders
+Onlayn haydovchi§Водители онлайн§Drivers online
+Yo'lovchilar§Пассажиры§Passengers
+Buyurtmalar holati§Статусы заказов§Order statuses
+=Buyurtma #§Заказ #§Order #
+Bu buyurtmani bekor qilasizmi? Yo'lovchi va haydovchiga bekor qilingani ko'rinadi.§Отменить этот заказ? Пассажир и водитель увидят, что он отменён.§Cancel this order? The passenger and driver will see it was cancelled.
+Ha, bekor qilish§Да, отменить§Yes, cancel
+Buyurtma yo'q§Заказов нет§No orders
+Yo'lovchi§Пассажир§Passenger
+Buyurtmani bekor qilish§Отменить заказ§Cancel order
+Blokdan chiqarish§Разблокировать§Unblock
+= hisobini bloklaysizmi? U ilovaga kira olmaydi.§ — заблокировать аккаунт? Он не сможет войти в приложение.§ — block this account? They won't be able to sign in.
+= hisobini qayta faollashtirasizmi?§ — вернуть доступ аккаунту?§ — reactivate this account?
+Ha, bloklash§Да, заблокировать§Yes, block
+Ha, chiqarish§Да, разблокировать§Yes, unblock
+Ism yoki telefon bo'yicha qidirish§Поиск по имени или телефону§Search by name or phone
+Hech kim topilmadi§Никого не найдено§Nobody found
+Javob kutayotgan§Ждут ответа§Awaiting reply
+Javob berilgan§Отвечено§Answered
+yo'lovchi§пассажир§passenger
+haydovchi§водитель§driver
+Javob yuborish§Отправить ответ§Send reply
+Yangi murojaat yo'q§Новых обращений нет§No new requests
+Javob berilgan murojaat yo'q§Отвеченных обращений нет§No answered requests
+🛡 Admin§🛡 Админ§🛡 Admin
+🔎 Haydovchi qidirilmoqda§🔎 Ищем водителя§🔎 Finding a driver
+🚕 Haydovchi yo'lda§🚕 Водитель в пути§🚕 Driver on the way
+📍 Haydovchi yetib keldi§📍 Водитель прибыл§📍 Driver has arrived
+➡️ Safar davom etmoqda§➡️ Поездка идёт§➡️ Trip in progress
+✅ Yakunlandi§✅ Завершена§✅ Completed
+❌ Bekor qilindi§❌ Отменена§❌ Cancelled
+💳 Karta§💳 Карта§💳 Card
+💵 Naqd§💵 Наличные§💵 Cash
+= · to'langan§ · оплачено§ · paid
+Ish holatini o'zgartirib bo'lmadi§Не удалось изменить статус работы§Couldn't change work status
+Faol buyurtma — joylashuv yuborilmoqda§Активный заказ — передаётся геолокация§Active order — sharing location
+Yo'lovchini olish joyi§Место посадки пассажира§Pickup point
+Borish manzili§Адрес назначения§Destination
+Yo'lovchi (hozir)§Пассажир (сейчас)§Passenger (now)
+Ishdan chiqasizmi?§Завершить работу?§Go offline?
+Offlayn bo'lsangiz, yangi buyurtmalar kelmaydi.§В офлайне новые заказы не поступают.§While offline you won't get new orders.
+Ha, chiqaman§Да, выйти§Yes, go offline
+Yo'q§Нет§No
+🟢 ONLAYN§🟢 ОНЛАЙН§🟢 ONLINE
+⚪ OFFLAYN§⚪ ОФЛАЙН§⚪ OFFLINE
+🧭 Kuzatish: yoqiq§🧭 Слежение: вкл§🧭 Follow: on
+🧭 Kuzatishni yoqish§🧭 Включить слежение§🧭 Turn on follow
+📍 Mening joyim§📍 Моё место§📍 My location
+Yo'lovchigacha§До пассажира§To passenger
+Manzilgacha§До места назначения§To destination
+Yo'lovchini kutmoqdasiz§Вы ждёте пассажира§Waiting for the passenger
+Yo'lovchi chiqqach, safarni boshlang§Когда пассажир сядет, начните поездку§Start the trip when the passenger gets in
+= marshrut hisoblanmoqda…§ — маршрут рассчитывается…§ — calculating route…
+GPS kutilmoqda§Ожидание GPS§Waiting for GPS
+Karta: yo'lovchi safar tugagach ilovada to'laydi§Карта: пассажир оплатит в приложении после поездки§Card: the passenger pays in the app after the trip
+Yetib keldim§Я прибыл§I've arrived
+Safarni boshlash§Начать поездку§Start trip
+Yakunlash (naqd oldim)§Завершить (получил наличные)§Finish (cash received)
+Yakunlash§Завершить§Finish
+Buyurtmani rad etish§Отклонить заказ§Decline order
+HAYDOVCHI HOLATI§СТАТУС ВОДИТЕЛЯ§DRIVER STATUS
+Hozir ishda emassiz§Вы сейчас не на работе§You are not working now
+Ishdasiz§Вы на работе§You are working
+Ishdan chiqish uchun chapga suring§Сдвиньте влево, чтобы завершить§Swipe left to go offline
+Ishga chiqish uchun o'ngga suring§Сдвиньте вправо, чтобы выйти на работу§Swipe right to go online
+◀  ISHDAN CHIQISH UCHUN SURING§◀  СДВИНЬТЕ, ЧТОБЫ ЗАВЕРШИТЬ§◀  SWIPE TO GO OFFLINE
+ISHGA CHIQISH UCHUN SURING  ▶§СДВИНЬТЕ, ЧТОБЫ НАЧАТЬ РАБОТУ  ▶§SWIPE TO GO ONLINE  ▶
+ONLAYN§ОНЛАЙН§ONLINE
+OFFLAYN§ОФЛАЙН§OFFLINE
+Yangi buyurtmalar§Новые заказы§New orders
+Kutilmoqda§Ожидание§Waiting
+= ta mavjud§ доступно§ available
+Hozircha buyurtma yo'q§Пока нет заказов§No orders yet
+Yangi buyurtmalar shu yerda avtomatik paydo bo'ladi.§Новые заказы появятся здесь автоматически.§New orders will appear here automatically.
+=Yo'lovchigacha: ~§До пассажира: ~§To passenger: ~
+Qabul qilish§Принять§Accept
+Safar davom etmoqda§Поездка идёт§Trip in progress
+Faol safar§Активная поездка§Active trip
+📞 Qo'ng'iroq§📞 Позвонить§📞 Call
+Shahar ichida tez va qulay safar§Быстрые и удобные поездки по городу§Fast and comfortable rides across the city
+⚙ Server sozlamalari§⚙ Настройки сервера§⚙ Server settings
+Server manzili§Адрес сервера§Server address
+= ilovasining yangi versiyasi chiqdi. Ilovaning o'zida yuklab o'rnatiladi.§: вышла новая версия. Она скачивается и устанавливается прямо в приложении.§: a new version is out. It downloads and installs inside the app.
+Yandex MapKit kaliti ulanmagan. GitHub Actions Secret sozlamasini tekshiring.§Ключ Yandex MapKit не подключён.§Yandex MapKit key is not connected.
+Manzilga yetdingiz§Вы прибыли§You have arrived
+Yo'lga chiqing§Начните движение§Start driving
+Aylanadan chiqing§Съезжайте с кольца§Exit the roundabout
+Chapga buriling§Поверните налево§Turn left
+O'ngga buriling§Поверните направо§Turn right
+Chapga biroz buriling§Плавно налево§Bear left
+O'ngga biroz buriling§Плавно направо§Bear right
+Chapga keskin buriling§Резко налево§Sharp left
+O'ngga keskin buriling§Резко направо§Sharp right
+Orqaga qayriling§Развернитесь§Make a U-turn
+Yo'lga qo'shiling§Перестройтесь на дорогу§Merge onto the road
+To'g'ri yuring§Двигайтесь прямо§Continue straight
+Mening joyim§Моё место§My location
+Safar davom etmoqda — joylashuv yuborilmoqda§Поездка идёт — передаётся геолокация§Trip in progress — sharing location
+Xaritadagi nuqta§Точка на карте§Point on map
+Olinadigan joy§Место посадки§Pickup
+✕ Chiqish§✕ Выход§✕ Exit
+Haydovchi qidirilmoqda…§Ищем водителя…§Finding a driver…
+Haydovchi yo'lda§Водитель в пути§Driver on the way
+Haydovchi joylashuvi kutilmoqda…§Ожидание геолокации водителя…§Waiting for driver location…
+Haydovchi sizni kutmoqda§Водитель вас ждёт§The driver is waiting for you
+Mashinaga o'tiring§Садитесь в машину§Get in the car
+Yaxshi yo'l!§Счастливого пути!§Have a good trip!
+Olinadigan joyni belgilang§Укажите место посадки§Set the pickup point
+Borish manzilini belgilang§Укажите адрес назначения§Set the destination
+Xaritaga bosing§Нажмите на карту§Tap the map
+Qidiruvga qaytish§Вернуться к поиску§Back to search
+GPS bo'yicha§По GPS§By GPS
+Xaritadan tanlash§Выбрать на карте§Pick on map
+Xaritaga bosib belgilang§Отметьте точку на карте§Tap the map to mark
+Oldingi safar§Прошлая поездка§Previous trip
+Qidirilmoqda…§Поиск…§Searching…
+Topilmadi. Boshqacha yozing yoki xaritadan tanlang.§Не найдено. Введите иначе или выберите на карте.§Not found. Try different words or pick on the map.
+Safar yakunlandi§Поездка завершена§Trip completed
+Karta bilan to'lash§Оплатить картой§Pay by card
+Safar qanday o'tdi?§Как прошла поездка?§How was the trip?
+Haydovchini baholang§Оцените водителя§Rate the driver
+Joylashuv aniqlanmoqda…§Определяем местоположение…§Locating you…
+Qayerga boramiz?§Куда поедем?§Where to?
+Narx hisoblanmoqda…§Считаем цену…§Calculating price…
+💵 To'lov: naqd, haydovchiga. Karta to'lovi tez orada.§💵 Оплата: наличными водителю. Карта скоро.§💵 Payment: cash to the driver. Card coming soon.
+Karta bilan safar tugagach to'laysiz.§Картой вы платите после поездки.§You pay by card after the trip.
+Taksi chaqirish§Вызвать такси§Order a taxi
+Oldingi manzillar§Прошлые адреса§Previous addresses
+Yuklangan fayl buzilgan, qayta urinib ko'ring§Файл повреждён, попробуйте ещё раз§The downloaded file is corrupted, try again
+O'rnatib bo'lmadi§Не удалось установить§Couldn't install
+Yuklab bo'lmadi§Не удалось скачать§Couldn't download
+Ruxsat kerak§Нужно разрешение§Permission needed
+O'rnatish oynasi ochildi§Окно установки открыто§Installer opened
+Chiqqan oynada “O'rnatish” (Update) ni bosing. O'rnatilgach ilova o'zi qayta ochiladi.§В открывшемся окне нажмите «Установить» (Update). После установки приложение откроется само.§In the window that opens, tap “Install” (Update). The app reopens by itself afterwards.
+Sozlamalar / Davom etish§Настройки / Продолжить§Settings / Continue
+Qayta urinish§Повторить§Retry
+Qayta ochish§Открыть снова§Reopen
+Pul§Деньги§Money
+Safarlar§Поездки§Trips
+Naqd§Наличные§Cash
+Karta§Карта§Card
+Xato§Ошибка§Error
+Kabinet§Кабинет§Cabinet
+Foydalanuvchi§Пользователь§User
+Daromad§Доход§Earnings
+Sarflangan§Потрачено§Spent
+Reyting§Рейтинг§Rating
+Bekor§Отмены§Cancelled
+Ilova§Приложение§App
+Yordam§Помощь§Help
+Yuborish§Отправить§Send
+Murojaatlarim§Мои обращения§My requests
+Umumiy§Обзор§Overview
+Buyurtma§Заказ§Order
+Odamlar§Люди§People
+Murojaat§Обращение§Request
+Profil§Профиль§Profile
+Faol§Активные§Active
+Tugagan§Завершённые§Finished
+Hammasi§Все§All
+Qidirilmoqda§Поиск§Searching
+Safarda§В поездке§On trip
+Yakunlangan§Завершён§Completed
+Bloklangan§Заблокирован§Blocked
+Buyurtmalar§Заказы§Orders
+Haydovchi§Водитель§Driver
+Bloklash§Заблокировать§Block
+Onlayn§Онлайн§Online
+Offlayn§Офлайн§Offline
+Telefon§Телефон§Phone
+Javobingiz§Ваш ответ§Your reply
+Murojaatlar§Обращения§Requests
+Admin§Админ§Admin
+Men§Я§Me
+Safar§Поездка§Trip
+Chiqish§Выйти§Log out
+Yangilash§Обновить§Update
+Keyinroq§Позже§Later
+Yopish§Закрыть§Close
+Qayerdan§Откуда§From
+Qayerga§Куда§Where to
+Ishga chiqish§Выйти на работу§Go online
+Sozlamalar§Настройки§Settings
+Til§Язык§Language
+Ko'rinish§Оформление§Appearance
+☀ Yorug'§☀ Светлая§☀ Light
+🌙 Qorong'i§🌙 Тёмная§🌙 Dark
+Ovoz§Звук§Sound
+🔔 Ovozli§🔔 Со звуком§🔔 Sound
+📳 Tebranish§📳 Вибрация§📳 Vibrate
+🔕 Ovozsiz§🔕 Без звука§🔕 Silent
+Yangi buyurtma ovozi va tebranishi§Звук и вибрация новых заказов§New order sound and vibration
+Shrift o'lchami§Размер шрифта§Font size
+Kichik§Мелкий§Small
+O'rta§Средний§Medium
+Katta§Крупный§Large
+Matn o'lchami butun ilovada o'zgaradi§Размер текста меняется во всём приложении§Text size changes across the whole app
+Avval ishga chiqing§Сначала выйдите на работу§Go online first
+Avval joriy buyurtmani tugating§Сначала завершите текущий заказ§Finish your current order first
+Avvalgi murojaatlaringizga javob kelishini kuting§Дождитесь ответа на прежние обращения§Wait for replies to your earlier requests
+Bekor qilib bo'lmaydi§Отменить нельзя§Can't be cancelled
+Bu buyurtma allaqachon yakunlangan§Этот заказ уже завершён§This order is already completed
+Bu buyurtma naqd to'lanadi§Этот заказ оплачивается наличными§This order is paid in cash
+Bu hisob faqat admin ilovasi uchun§Этот аккаунт только для приложения администратора§This account is for the admin app only
+Bu raqamga admin huquqi berilmagan§У этого номера нет прав администратора§This number has no admin rights
+Bu safar allaqachon baholangan§Эта поездка уже оценена§This trip is already rated
+Bu sizning buyurtmangiz emas§Это не ваш заказ§This is not your order
+Buyurtma allaqachon olingan§Заказ уже принят§Order already taken
+Buyurtma topilmadi§Заказ не найден§Order not found
+Faqat admin§Только администратор§Admin only
+Faqat haydovchi§Только водитель§Drivers only
+Faqat yakunlangan safarni baholash mumkin§Оценить можно только завершённую поездку§Only completed trips can be rated
+Faqat yo'lovchi buyurtma bera oladi§Заказывать может только пассажир§Only passengers can place orders
+Foydalanuvchi topilmadi§Пользователь не найден§User not found
+Hisobingiz bloklangan§Ваш аккаунт заблокирован§Your account is blocked
+Ismingizni kiriting§Введите ваше имя§Enter your name
+Javobni yozing§Напишите ответ§Write a reply
+Karta to'lovi hali ulanmagan. Naqd to'lovni tanlang§Оплата картой пока не подключена. Выберите наличные§Card payment isn't available yet. Choose cash
+Kod eskirgan, qaytadan so'rang§Код устарел, запросите заново§Code expired, request a new one
+Kod noto'g'ri§Неверный код§Wrong code
+Kodni 60 soniyadan keyin qayta so'rang§Запросите код повторно через 60 секунд§Request the code again after 60 seconds
+Koordinata xato§Неверные координаты§Invalid coordinates
+Manzil to'liq emas§Адрес неполный§Address incomplete
+Murojaat topilmadi§Обращение не найдено§Request not found
+Noto'g'ri holat§Неверный статус§Invalid status
+Qaytadan kiring§Войдите заново§Please sign in again
+SMS yuborilmadi, birozdan keyin urinib ko'ring§SMS не отправлено, попробуйте позже§SMS not sent, try again later
+Safar tugagach to'lanadi§Оплата после поездки§Paid after the trip
+Server xatosi§Ошибка сервера§Server error
+Sizda faol buyurtma bor§У вас уже есть активный заказ§You already have an active order
+Telefon raqam +998XXXXXXXXX ko'rinishida bo'lsin§Номер телефона в формате +998XXXXXXXXX§Phone number must look like +998XXXXXXXXX
+Xabarni yozing (kamida 3 belgi)§Напишите сообщение (минимум 3 символа)§Write a message (at least 3 characters)
+Allaqachon to'langan§Уже оплачено§Already paid
+Adminni bloklab bo'lmaydi§Администратора заблокировать нельзя§Can't block an admin
+Baho 1 dan 5 gacha bo'lsin§Оценка от 1 до 5§Rating must be 1 to 5
+Topilmadi§Не найдено§Not found
+Tarmoq xatosi§Ошибка сети§Network error
+=Yo'lovchigacha§До пассажира§To passenger
+=Manzilgacha§До места назначения§To destination
+= daqiqada keladi§ мин§ min
+= daqiqa§ мин§ min
+= daq§ мин§ min
+= so'm§ сум§ UZS
+= ta safar§ поездок§ trips
+~^Haydovchi ~(\d+) daqiqada keladi$§Водитель приедет через ~\1 мин§Driver arrives in ~\1 min
+~^Manzilga ~(\d+) daqiqa$§До места ~\1 мин§~\1 min to destination
+~^Safar ≈ (\d+) mins? ?·? ?(.*)$§Поездка ≈ \1 мин · \2§Trip ≈ \1 min · \2
+~^Safar ≈ (\d+) daq(.*)$§Поездка ≈ \1 мин\2§Trip ≈ \1 min\2
+~^To'lov: (.*)$§Оплата: \1§Payment: \1
+~^Android (.*) ga yangilanishni o'rnatishga ruxsat so'raydi\..*$§Android запросит разрешение на установку обновления. Нажмите «Настройки», включите разрешение, вернитесь назад и нажмите «Продолжить».§Android will ask for permission to install the update. Tap “Settings”, enable it, go back and tap “Continue”.
+"""
+
+private class Rules(
+    val exact: HashMap<String, String>,
+    val frags: List<Pair<String, String>>,
+    val regexes: List<Pair<Regex, String>>,
+)
+
+private fun build(col: Int): Rules {
+    val exact = HashMap<String, String>()
+    val frags = ArrayList<Pair<String, String>>()
+    val regexes = ArrayList<Pair<Regex, String>>()
+    for (line in TABLE.lines()) {
+        if (line.isBlank()) continue
+        val p = line.split("§")
+        if (p.size < 3) continue
+        val key = p[0]
+        val value = if (key.endsWith(" ") && !p[col].endsWith(" ")) p[col] + " " else p[col]
+        when {
+            key.startsWith("~") -> try {
+                regexes.add(Regex(key.substring(1)) to value.replace("\\1", "\$1").replace("\\2", "\$2"))
+            } catch (e: Exception) { }
+            key.startsWith("=") -> frags.add(key.substring(1) to value)
+            else -> exact[key] = value
+        }
+    }
+    frags.sortByDescending { it.first.length }
+    return Rules(exact, frags, regexes)
+}
+
+private val RU by lazy { build(1) }
+private val EN by lazy { build(2) }
+
+/** Matnni tanlangan tilga o'giradi. Til o'zbekcha bo'lsa yoki jadvalda topilmasa, matn o'zgarmaydi. */
+fun translate(s: String, lang: String): String {
+    if (lang == "uz" || s.isBlank()) return s
+    val r = if (lang == "ru") RU else EN
+    r.exact[s]?.let { return it }
+    for ((re, rep) in r.regexes) {
+        if (re.containsMatchIn(s)) return re.replace(s, rep)
+    }
+    var out = s
+    for ((k, v) in r.frags) if (out.contains(k)) out = out.replace(k, v)
+    out = out.replace(Regex("(\\d+) ta\\b"), "$1")
+    // "Yo'lovchigacha 5 daq" kabi: bo'laklardan yig'ilgan matnning ayrim so'zlarini ham o'giramiz
+    if (out == s) {
+        for ((k, v) in r.exact) {
+            if (k.length >= 8 && out.contains(k)) out = out.replace(k, v)
+        }
+    }
+    return out
+}
+
+@Composable
+fun tr(s: String): String = translate(s, AppSettings.lang)
+
+/** material3.Text o'rniga: matn tanlangan tilga avtomatik o'giriladi. */
+@Composable
+fun Text(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontSize: TextUnit = TextUnit.Unspecified,
+    fontStyle: FontStyle? = null,
+    fontWeight: FontWeight? = null,
+    letterSpacing: TextUnit = TextUnit.Unspecified,
+    textAlign: TextAlign? = null,
+    lineHeight: TextUnit = TextUnit.Unspecified,
+    overflow: TextOverflow = TextOverflow.Clip,
+    softWrap: Boolean = true,
+    maxLines: Int = Int.MAX_VALUE,
+    style: TextStyle = LocalTextStyle.current,
+) {
+    androidx.compose.material3.Text(
+        text = tr(text), modifier = modifier, color = color, fontSize = fontSize, fontStyle = fontStyle,
+        fontWeight = fontWeight, letterSpacing = letterSpacing, textAlign = textAlign, lineHeight = lineHeight,
+        overflow = overflow, softWrap = softWrap, maxLines = maxLines, style = style,
+    )
+}

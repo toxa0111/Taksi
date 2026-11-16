@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,7 +57,7 @@ fun Shell(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
 /** Pastki panel: (belgi, yozuv) juftliklari. */
 @Composable
 fun BottomTabs(tabs: List<Pair<String, String>>, selected: Int, onSelect: (Int) -> Unit) {
-    Surface(color = Color.White, shadowElevation = 12.dp) {
+    Surface(color = Card, shadowElevation = 12.dp) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
             tabs.forEachIndexed { i, (icon, label) ->
                 val sel = selected == i
@@ -74,7 +73,7 @@ fun BottomTabs(tabs: List<Pair<String, String>>, selected: Int, onSelect: (Int) 
                     Text(
                         label, fontSize = 11.sp,
                         fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
-                        color = if (sel) Ink else Muted,
+                        color = if (sel) Fg else Muted,
                     )
                 }
             }

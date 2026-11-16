@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,7 +37,7 @@ fun Sheet(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> 
     Surface(
         modifier = modifier.fillMaxWidth().heightIn(max = maxH),
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        color = Color.White,
+        color = Card,
         shadowElevation = 16.dp,
     ) {
         Column(
@@ -58,12 +57,12 @@ fun Sheet(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> 
 /** Xarita ustidagi suzuvchi oq tugma. */
 @Composable
 fun FloatingChip(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Surface(modifier = modifier, shape = RoundedCornerShape(50), color = Color.White, shadowElevation = 6.dp) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(50), color = Card, shadowElevation = 6.dp) {
         Box(
             Modifier.clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+            Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Fg)
         }
     }
 }
@@ -72,7 +71,7 @@ fun FloatingChip(text: String, modifier: Modifier = Modifier, onClick: () -> Uni
 @Composable
 fun AddressRow(dot: Color, label: String, value: String, isPlaceholder: Boolean = false, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color(0xFFF3F4F6))
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Chip)
             .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -82,7 +81,7 @@ fun AddressRow(dot: Color, label: String, value: String, isPlaceholder: Boolean 
             Text(label, fontSize = 11.sp, color = Muted)
             Text(
                 value, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
-                color = if (isPlaceholder) Muted else Ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                color = if (isPlaceholder) Muted else Fg, maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -96,7 +95,7 @@ fun SuggestionRow(icon: String, title: String, sub: String = "", onClick: () -> 
             .padding(horizontal = 4.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(38.dp).clip(CircleShape).background(Color(0xFFF3F4F6)), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(38.dp).clip(CircleShape).background(Chip), contentAlignment = Alignment.Center) {
             Text(icon, fontSize = 16.sp)
         }
         Spacer(Modifier.width(12.dp))
@@ -111,7 +110,7 @@ fun SuggestionRow(icon: String, title: String, sub: String = "", onClick: () -> 
 @Composable
 fun TariffRow(price: Long, mins: Int, km: Double) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color(0xFFFFF8E1)).padding(16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Soft).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {

@@ -22,7 +22,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -146,7 +145,7 @@ fun MoneyTab(role: String) {
                 }
                 val unpaid = done.filter { it.optString("payMethod") == "card" && it.optString("payStatus") != "paid" }
                 unpaid.forEach { o ->
-                    Panel(color = Color(0xFFFFF1C2)) {
+                    Panel(color = Soft) {
                         Text("To'lanmagan safar", fontWeight = FontWeight.Bold)
                         Text(o.optString("to"), fontSize = 13.sp, color = Muted, maxLines = 1)
                         BigButton("💳 ${som(o.optLong("price"))} to'lash") {
@@ -240,6 +239,26 @@ fun CabinetTab(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
         }
 
         Panel {
+            Text("Sozlamalar", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text("Til", fontSize = 13.sp, color = Muted)
+            Segmented(LANGS, AppSettings.lang) { AppSettings.setLang(it) }
+            Text("Ko'rinish", fontSize = 13.sp, color = Muted)
+            Segmented(listOf("light" to "☀ Yorug'", "dark" to "🌙 Qorong'i"), if (AppSettings.dark) "dark" else "light") {
+                AppSettings.setDark(it == "dark")
+            }
+            Text("Ovoz", fontSize = 13.sp, color = Muted)
+            Segmented(listOf("on" to "🔔 Ovozli", "vibrate" to "📳 Tebranish", "off" to "🔕 Ovozsiz"), AppSettings.sound) {
+                AppSettings.setSound(it)
+            }
+            Text("Yangi buyurtma ovozi va tebranishi", fontSize = 11.sp, color = Muted)
+            Text("Shrift o'lchami", fontSize = 13.sp, color = Muted)
+            Segmented(
+                listOf("0.85" to "Kichik", "1.0" to "O'rta", "1.2" to "Katta"),
+                when { AppSettings.fontScale < 0.95f -> "0.85"; AppSettings.fontScale > 1.1f -> "1.2"; else -> "1.0" },
+            ) { AppSettings.setFontScale(it.toFloat()) }
+            Text("Matn o'lchami butun ilovada o'zgaradi", fontSize = 11.sp, color = Muted)
+        }
+        Panel {
             Text("Ilova", fontWeight = FontWeight.Bold)
             Text("Versiya: ${versionName(ctx)}", fontSize = 13.sp, color = Muted)
             GhostButton("Yangilanishni tekshirish") {
@@ -276,7 +295,7 @@ private fun versionName(ctx: Context): String = try {
 private fun FaqItem(q: String, a: String) {
     var open by remember { mutableStateOf(false) }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color.White)
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Card)
             .clickable { open = !open }.padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -353,7 +372,7 @@ fun SupportTab(role: String) {
                     }
                     Text(t.optString("text"), fontSize = 14.sp)
                     if (t.has("reply")) {
-                        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0xFFF3F4F6)).padding(12.dp)) {
+                        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Chip).padding(12.dp)) {
                             Text("Javob: " + t.optString("reply"), fontSize = 14.sp)
                         }
                     }

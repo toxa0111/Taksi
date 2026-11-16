@@ -19,7 +19,6 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Slider
@@ -160,7 +159,7 @@ fun DriverScreen(onLogout: () -> Unit) {
         AlertDialog(
             onDismissRequest = { confirmOffline = false },
             shape = RoundedCornerShape(24.dp),
-            containerColor = Color.White,
+            containerColor = Card,
             title = { Text("Ishdan chiqasizmi?", fontWeight = FontWeight.Bold) },
             text = { Text("Offlayn bo'lsangiz, yangi buyurtmalar kelmaydi.") },
             confirmButton = {

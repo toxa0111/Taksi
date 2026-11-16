@@ -20,7 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -72,6 +71,7 @@ fun AdminLogin(prefs: SharedPreferences, onDone: (String) -> Unit) {
     var busy by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().background(PageBg).verticalScroll(rememberScrollState())) {
+        LangBar()
         Box(
             Modifier.fillMaxWidth()
                 .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
@@ -108,7 +108,7 @@ fun AdminLogin(prefs: SharedPreferences, onDone: (String) -> Unit) {
                     }
                 } else {
                     if (devCode.isNotEmpty()) {
-                        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xFFFFF1C2)).padding(12.dp)) {
+                        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Soft).padding(12.dp)) {
                             Text("Test kodi: $devCode", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     }
@@ -199,7 +199,7 @@ private fun Confirm(title: String, text: String, yes: String, onYes: () -> Unit,
     AlertDialog(
         onDismissRequest = onNo,
         shape = RoundedCornerShape(24.dp),
-        containerColor = Color.White,
+        containerColor = Card,
         title = { Text(title, fontWeight = FontWeight.Bold) },
         text = { Text(text) },
         confirmButton = { TextButton(onClick = onYes) { Text(yes, color = Bad, fontWeight = FontWeight.Bold) } },
@@ -432,7 +432,7 @@ private fun TicketCard(t: JSONObject, onSent: () -> Unit) {
         PhoneLine("Telefon", "", t.optString("phone"))
         Text(t.optString("text"), fontSize = 15.sp)
         if (t.has("reply")) {
-            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0xFFF3F4F6)).padding(12.dp)) {
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Chip).padding(12.dp)) {
                 Text("Javob: " + t.optString("reply"), fontSize = 14.sp)
             }
         } else {

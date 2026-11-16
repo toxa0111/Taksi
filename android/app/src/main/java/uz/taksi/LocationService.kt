@@ -88,7 +88,7 @@ class LocationService : Service() {
         val n = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_stat_toxa)
             .setContentTitle("TOXA")
-            .setContentText(text)
+            .setContentText(translate(text, AppSettings.lang))
             .setContentIntent(open)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
