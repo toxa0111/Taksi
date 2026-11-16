@@ -25,6 +25,23 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
+      - name: Backend regression tests
+        env:
+          DEV_SMS: '1'
+          PAY_DEV: '1'
+          PORT: '3999'
+          DB_FILE: /tmp/toxa-test-db.json
+          BASE: http://127.0.0.1:3999
+        run: |
+          cd server
+          node server.js > /tmp/toxa-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null http://127.0.0.1:3999/; then break; fi
+            sleep 1
+          done
+          node test.js
       - name: Yandex MapKit kalitini tekshirish
         env:
           YANDEX_MAPKIT_API_KEY: ${{ secrets.YANDEX_MAPKIT_API_KEY }}
