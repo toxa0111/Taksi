@@ -484,7 +484,7 @@ private fun PassengerBottomNavigation(selectedTab: String, onSelect: (String) ->
                     verticalArrangement = Arrangement.Center,
                 ) {
                     Text(item.second, fontSize = 23.sp, color = if (active) Ink else Muted, fontWeight = FontWeight.Bold)
-                    Text(item.third, fontSize = 10.sp, color = if (active) Ink else Color(0xFF858B96), fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
+                    Text(item.third, fontSize = 10.sp, color = if (active) Ink else Muted, fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
                     if (active) Box(Modifier.padding(top = 3.dp).size(width = 20.dp, height = 3.dp).background(Yellow, RoundedCornerShape(2.dp)))
                 }
             }
