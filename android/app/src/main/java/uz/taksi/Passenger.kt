@@ -271,6 +271,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 DangerButton("Hisobdan chiqish") { onLogout() }
             } else if (selectedTab == "Sozlamalar") {
                 BigLine("Sozlamalar", "Kabinet va hisob ma'lumotlari")
+                SettingsPreferencesContent()
                 AccountSettingsContent(
                     name = profile?.optString("name").orEmpty(),
                     phone = profile?.optString("phone").orEmpty(),
