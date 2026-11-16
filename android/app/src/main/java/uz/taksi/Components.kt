@@ -136,11 +136,11 @@ fun TariffRow(price: Long, mins: Int, km: Double) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
         Column(Modifier.weight(1f)) {
-            Text("Narx", fontSize = 12.sp, color = Muted)
+            Text(tr("Narx", "Цена", "Fare"), fontSize = 12.sp, color = Muted)
             Text(som(price), fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text("≈ $mins daq", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(tr("≈ $mins daq", "≈ $mins мин", "≈ $mins min"), fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Text(String.format("%.1f km", km), fontSize = 13.sp, color = Muted)
         }
         }
