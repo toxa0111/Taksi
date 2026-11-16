@@ -41,7 +41,7 @@ jobs:
             if curl -s -o /dev/null http://127.0.0.1:3999/; then break; fi
             sleep 1
           done
-          node test.js
+          node test.js || { echo "--- server log ---"; cat /tmp/toxa-server.log; exit 1; }
       - name: Yandex MapKit kalitini tekshirish
         env:
           YANDEX_MAPKIT_API_KEY: ${{ secrets.YANDEX_MAPKIT_API_KEY }}
