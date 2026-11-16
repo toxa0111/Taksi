@@ -58,6 +58,12 @@ fun DriverScreen(onLogout: () -> Unit) {
         try { documentProfile = io { Api.call("GET", "/driver/documents") } }
         catch (e: Exception) { documentProfile = JSONObject().put("status", "pending").put("reason", "Server bilan aloqa yo‘q: ${e.message ?: "xato"}") }
     }
+    LaunchedEffect(documentProfile?.optString("status")) {
+        while (documentProfile?.optString("status") != "approved") {
+            kotlinx.coroutines.delay(5000)
+            try { documentProfile = io { Api.call("GET", "/driver/documents") } } catch (_: Exception) { }
+        }
+    }
     if (documentProfile == null) {
         Box(Modifier.fillMaxSize().background(PageBg), contentAlignment = Alignment.Center) {
             Text("Haydovchi hujjatlari holati tekshirilmoqda…", color = Fg)
