@@ -330,7 +330,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                 val isCash = active.optString("payMethod") == "cash"
                 val (bg, fg) = statusColors(st)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Pill(STATUS[st] ?: st, bg, fg)
+                    Pill(statusText(st), bg, fg)
                     Box(Modifier.weight(1f))
                     Text(som(active.optLong("price")), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
                 }
