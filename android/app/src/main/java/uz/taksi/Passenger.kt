@@ -295,7 +295,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 // ───── Faol buyurtma ─────
                 val (bg, fg) = statusColors(aSt)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Pill(STATUS[aSt] ?: aSt, bg, fg)
+                    Pill(statusText(aSt), bg, fg)
                     Box(Modifier.weight(1f))
                     Text(som(active.optLong("price")), fontSize = 18.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold)
                 }
