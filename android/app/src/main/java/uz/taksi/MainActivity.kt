@@ -276,7 +276,8 @@ fun UpdateDialog(tag: String? = null, appName: String = "TOXA") {
     val ctx = LocalContext.current
     var update by remember { mutableStateOf<Pair<Int, String>?>(null) }
     LaunchedEffect(Unit) {
-        val r = latestRelease(tag)
+        // Yangilanishni tekshirishda xato (internet yo'q, GitHub javob bermadi) ilovani yopib qo'ymasligi kerak
+        val r = try { latestRelease(tag) } catch (e: Exception) { null }
         if (r != null && r.first > currentVersionCode(ctx)) update = r
     }
     var installUrl by remember { mutableStateOf<String?>(null) }

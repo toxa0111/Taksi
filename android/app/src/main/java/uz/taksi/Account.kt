@@ -245,11 +245,15 @@ fun CabinetTab(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
             GhostButton("Yangilanishni tekshirish") {
                 scope.launch {
                     info = "Tekshirilmoqda…"
-                    val r = latestRelease()
-                    if (r != null && r.first > currentVersionCode(ctx)) {
-                        info = "Yangi versiya bor"
-                        installUrl = r.second
-                    } else info = "Yangi versiya topilmadi"
+                    try {
+                        val r = latestRelease()
+                        if (r != null && r.first > currentVersionCode(ctx)) {
+                            info = "Yangi versiya bor"
+                            installUrl = r.second
+                        } else info = "Yangi versiya topilmadi"
+                    } catch (e: Exception) {
+                        info = "Yangilanish tekshirilmadi: ${e.message ?: "internet yoki server xatosi"}"
+                    }
                 }
             }
             if (info.isNotEmpty()) Text(info, fontSize = 12.sp, color = Muted)
