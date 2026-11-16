@@ -48,6 +48,32 @@ jobs:
           YANDEX_MAPKIT_API_KEY: ${{ secrets.YANDEX_MAPKIT_API_KEY }}
         run: gradle assembleUserDebug assembleAdminDebug --no-daemon -PappVersionCode=${{ github.run_number }}
         working-directory: android
+      - name: Android emulator smoke test (driver va admin)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          script: |
+            set -euo pipefail
+            adb install -r app/build/outputs/apk/user/debug/app-user-debug.apk
+            adb install -r app/build/outputs/apk/admin/debug/app-admin-debug.apk
+            adb shell am force-stop uz.taksi
+            adb shell am start -W -n uz.taksi/uz.taksi.MainActivity
+            sleep 12
+            if ! adb shell pidof uz.taksi >/dev/null; then
+              adb logcat -d -t 4000 | grep -E -A 35 'FATAL EXCEPTION|AndroidRuntime|uz\\.taksi' || true
+              exit 1
+            fi
+            adb shell am force-stop uz.taksi.admin
+            adb shell am start -W -n uz.taksi.admin/uz.taksi.MainActivity
+            sleep 12
+            if ! adb shell pidof uz.taksi.admin >/dev/null; then
+              adb logcat -d -t 4000 | grep -E -A 35 'FATAL EXCEPTION|AndroidRuntime|uz\\.taksi' || true
+              exit 1
+            fi
+            echo 'Driver and Admin both remained alive for 12 seconds after cold launch.'
       - uses: actions/upload-artifact@v4
         with:
           name: taksi-apk
