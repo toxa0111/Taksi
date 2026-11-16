@@ -374,13 +374,15 @@ fun PassengerScreen(onLogout: () -> Unit) {
             } else {
                 // ───── Buyurtma tuzish ─────
                 if (needPay != null) {
-                    BigLine("Safar yakunlandi", "To'lov: ${som(needPay.optLong("price"))}")
-                    BigButton("💳 Karta bilan to'lash") {
-                        scope.launch {
-                            try { io { Api.call("POST", "/orders/${needPay.optInt("id")}/pay", JSONObject()) }; msg = "" }
-                            catch (e: Exception) { msg = e.message ?: "Xato" }
-                        }
-                    }
+                    BigLine(
+                        tr("Safar yakunlandi", "Поездка завершена", "Trip completed"),
+                        tr("To'lov: ${som(needPay.optLong("price"))}", "К оплате: ${som(needPay.optLong("price"))}", "Amount due: ${som(needPay.optLong("price"))}"),
+                    )
+                    Text(
+                        tr("Karta to'lovi provayderi hali ulanmagan. Iltimos, hozircha naqd to'lovni tanlang.", "Платёжный провайдер для карт ещё не подключён. Пока выберите оплату наличными.", "Card payments are not connected yet. Please choose cash payment for now."),
+                        fontSize = 12.sp,
+                        color = Muted,
+                    )
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -414,8 +416,8 @@ fun PassengerScreen(onLogout: () -> Unit) {
                         val km = q.optDouble("km")
                         val mins = route?.min ?: maxOf(1, Math.round(km * 2.5).toInt())
                         TariffRow(q.optLong("price"), mins, km)
-                        Segmented(listOf("cash" to "💵 Naqd", "card" to "💳 Karta"), pay) { pay = it }
-                        if (pay == "card") Text("Karta bilan safar tugagach to'laysiz.", fontSize = 12.sp, color = Muted)
+                        Segmented(listOf("cash" to tr("💵 Naqd", "💵 Наличные", "💵 Cash")), "cash") { pay = "cash" }
+                        Text(tr("Karta orqali to'lov hozircha mavjud emas.", "Оплата картой пока недоступна.", "Card payment is not available yet."), fontSize = 12.sp, color = Muted)
                         BigButton("Taksi chaqirish", enabled = !busy) {
                             scope.launch {
                                 busy = true
