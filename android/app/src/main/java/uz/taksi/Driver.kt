@@ -421,7 +421,7 @@ fun DriverScreen(onLogout: () -> Unit) {
             }
             ErrorText(msg)
             }
-            else {
+            else if (!online && !mapOnlyMode) {
                 Surface(
                     modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth().clickable { sheetExpanded = true },
                     shape = RoundedCornerShape(22.dp), color = Ink, shadowElevation = 12.dp,
@@ -442,7 +442,8 @@ fun DriverScreen(onLogout: () -> Unit) {
         // Pastki navigatsiya doim ko'rinadi; xaritaga bosish faqat haydovchi panelini yashiradi.
         DriverBottomNavigation(selectedTab = selectedTab, onSelect = {
             selectedTab = it
-            sheetExpanded = true
+            // Online holatda Bosh sahifa tanlansa, xarita ochiq qoladi; boshqa bo'limlar panelni ochadi.
+            sheetExpanded = it != "Bosh sahifa" || !online
             mapOnlyMode = false
         })
     }
