@@ -218,9 +218,15 @@ http.createServer(async (req, res) => {
             id: u.id, name: u.name, phone: u.phone, online: u.online === true,
             status: driverReview(u), reason: u.documentReason || '',
             vehiclePlate: u.vehiclePlate || '', vehicleClass: u.vehicleClass || '',
-            submittedAt: u.documentsSubmittedAt || 0, documents: u.documents || {},
+            submittedAt: u.documentsSubmittedAt || 0,
           }));
         return send(res, 200, { drivers: list, classes: DRIVER_CLASS_LABELS });
+      }
+      const vd = p.match(/^\\/admin\\/drivers\\/([\\w-]+)\\/documents$/);
+      if (m === 'GET' && vd) {
+        const target = db.users[vd[1]];
+        if (!target || target.role !== 'driver') return send(res, 404, { error: 'Haydovchi topilmadi' });
+        return send(res, 200, { documents: target.documents || {}, vehiclePlate: target.vehiclePlate || '' });
       }
       const vr = p.match(/^\/admin\/drivers\/([\w-]+)\/review$/);
       if (m === 'POST' && vr) {
