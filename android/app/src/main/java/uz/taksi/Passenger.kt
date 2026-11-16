@@ -427,7 +427,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                                         .put("to", destName.ifBlank { "Xaritadagi nuqta" })
                                         .put("fromLat", a.first).put("fromLng", a.second)
                                         .put("toLat", b.first).put("toLng", b.second)
-                                        .put("payMethod", pay)
+                                        .put("payMethod", "cash")
                                     if (routeKm != null) body.put("km", routeKm)
                                     io { Api.call("POST", "/orders", body) }
                                     dest = null; destName = ""; msg = ""
