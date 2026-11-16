@@ -233,22 +233,22 @@ fun DriverScreen(onLogout: () -> Unit) {
 
             if (!mapOnlyMode && sheetExpanded) Sheet(Modifier.align(Alignment.BottomCenter)) {
             if (selectedTab != "Bosh sahifa") {
-                BigLine(selectedTab, "Kerakli bo'lim")
+                BigLine(when (selectedTab) { "Buyurtmalar" -> tr("Buyurtmalar", "Заказы", "Orders"); "Kabinet" -> tr("Kabinet", "Кабинет", "Account"); "Sozlamalar" -> tr("Sozlamalar", "Настройки", "Settings"); else -> tr("Qo'llab-quvvatlash", "Поддержка", "Support") }, tr("Kerakli bo'lim", "Нужный раздел", "Selected section"))
                 when (selectedTab) {
                     "Buyurtmalar" -> {
                         stats?.let { data -> Panel(color = Ink) {
-                            Text("BUGUNGI DAROMAD", fontSize = 11.sp, color = Color.White.copy(alpha = 0.65f))
+                            Text(tr("BUGUNGI DAROMAD", "ДОХОД ЗА СЕГОДНЯ", "TODAY EARNINGS"), fontSize = 11.sp, color = Color.White.copy(alpha = 0.65f))
                             Text(som(data.optLong("todaySum")), fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Yellow)
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Buyurtmalar: " + data.optInt("todayCount"), color = Color.White, fontSize = 12.sp)
+                                Text(tr("Buyurtmalar: ", "Заказы: ", "Orders: ") + data.optInt("todayCount"), color = Color.White, fontSize = 12.sp)
                                 Text("Reyting: " + if (data.optInt("ratingCount") > 0) String.format("%.1f ★", data.optDouble("rating")) else "—", color = Color.White, fontSize = 12.sp)
                             }
-                            Text("Jami daromad: " + som(data.optLong("totalSum")), color = Color.White, fontSize = 12.sp)
-                        } } ?: Panel { Text("Hisobot yuklanmoqda…", color = Muted) }
-                        BigLine("Buyurtmalar", "Faol va yangi buyurtmalar")
-                        if (active != null) Panel { Text("Sizda faol buyurtma mavjud.", fontWeight = FontWeight.Bold) }
-                        Text("Yangi buyurtmalar: " + available.size + " ta", color = Muted)
-                        available.forEach { order -> OrderCard(order) { BigButton("Qabul qilish") { post("/orders/" + order.optInt("id") + "/accept") } } }
+                            Text(tr("Jami daromad: ", "Общий доход: ", "Total earnings: ") + som(data.optLong("totalSum")), color = Color.White, fontSize = 12.sp)
+                        } } ?: Panel { Text(tr("Hisobot yuklanmoqda…", "Загрузка отчёта…", "Loading report…"), color = Muted) }
+                        BigLine(tr("Buyurtmalar", "Заказы", "Orders"), tr("Faol va yangi buyurtmalar", "Активные и новые заказы", "Active and new orders"))
+                        if (active != null) Panel { Text(tr("Sizda faol buyurtma mavjud.", "У вас есть активный заказ.", "You have an active order."), fontWeight = FontWeight.Bold) }
+                        Text(tr("Yangi buyurtmalar: ", "Новые заказы: ", "New orders: ") + available.size, color = Muted)
+                        available.forEach { order -> OrderCard(order) { BigButton(tr("Qabul qilish", "Принять", "Accept")) { post("/orders/" + order.optInt("id") + "/accept") } } }
                     }
                     "Kabinet" -> {
                         val driverName = profile?.optString("name").orEmpty().ifBlank { "Haydovchi" }
@@ -272,16 +272,16 @@ fun DriverScreen(onLogout: () -> Unit) {
                                 }
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(driverName, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                                    Text("TOXA haydovchisi", fontSize = 12.sp, color = Color.White.copy(alpha = 0.68f))
+                                    Text(tr("TOXA haydovchisi", "Водитель TOXA", "TOXA driver"), fontSize = 12.sp, color = Color.White.copy(alpha = 0.68f))
                                 }
                                 Pill(
-                                    if (online) "ONLAYN" else "OFFLAYN",
+                                    if (online) tr("ONLAYN", "ОНЛАЙН", "ONLINE") else tr("OFFLAYN", "ОФЛАЙН", "OFFLINE"),
                                     if (online) Color(0xFF173D2C) else Color(0xFF30343C),
                                     if (online) Color(0xFF7BE0A2) else Color.White.copy(alpha = 0.78f),
                                 )
                             }
                         }
-                        BigLine("Shaxsiy ma'lumotlar", "Hisobingizga tegishli ma'lumotlar")
+                        BigLine(tr("Shaxsiy ma'lumotlar", "Личные данные", "Personal details"), tr("Hisobingizga tegishli ma'lumotlar", "Данные вашего аккаунта", "Your account information"))
                         Panel {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Text(tr("Telefon raqami", "Номер телефона", "Phone number"), color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
@@ -289,17 +289,17 @@ fun DriverScreen(onLogout: () -> Unit) {
                             }
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Text(tr("Hisob turi", "Тип аккаунта", "Account type"), color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                                Text("Haydovchi", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                Text(tr("Haydovchi", "Водитель", "Driver"), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                             }
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Text(tr("Ish holati", "Статус работы", "Work status"), color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                                Text(if (online) "Ishda" else "Dam olishda", fontWeight = FontWeight.SemiBold, fontSize = 13.sp,
+                                Text(if (online) tr("Ishda", "На линии", "Online") else tr("Dam olishda", "Не на линии", "Offline"), fontWeight = FontWeight.SemiBold, fontSize = 13.sp,
                                     color = if (online) Color(0xFF237A4B) else Muted)
                             }
                         }
                         LanguageSelector()
                         BigButton(tr("⚙  Sozlamalar", "⚙  Настройки", "⚙  Settings")) { selectedTab = "Sozlamalar" }
-                        DangerButton("Hisobdan chiqish") { onLogout() }
+                        DangerButton(tr("Hisobdan chiqish", "Выйти из аккаунта", "Sign out")) { onLogout() }
                     }
                     "Sozlamalar" -> {
                         BigLine(tr("Sozlamalar", "Настройки", "Settings"), tr("Kabinet va hisob ma'lumotlari", "Кабинет и данные аккаунта", "Account and profile details"))
@@ -317,7 +317,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                                 }
                             },
                         )
-                        GhostButton("‹ Kabinetga qaytish") { selectedTab = "Kabinet" }
+                        GhostButton(tr("‹ Kabinetga qaytish", "‹ Вернуться в кабинет", "‹ Back to account")) { selectedTab = "Kabinet" }
                     }
                     "Qo'llab-quvvatlash" -> {
                         BigLine(tr("Qo'llab-quvvatlash", "Поддержка", "Support"), tr("TOXA yordam markazi", "Центр помощи TOXA", "TOXA Help Center"))
@@ -335,13 +335,13 @@ fun DriverScreen(onLogout: () -> Unit) {
                     Text(som(active.optLong("price")), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
                 }
 
-                val what = if (st == "started") "Manzilgacha" else "Yo'lovchigacha"
+                val what = if (st == "started") tr("Manzilgacha", "До пункта назначения", "To destination") else tr("Yo'lovchigacha", "До пассажира", "To passenger")
                 if (st == "arrived") {
-                    BigLine("Yo'lovchini kutmoqdasiz", "Yo'lovchi chiqqach, safarni boshlang")
+                    BigLine(tr("Yo'lovchini kutmoqdasiz", "Ожидайте пассажира", "Waiting for passenger"), tr("Yo'lovchi chiqqach, safarni boshlang", "Начните поездку, когда пассажир сядет в машину", "Start the trip when the passenger is in the car"))
                 } else if (route != null) {
                     BigLine("$what ${route.min} daq", String.format("%.1f km", route.km))
                 } else {
-                    BigLine("$what marshrut hisoblanmoqda…", if (me == null) "GPS kutilmoqda" else "")
+                    BigLine("$what marshrut hisoblanmoqda…", if (me == null) tr("GPS kutilmoqda", "Ожидание GPS", "Waiting for GPS") else "")
                 }
 
                 Route(active.optString("from"), active.optString("to"))
@@ -350,20 +350,20 @@ fun DriverScreen(onLogout: () -> Unit) {
                     fontSize = 13.sp, color = Muted,
                 )
                 val p = active.optJSONObject("passenger")
-                if (p != null) PersonRow("Yo'lovchi", p.optString("name"), p.optString("phone"))
-                if (!isCash) Text("Karta: yo'lovchi safar tugagach ilovada to'laydi", fontSize = 12.sp, color = Muted)
+                if (p != null) PersonRow(tr("Yo'lovchi", "Пассажир", "Passenger"), p.optString("name"), p.optString("phone"))
+                if (!isCash) Text(tr("Karta to'lovi provayderi ulanmagan.", "Платёжный провайдер для карт не подключён.", "Card payment provider is not connected."), fontSize = 12.sp, color = Muted)
 
                 val next = mapOf(
-                    "accepted" to ("arrived" to "Yetib keldim"),
-                    "arrived" to ("started" to "Safarni boshlash"),
-                    "started" to ("done" to (if (isCash) "Yakunlash (naqd oldim)" else "Yakunlash")),
+                    "accepted" to ("arrived" to tr("Yetib keldim", "Я прибыл", "I have arrived")),
+                    "arrived" to ("started" to tr("Safarni boshlash", "Начать поездку", "Start trip")),
+                    "started" to ("done" to (if (isCash) tr("Yakunlash (naqd oldim)", "Завершить (получил наличные)", "Finish (cash received)") else tr("Yakunlash", "Завершить", "Finish"))),
                 )[st]
                 if (next != null) {
                     BigButton(next.second) { post("/orders/$id/status", JSONObject().put("status", next.first)) }
                 }
 
                 if (st == "accepted" || st == "arrived") {
-                    DangerButton("Buyurtmani rad etish") { post("/orders/$id/cancel") }
+                    DangerButton(tr("Buyurtmani rad etish", "Отклонить заказ", "Decline order")) { post("/orders/$id/cancel") }
                 }
             } else {
                 Panel(color = Ink) {
@@ -372,12 +372,12 @@ fun DriverScreen(onLogout: () -> Unit) {
                             Text("T", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Yellow)
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text("HAYDOVCHI PANELI", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.58f), letterSpacing = 1.1.sp)
-                            Text(if (online) "Yo'lda bo'lishga tayyorsiz" else "Bugun ishni boshlang", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            Text(tr("HAYDOVCHI PANELI", "ПАНЕЛЬ ВОДИТЕЛЯ", "DRIVER PANEL"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.58f), letterSpacing = 1.1.sp)
+                            Text(if (online) tr("Yo'lda bo'lishga tayyorsiz", "Вы готовы принимать заказы", "You are ready for trips") else tr("Bugun ishni boshlang", "Начните работу сегодня", "Start working today"), fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
                         }
                         Pill(if (online) "ONLAYN" else "OFFLAYN", if (online) Color(0xFF173D2C) else Color(0xFF30343C), if (online) Color(0xFF7BE0A2) else Color.White.copy(alpha = 0.78f))
                     }
-                    Text(if (online) "Yangi buyurtmalarni qabul qilyapsiz" else "Buyurtmalarni ko'rish uchun ishga chiqing", fontSize = 12.sp, color = Color.White.copy(alpha = 0.68f))
+                    Text(if (online) tr("Yangi buyurtmalarni qabul qilyapsiz", "Вы принимаете новые заказы", "You are receiving new orders") else tr("Buyurtmalarni ko'rish uchun ishga chiqing", "Выйдите на линию, чтобы видеть заказы", "Go online to see orders"), fontSize = 12.sp, color = Color.White.copy(alpha = 0.68f))
                     BoxWithConstraints(
                         Modifier.fillMaxWidth().padding(top = 2.dp).height(66.dp)
                             .background(Color(0xFF252A32), RoundedCornerShape(22.dp))
@@ -399,7 +399,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                         Box(Modifier.fillMaxWidth(shiftSlider.coerceAtLeast(0.16f)).height(66.dp)
                             .background(if (online) Color(0xFF237A4B) else Color(0xFF3A414D), RoundedCornerShape(22.dp)))
                         Text(
-                            if (online) "CHAPGA SURING  •  ISHDAN CHIQISH" else "O'NGGA SURING  •  ISHGA CHIQISH",
+                            if (online) tr("CHAPGA SURING  •  ISHDAN CHIQISH", "СДВИНЬТЕ ВЛЕВО  •  ВЫЙТИ С ЛИНИИ", "SWIPE LEFT  •  GO OFFLINE") else tr("O'NGGA SURING  •  ISHGA CHIQISH", "СДВИНЬТЕ ВПРАВО  •  ВЫЙТИ НА ЛИНИЮ", "SWIPE RIGHT  •  GO ONLINE"),
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 62.dp),
                             fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, letterSpacing = 0.25.sp,
                         )
@@ -417,8 +417,8 @@ fun DriverScreen(onLogout: () -> Unit) {
 
                 Row(Modifier.fillMaxWidth().clickable { sheetExpanded = false }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Yangi buyurtmalar", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
-                        Text(if (available.isEmpty()) "Yangi takliflar kutilmoqda" else "Sizga ${available.size} ta taklif bor", fontSize = 12.sp, color = Muted)
+                        Text(tr("Yangi buyurtmalar", "Новые заказы", "New orders"), fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                        Text(if (available.isEmpty()) tr("Yangi takliflar kutilmoqda", "Ожидаются новые предложения", "Waiting for new offers") else tr("Sizga ${available.size} ta taklif bor", "Для вас предложений: ${available.size}", "You have ${available.size} offers"), fontSize = 12.sp, color = Muted)
                     }
                     Box(Modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xFFFFF3CD)).padding(horizontal = 11.dp, vertical = 7.dp)) {
                         Text("${available.size} ta", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ink)
@@ -429,16 +429,16 @@ fun DriverScreen(onLogout: () -> Unit) {
                         Box(Modifier.size(44.dp).background(Color(0xFFFFF5D8), CircleShape), contentAlignment = Alignment.Center) {
                             Text("⌛", fontSize = 22.sp)
                         }
-                        Text("Hozircha buyurtma yo'q", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        Text("Onlayn holatda turing — yangi buyurtmalar shu yerda ko'rinadi.", fontSize = 13.sp, color = Muted)
+                        Text(tr("Hozircha buyurtma yo'q", "Пока нет заказов", "No orders yet"), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(tr("Onlayn holatda turing — yangi buyurtmalar shu yerda ko'rinadi.", "Оставайтесь онлайн — новые заказы появятся здесь.", "Stay online — new orders will appear here."), fontSize = 13.sp, color = Muted)
                     }
                 }
                 available.forEach { o ->
                     OrderCard(o) {
                         if (o.has("pickupKm")) {
-                            Text(String.format("Yo'lovchigacha: ~%.1f km", o.optDouble("pickupKm")), fontSize = 13.sp, color = Muted)
+                            Text(tr(String.format("Yo'lovchigacha: ~%.1f km", o.optDouble("pickupKm")), String.format("До пассажира: ~%.1f км", o.optDouble("pickupKm")), String.format("To passenger: ~%.1f km", o.optDouble("pickupKm"))), fontSize = 13.sp, color = Muted)
                         }
-                        BigButton("Qabul qilish") { post("/orders/${o.optInt("id")}/accept") }
+                        BigButton(tr("Qabul qilish", "Принять", "Accept")) { post("/orders/${o.optInt("id")}/accept") }
                     }
                 }
 
