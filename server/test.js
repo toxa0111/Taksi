@@ -27,6 +27,7 @@ async function login(phone, name, role) {
   ok((await call('POST', '/location', { lat: 999, lng: 0 }, P)).s === 400, 'noto\'g\'ri koordinata rad etildi');
   ok((await call('POST', '/location', { lat: 41.311, lng: 69.279 }, P)).s === 200, 'yo\'lovchi joylashuvi yuborildi');
   ok((await call('POST', '/location', { lat: 41.320, lng: 69.285 }, D)).s === 200, 'haydovchi joylashuvi yuborildi');
+  ok((await call('POST', '/driver/availability', { online: true }, D)).s === 200, 'haydovchi ishga chiqdi');
 
   const card = { from: 'A', to: 'B', fromLat: 41.311, fromLng: 69.279, toLat: 41.34, toLng: 69.285, payMethod: 'card' };
   const o = await call('POST', '/orders', card, P);
