@@ -241,7 +241,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                             Text(som(data.optLong("todaySum")), fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Yellow)
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text(tr("Buyurtmalar: ", "Заказы: ", "Orders: ") + data.optInt("todayCount"), color = Color.White, fontSize = 12.sp)
-                                Text("Reyting: " + if (data.optInt("ratingCount") > 0) String.format("%.1f ★", data.optDouble("rating")) else "—", color = Color.White, fontSize = 12.sp)
+                                Text(tr("Reyting: ", "Рейтинг: ", "Rating: ") + if (data.optInt("ratingCount") > 0) String.format("%.1f ★", data.optDouble("rating")) else "—", color = Color.White, fontSize = 12.sp)
                             }
                             Text(tr("Jami daromad: ", "Общий доход: ", "Total earnings: ") + som(data.optLong("totalSum")), color = Color.White, fontSize = 12.sp)
                         } } ?: Panel { Text(tr("Hisobot yuklanmoqda…", "Загрузка отчёта…", "Loading report…"), color = Muted) }
@@ -375,7 +375,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                             Text(tr("HAYDOVCHI PANELI", "ПАНЕЛЬ ВОДИТЕЛЯ", "DRIVER PANEL"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.58f), letterSpacing = 1.1.sp)
                             Text(if (online) tr("Yo'lda bo'lishga tayyorsiz", "Вы готовы принимать заказы", "You are ready for trips") else tr("Bugun ishni boshlang", "Начните работу сегодня", "Start working today"), fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
                         }
-                        Pill(if (online) "ONLAYN" else "OFFLAYN", if (online) Color(0xFF173D2C) else Color(0xFF30343C), if (online) Color(0xFF7BE0A2) else Color.White.copy(alpha = 0.78f))
+                        Pill(if (online) tr("ONLAYN", "ОНЛАЙН", "ONLINE") else tr("OFFLAYN", "ОФЛАЙН", "OFFLINE"), if (online) Color(0xFF173D2C) else Color(0xFF30343C), if (online) Color(0xFF7BE0A2) else Color.White.copy(alpha = 0.78f))
                     }
                     Text(if (online) tr("Yangi buyurtmalarni qabul qilyapsiz", "Вы принимаете новые заказы", "You are receiving new orders") else tr("Buyurtmalarni ko'rish uchun ishga chiqing", "Выйдите на линию, чтобы видеть заказы", "Go online to see orders"), fontSize = 12.sp, color = Color.White.copy(alpha = 0.68f))
                     BoxWithConstraints(
@@ -410,9 +410,9 @@ fun DriverScreen(onLogout: () -> Unit) {
                 }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DriverQuickStat("BUGUN", stats?.let { som(it.optLong("todaySum")) } ?: "—", "Daromad", Modifier.weight(1f))
-                    DriverQuickStat("BUYURTMA", stats?.optInt("todayCount")?.toString() ?: "—", "Bugun", Modifier.weight(1f))
-                    DriverQuickStat("REYTING", stats?.let { if (it.optInt("ratingCount") > 0) String.format("%.1f ★", it.optDouble("rating")) else "—" } ?: "—", "Baholash", Modifier.weight(1f))
+                    DriverQuickStat(tr("BUGUN", "СЕГОДНЯ", "TODAY"), stats?.let { som(it.optLong("todaySum")) } ?: "—", tr("Daromad", "Доход", "Earnings"), Modifier.weight(1f))
+                    DriverQuickStat(tr("BUYURTMA", "ЗАКАЗЫ", "ORDERS"), stats?.optInt("todayCount")?.toString() ?: "—", tr("Bugun", "Сегодня", "Today"), Modifier.weight(1f))
+                    DriverQuickStat(tr("REYTING", "РЕЙТИНГ", "RATING"), stats?.let { if (it.optInt("ratingCount") > 0) String.format("%.1f ★", it.optDouble("rating")) else "—" } ?: "—", tr("Baholash", "Оценка", "Rating"), Modifier.weight(1f))
                 }
 
                 Row(Modifier.fillMaxWidth().clickable { sheetExpanded = false }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -457,7 +457,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text("HAYDOVCHI PANELI", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.65f))
-                            Text("Yangi buyurtmalar: ${available.size} ta  ·  ${if (online) "ONLAYN" else "OFFLAYN"}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Yangi buyurtmalar: ${available.size} ta  ·  ${if (online) tr("ONLAYN", "ОНЛАЙН", "ONLINE") else tr("OFFLAYN", "ОФЛАЙН", "OFFLINE")}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                         Text("⌃", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Yellow)
                     }
