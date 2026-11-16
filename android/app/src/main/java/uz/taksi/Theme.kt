@@ -100,9 +100,9 @@ object AppPreferences {
     }
     fun setDark(value: Boolean) { darkMode = value; save?.invoke("pref_dark_mode", value) }
     fun setFont(value: Float) { fontScale = value; save?.invoke("pref_font_scale", value) }
-    fun setOrderSound(value: Boolean) { orderSound = value; save?.invoke("pref_order_sound", value) }
-    fun setNotificationSound(value: Boolean) { notificationSound = value; save?.invoke("pref_notification_sound", value) }
-    fun setVibration(value: Boolean) { vibration = value; save?.invoke("pref_vibration", value) }
+    fun updateOrderSound(value: Boolean) { orderSound = value; save?.invoke("pref_order_sound", value) }
+    fun updateNotificationSound(value: Boolean) { notificationSound = value; save?.invoke("pref_notification_sound", value) }
+    fun updateVibration(value: Boolean) { vibration = value; save?.invoke("pref_vibration", value) }
 }
 
 @Composable
