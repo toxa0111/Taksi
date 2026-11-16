@@ -500,6 +500,7 @@ fun AdminProfile(prefs: SharedPreferences, onLogout: () -> Unit) {
             Text(prefs.getString("phone", "").orEmpty(), fontSize = 14.sp, color = Muted)
             Pill("🛡 Administrator", Color(0xFFFFF1C2), Color(0xFF8A6100))
         }
+        AppPrefsPanel()
         Panel {
             Text("Tariflarni boshqarish", fontWeight = FontWeight.Bold, fontSize = 17.sp)
             Text("Minimal narx, boshlang‘ich to‘lov va har kilometr narxini o‘zgartiring. Yangi buyurtmalarga darhol qo‘llanadi.", fontSize = 13.sp, color = Muted)
