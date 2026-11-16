@@ -1,10 +1,5 @@
 package uz.taksi
 
-import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -166,39 +161,4 @@ object Nominatim {
             if (s.isBlank()) null else s.take(80)
         } catch (e: Exception) { null }
     }
-}
-
-// ───────────────────────── Yandex Navigator va boshqa xaritalar ─────────────────────────
-
-private fun tryStart(ctx: Context, intent: Intent): Boolean = try {
-    ctx.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-    true
-} catch (e: ActivityNotFoundException) { false } catch (e: Exception) { false }
-
-private fun f(d: Double): String = String.format(Locale.US, "%.6f", d)
-
-/**
- * Yandex Navigator'da marshrut quradi. O'rnatilmagan bo'lsa Yandex Maps, u ham bo'lmasa
- * telefondagi boshqa xarita ilovasi ochiladi. Hech biri bo'lmasa, tushunarli xabar chiqadi.
- */
-fun openYandexNavigator(ctx: Context, from: Pair<Double, Double>?, to: Pair<Double, Double>, label: String) {
-    val navi = StringBuilder("yandexnavi://build_route_on_map?lat_to=${f(to.first)}&lon_to=${f(to.second)}")
-    if (from != null) navi.append("&lat_from=${f(from.first)}&lon_from=${f(from.second)}")
-    val i1 = Intent(Intent.ACTION_VIEW, Uri.parse(navi.toString())).setPackage("ru.yandex.yandexnavi")
-    if (tryStart(ctx, i1)) return
-
-    val rtext = (if (from != null) "${f(from.first)},${f(from.second)}~" else "~") + "${f(to.first)},${f(to.second)}"
-    val i2 = Intent(Intent.ACTION_VIEW, Uri.parse("yandexmaps://maps.yandex.ru/?rtext=$rtext&rtt=auto"))
-        .setPackage("ru.yandex.yandexmaps")
-    if (tryStart(ctx, i2)) return
-
-    Toast.makeText(ctx, "Yandex Navigator o'rnatilmagan. Boshqa xarita ochilmoqda…", Toast.LENGTH_LONG).show()
-    openOtherMap(ctx, to, label)
-}
-
-/** Telefondagi istalgan xarita/navigator ilovasida nuqtani ochadi (Google Maps, 2GIS…). */
-fun openOtherMap(ctx: Context, to: Pair<Double, Double>, label: String) {
-    val uri = Uri.parse("geo:${f(to.first)},${f(to.second)}?q=${f(to.first)},${f(to.second)}(${Uri.encode(label)})")
-    val ok = tryStart(ctx, Intent.createChooser(Intent(Intent.ACTION_VIEW, uri), "Xaritani tanlang"))
-    if (!ok) Toast.makeText(ctx, "Telefonda xarita yoki navigator ilovasi topilmadi", Toast.LENGTH_LONG).show()
 }
