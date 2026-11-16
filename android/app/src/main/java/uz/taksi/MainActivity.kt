@@ -188,7 +188,7 @@ fun OrderCard(o: JSONObject, extra: @Composable ColumnScope.() -> Unit = {}) {
     val (bg, fg) = statusColors(st)
     Panel {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Pill(STATUS[st] ?: st, bg, fg)
+            Pill(statusText(st), bg, fg)
             Spacer(Modifier.weight(1f))
             Text(som(o.optLong("price")), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
         }
