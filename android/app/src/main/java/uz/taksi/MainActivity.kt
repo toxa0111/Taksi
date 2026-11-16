@@ -234,7 +234,7 @@ fun ShareLocation(me: Pair<Double, Double>?) {
 fun ErrorText(msg: String) {
     if (msg.isNotEmpty()) {
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xFFFCE4E4)).padding(12.dp)) {
-            Text(msg, color = Color(0xFFA32626), fontSize = 13.sp)
+            Text(localizedError(msg), color = Color(0xFFA32626), fontSize = 13.sp)
         }
     }
 }
@@ -367,7 +367,7 @@ fun UpdateDialog() {
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
             ctx.startActivity(installIntent)
         } catch (_: Exception) {
-            android.widget.Toast.makeText(ctx, "APK yuklandi, lekin o'rnatish oynasi ochilmadi. Yuklangan faylni bildirishnomadan oching.", android.widget.Toast.LENGTH_LONG).show()
+            android.widget.Toast.makeText(ctx, tr("APK yuklandi, lekin o'rnatish oynasi ochilmadi. Yuklangan faylni bildirishnomadan oching.", "APK загружен, но окно установки не открылось. Откройте файл из уведомления.", "APK downloaded, but the installer did not open. Open the file from notifications."), android.widget.Toast.LENGTH_LONG).show()
         }
     }
 
@@ -381,7 +381,7 @@ fun UpdateDialog() {
         } else if (uri != null) {
             downloading = false
             pendingInstallUri = null
-            android.widget.Toast.makeText(ctx, "TOXA uchun noma'lum ilovalarni o'rnatishga ruxsat bering, so'ng qayta urinib ko'ring.", android.widget.Toast.LENGTH_LONG).show()
+            android.widget.Toast.makeText(ctx, tr("TOXA uchun noma'lum ilovalarni o'rnatishga ruxsat bering, so'ng qayta urinib ko'ring.", "Разрешите TOXA устанавливать неизвестные приложения и повторите попытку.", "Allow TOXA to install unknown apps, then try again."), android.widget.Toast.LENGTH_LONG).show()
         }
     }
 
@@ -448,11 +448,11 @@ fun UpdateDialog() {
                                                 }
                                             } else {
                                                 downloading = false
-                                                android.widget.Toast.makeText(ctx, "Yuklangan APK manzili topilmadi. Qayta urinib ko'ring.", android.widget.Toast.LENGTH_LONG).show()
+                                                android.widget.Toast.makeText(ctx, tr("Yuklangan APK manzili topilmadi. Qayta urinib ko'ring.", "Не найден загруженный APK. Попробуйте ещё раз.", "Downloaded APK could not be found. Try again."), android.widget.Toast.LENGTH_LONG).show()
                                             }
                                         } else {
                                             downloading = false
-                                            android.widget.Toast.makeText(ctx, "Yuklash amalga oshmadi. Internetni tekshirib qayta urinib ko'ring.", android.widget.Toast.LENGTH_LONG).show()
+                                            android.widget.Toast.makeText(ctx, tr("Yuklash amalga oshmadi. Internetni tekshirib qayta urinib ko'ring.", "Не удалось загрузить файл. Проверьте интернет и повторите попытку.", "Download failed. Check your internet connection and try again."), android.widget.Toast.LENGTH_LONG).show()
                                         }
                                     } else {
                                         downloading = false
@@ -467,11 +467,11 @@ fun UpdateDialog() {
                             ctx.registerReceiver(receiver, filter)
                         }
                         downloadId = manager.enqueue(request)
-                        android.widget.Toast.makeText(ctx, "TOXA yangilanishi yuklanmoqda…", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(ctx, tr("TOXA yangilanishi yuklanmoqda…", "Загружается обновление TOXA…", "Downloading TOXA update…"), android.widget.Toast.LENGTH_SHORT).show()
                     } catch (_: Exception) {
                         try { receiver?.let { ctx.unregisterReceiver(it) } } catch (_: Exception) { }
                         downloading = false
-                        android.widget.Toast.makeText(ctx, "Yangilashni boshlashda xato. Keyinroq urinib ko'ring.", android.widget.Toast.LENGTH_LONG).show()
+                        android.widget.Toast.makeText(ctx, tr("Yangilashni boshlashda xato. Keyinroq urinib ko'ring.", "Не удалось начать обновление. Попробуйте позже.", "Could not start the update. Try again later."), android.widget.Toast.LENGTH_LONG).show()
                     }
                 }
             }
