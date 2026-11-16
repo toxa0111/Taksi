@@ -361,10 +361,9 @@ fun UpdateDialog() {
         downloading = false
         pendingInstallUri = null
         try {
-            val installIntent = Intent(Intent.ACTION_INSTALL_PACKAGE)
-                .setData(uri)
+            val installIntent = Intent(Intent.ACTION_VIEW)
+                .setDataAndType(uri, "application/vnd.android.package-archive")
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-                .putExtra(Intent.EXTRA_RETURN_RESULT, true)
             ctx.startActivity(installIntent)
         } catch (_: Exception) {
             android.widget.Toast.makeText(ctx, "APK yuklandi, lekin o'rnatish oynasi ochilmadi. Yuklangan faylni bildirishnomadan oching.", android.widget.Toast.LENGTH_LONG).show()
@@ -386,8 +385,13 @@ fun UpdateDialog() {
     }
 
     LaunchedEffect(Unit) {
+        // Splash tugagach tekshiramiz: yangilanish oynasi brend ekran ostida qolib ketmasin.
+        delay(2300)
+        val installedVersion = currentVersionCode(ctx)
         val release = latestRelease()
-        if (release != null && release.first > currentVersionCode(ctx)) update = release
+        if (release != null && release.first > installedVersion) {
+            update = release
+        }
     }
 
     val available = update ?: return
