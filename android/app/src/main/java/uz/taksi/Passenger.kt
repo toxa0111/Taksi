@@ -229,8 +229,8 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 BigLine("Buyurtmalarim", "Safarlaringiz tarixi va holati")
                 if (orders.isEmpty()) {
                     Panel {
-                        Text("Hozircha buyurtmalar yo'q", fontWeight = FontWeight.Bold)
-                        Text("Birinchi safaringizni rejalashtiring.", fontSize = 13.sp, color = Muted)
+                        Text(tr("Hozircha buyurtmalar yo'q", "Пока нет заказов", "No orders yet"), fontWeight = FontWeight.Bold)
+                        Text(tr("Birinchi safaringizni rejalashtiring.", "Запланируйте свою первую поездку.", "Plan your first trip."), fontSize = 13.sp, color = Muted)
                     }
                 } else {
                     orders.sortedByDescending { it.optLong("createdAt") }.forEach { order ->
@@ -258,11 +258,11 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 BigLine("Shaxsiy ma'lumotlar", "Hisobingizga tegishli ma'lumotlar")
                 Panel {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Telefon raqami", color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                        Text(tr("Telefon raqami", "Номер телефона", "Phone number"), color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
                         Text(passengerPhone, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Hisob turi", color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                        Text(tr("Hisob turi", "Тип аккаунта", "Account type"), color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
                         Text("Yo'lovchi", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
                 }
@@ -270,7 +270,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 BigButton(tr("⚙  Sozlamalar", "⚙  Настройки", "⚙  Settings")) { selectedTab = "Sozlamalar" }
                 DangerButton("Hisobdan chiqish") { onLogout() }
             } else if (selectedTab == "Sozlamalar") {
-                BigLine("Sozlamalar", "Kabinet va hisob ma'lumotlari")
+                BigLine(tr("Sozlamalar", "Настройки", "Settings"), tr("Kabinet va hisob ma'lumotlari", "Кабинет и данные аккаунта", "Account and profile details"))
                 SettingsPreferencesContent()
                 AccountSettingsContent(
                     name = profile?.optString("name").orEmpty(),
@@ -288,9 +288,9 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 GhostButton("‹ Kabinetga qaytish") { selectedTab = "Kabinet" }
             } else if (selectedTab == "Qo'llab-quvvatlash") {
                 BigLine(tr("Qo'llab-quvvatlash", "Поддержка", "Support"), tr("TOXA yordam markazi", "Центр помощи TOXA", "TOXA Help Center"))
-                Text("Ko'p uchraydigan savollarga javoblar", fontSize = 13.sp, color = Muted)
+                Text(tr("Ko'p uchraydigan savollarga javoblar", "Ответы на частые вопросы", "Frequently asked questions"), fontSize = 13.sp, color = Muted)
                 SupportFaq()
-                Text("Bevosita operator bilan aloqa kanali hali sozlanmagan.", fontSize = 12.sp, color = Muted)
+                Text(tr("Bevosita operator bilan aloqa kanali hali sozlanmagan.", "Связь с оператором пока не настроена.", "Direct contact with support is not set up yet."), fontSize = 12.sp, color = Muted)
             } else if (active != null) {
                 // ───── Faol buyurtma ─────
                 val (bg, fg) = statusColors(aSt)
@@ -464,7 +464,7 @@ private fun PassengerBottomNavigation(selectedTab: String, onSelect: (String) ->
     )
     Surface(
         modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
-        color = Color.White,
+        color = CardBg,
         shadowElevation = 12.dp,
     ) {
         Row(
@@ -477,13 +477,13 @@ private fun PassengerBottomNavigation(selectedTab: String, onSelect: (String) ->
                 Column(
                     Modifier.weight(1f).fillMaxSize()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(if (active) Color(0xFFFFF5D8) else Color.Transparent)
+                        .background(if (active) { if (AppPreferences.darkMode) Color(0xFF4A3A0A) else Color(0xFFFFF5D8) } else Color.Transparent)
                         .clickable { onSelect(item.first) }
                         .padding(vertical = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Text(item.second, fontSize = 23.sp, color = if (active) Ink else Color(0xFF858B96), fontWeight = FontWeight.Bold)
+                    Text(item.second, fontSize = 23.sp, color = if (active) Ink else Muted, fontWeight = FontWeight.Bold)
                     Text(item.third, fontSize = 10.sp, color = if (active) Ink else Color(0xFF858B96), fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
                     if (active) Box(Modifier.padding(top = 3.dp).size(width = 20.dp, height = 3.dp).background(Yellow, RoundedCornerShape(2.dp)))
                 }
