@@ -18,8 +18,30 @@ async function login(phone, name, role) {
   const P = await login('+998901112233', 'Ali', 'passenger');
   const D = await login('+998907778899', 'Vali', 'driver');
   ok(P && D, 'ro\'yxatdan o\'tish');
+  const pendingDocs = await call('GET', '/driver/documents', null, D);
+  ok(pendingDocs.s === 200 && pendingDocs.j.status === 'pending', 'yangi haydovchi hujjat tekshiruvida');
+  ok((await call('POST', '/driver/availability', { online: true }, D)).s === 403, 'tasdiqlanmagan haydovchi ishga chiqa olmaydi');
+  const photo = 'data:image/jpeg;base64,' + Buffer.from('test-image').toString('base64');
+  const submitted = await call('POST', '/driver/documents', {
+    vehiclePlate: '01A123BC', licenseFront: photo, licenseBack: photo, vehicleDoc: photo, platePhoto: photo
+  }, D);
+  ok(submitted.s === 200 && submitted.j.status === 'pending', 'haydovchi hujjat suratlarini yubordi');
+  ok((await call('POST', '/driver/documents', { vehiclePlate: 'INVALID' }, D)).s === 400, 'noto\'g\'ri davlat raqami rad etildi');
+  const adminReq = await call('POST', '/auth/request', { phone: process.env.ADMIN_PHONE });
+  const adminLogin = await call('POST', '/auth/verify', {
+    phone: process.env.ADMIN_PHONE, code: adminReq.j.devCode, name: 'Admin', admin: true
+  });
+  const AReview = adminLogin.j.token;
+  ok(adminLogin.s === 200, 'admin tekshiruv uchun kirdi');
+  const reviewList = await call('GET', '/admin/drivers/review?status=pending', null, AReview);
+  const driverRecord = reviewList.j.drivers.find(x => x.id);
+  ok(!!driverRecord && !!driverRecord.documents.licenseFront, 'admin haydovchi hujjat suratlarini ko\'rdi');
+  const decision = await call('POST', '/admin/drivers/' + driverRecord.id + '/review', {
+    status: 'approved', vehicleClass: 'comfort'
+  }, AReview);
+  ok(decision.s === 200 && decision.j.status === 'approved', 'admin hujjatlarni tasdiqlab Komfort toifasini berdi');
+  ok((await call('POST', '/driver/availability', { online: true }, D)).j.online === true, 'tasdiqlangan haydovchi ishga chiqdi');
   ok((await call('GET', '/orders/available', null, D)).j.orders.length === 0, 'oflayn haydovchi buyurtma ko\'rmaydi');
-  ok((await call('POST', '/driver/availability', { online: true }, D)).j.online === true, 'haydovchi ishga chiqdi');
   ok((await call('GET', '/orders/mine')).s === 401, 'tokensiz 401');
 
   const q = await call('GET', '/estimate?flat=41.311&flng=69.279&tlat=41.340&tlng=69.285', null, P);
