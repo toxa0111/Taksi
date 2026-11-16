@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
+import android.graphics.BitmapFactory
+import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -349,6 +353,11 @@ fun AdminUsers() {
     LaunchedEffect(query) { delay(500); dq = query.trim() }
     val path = "/admin/users?role=" + (if (role == "all") "" else role) + "&q=" + URLEncoder.encode(dq, "UTF-8")
     val data by rememberPoll(path, tick)
+    var showDriverReview by remember { mutableStateOf(false) }
+    if (showDriverReview) {
+        AdminDriverReview { showDriverReview = false }
+        return
+    }
 
     target?.let { u ->
         val block = !u.optBoolean("blocked")
@@ -374,6 +383,7 @@ fun AdminUsers() {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         TabTitle("Odamlar")
+        BigButton("📷 Haydovchi hujjatlari / Foto nazorat") { showDriverReview = true }
         Segmented(USER_FILTERS, role) { role = it }
         Field(query, { query = it }, "Ism yoki telefon bo'yicha qidirish")
         ErrorText(msg)
@@ -639,3 +649,115 @@ private fun AdminTariffs(onBack: () -> Unit) {
 private fun adminVersion(ctx: Context): String = try {
     ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "-"
 } catch (e: Exception) { "-" }
+
+
+// ───────────────────────── Haydovchi hujjatlari / foto nazorat ─────────────────────────
+
+private val DRIVER_REVIEW_FILTERS = listOf(
+    "pending" to "Kutilmoqda", "approved" to "Tasdiqlangan", "rejected" to "Rad etilgan",
+)
+private val VEHICLE_CLASSES = listOf(
+    "start" to "Start", "comfort" to "Komfort", "comfort_plus" to "Komfort+",
+    "electric" to "Elektr", "business" to "Biznes",
+)
+
+@Composable
+private fun ReviewDocumentPhoto(data: String, label: String, modifier: Modifier = Modifier) {
+    val bitmap = remember(data) {
+        try {
+            val bytes = Base64.decode(data.substringAfter(','), Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+        } catch (_: Exception) { null }
+    }
+    Column(modifier) {
+        if (bitmap != null) {
+            Image(bitmap, contentDescription = label, modifier = Modifier.fillMaxWidth().height(112.dp)
+                .clip(RoundedCornerShape(10.dp)), contentScale = ContentScale.Crop)
+        } else {
+            Box(Modifier.fillMaxWidth().height(112.dp).background(Chip, RoundedCornerShape(10.dp))) {
+                Text("Surat mavjud emas", color = Muted, fontSize = 11.sp)
+            }
+        }
+        Text(label, fontSize = 11.sp, color = Muted)
+    }
+}
+
+@Composable
+private fun AdminDriverReview(onBack: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var filter by remember { mutableStateOf("pending") }
+    var tick by remember { mutableStateOf(0) }
+    var message by remember { mutableStateOf("") }
+    val data by rememberPoll("/admin/drivers/review?status=$filter", tick)
+    val drivers = data?.optJSONArray("drivers")?.items()
+
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onBack) { Text("← Orqaga", color = Ink) }
+            Text("Foto nazorat", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+        }
+        Segmented(DRIVER_REVIEW_FILTERS, filter) { filter = it }
+        ErrorText(message)
+        if (drivers == null) Text("Yuklanmoqda…", color = Muted)
+        else if (drivers.isEmpty()) Panel { Text("Bu bo‘limda haydovchi yo‘q", color = Muted) }
+        drivers?.forEach { driver ->
+            var vehicleClass by remember(driver.optString("id")) { mutableStateOf("start") }
+            var reason by remember(driver.optString("id")) { mutableStateOf("") }
+            var docs by remember(driver.optString("id")) { mutableStateOf<JSONObject?>(null) }
+            var loadingDocs by remember(driver.optString("id")) { mutableStateOf(false) }
+            Panel {
+                Text(driver.optString("name"), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text("Tel: " + driver.optString("phone"), fontSize = 13.sp, color = Muted)
+                Text("Davlat raqami: " + driver.optString("vehiclePlate"), fontWeight = FontWeight.Bold)
+                BigButton(if (docs == null) "Hujjat suratlarini ko‘rish" else "Suratlarni yashirish", enabled = !loadingDocs) {
+                    if (docs != null) docs = null
+                    else scope.launch {
+                        loadingDocs = true
+                        try { docs = io { Api.call("GET", "/admin/drivers/${driver.optString("id")}/documents").getJSONObject("documents") } }
+                        catch (e: Exception) { message = e.message ?: "Suratlarni yuklashda xato" }
+                        loadingDocs = false
+                    }
+                }
+                if (docs != null) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ReviewDocumentPhoto(docs?.optString("licenseFront") ?: "", "Guvohnoma oldi", Modifier.weight(1f))
+                        ReviewDocumentPhoto(docs?.optString("licenseBack") ?: "", "Guvohnoma orqasi", Modifier.weight(1f))
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ReviewDocumentPhoto(docs?.optString("vehicleDoc") ?: "", "Texnik pasport", Modifier.weight(1f))
+                        ReviewDocumentPhoto(docs?.optString("platePhoto") ?: "", "Davlat raqami", Modifier.weight(1f))
+                    }
+                }
+                if (filter != "approved") {
+                    Text("Avtomobil toifasi", fontWeight = FontWeight.Bold)
+                    Segmented(VEHICLE_CLASSES, vehicleClass) { vehicleClass = it }
+                    Field(reason, { reason = it }, "Rad etish sababi (rad etishda)")
+                    BigButton("Tasdiqlash va toifani biriktirish") {
+                        scope.launch {
+                            try {
+                                io { Api.call("POST", "/admin/drivers/${driver.optString("id")}/review",
+                                    JSONObject().put("status", "approved").put("vehicleClass", vehicleClass)) }
+                                message = "Hujjatlar tasdiqlandi"; tick++
+                            } catch (e: Exception) { message = e.message ?: "Tasdiqlashda xato" }
+                        }
+                    }
+                    BigButton("Hujjatlarni rad etish", enabled = reason.trim().length >= 3) {
+                        scope.launch {
+                            try {
+                                io { Api.call("POST", "/admin/drivers/${driver.optString("id")}/review",
+                                    JSONObject().put("status", "rejected").put("reason", reason.trim())) }
+                                message = "Hujjatlar rad etildi"; tick++
+                            } catch (e: Exception) { message = e.message ?: "Rad etishda xato" }
+                        }
+                    }
+                } else {
+                    Text("Toifa: " + (VEHICLE_CLASSES.firstOrNull { it.first == driver.optString("vehicleClass") }?.second ?: "—"),
+                        color = Muted, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}

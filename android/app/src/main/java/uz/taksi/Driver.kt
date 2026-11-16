@@ -53,6 +53,27 @@ fun StatItem(label: String, value: String, modifier: Modifier = Modifier) {
 fun DriverScreen(onLogout: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
+    var documentProfile by remember { mutableStateOf<JSONObject?>(null) }
+    LaunchedEffect(Unit) {
+        try { documentProfile = io { Api.call("GET", "/driver/documents") } }
+        catch (e: Exception) { documentProfile = JSONObject().put("status", "pending").put("reason", "Server bilan aloqa yo‘q: ${e.message ?: "xato"}") }
+    }
+    LaunchedEffect(documentProfile?.optString("status")) {
+        while (documentProfile?.optString("status") != "approved") {
+            kotlinx.coroutines.delay(5000)
+            try { documentProfile = io { Api.call("GET", "/driver/documents") } } catch (_: Exception) { }
+        }
+    }
+    if (documentProfile == null) {
+        Box(Modifier.fillMaxSize().background(PageBg), contentAlignment = Alignment.Center) {
+            Text("Haydovchi hujjatlari holati tekshirilmoqda…", color = Fg)
+        }
+        return
+    }
+    if (documentProfile?.optString("status") != "approved") {
+        DriverDocumentsScreen(documentProfile ?: JSONObject()) { documentProfile = it }
+        return
+    }
     val me by rememberMyLocation()
     var centerTo by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     var centerKey by remember { mutableStateOf(0) }
