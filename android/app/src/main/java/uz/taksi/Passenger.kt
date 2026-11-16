@@ -219,7 +219,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 onMapTap = { navVisible = false; scope.launch { delay(3500); navVisible = true } },
             )
             FloatingChip("✕ Chiqish", Modifier.align(Alignment.TopStart).padding(12.dp), onLogout)
-            FloatingChip("📍 Mening joyim", Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
+            FloatingChip(tr("📍 Mening joyim", "📍 Моё местоположение", "📍 My location"), Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
                 val m = me
                 if (m != null) { centerTo = m; centerKey++ }
             }
@@ -267,7 +267,8 @@ fun PassengerScreen(onLogout: () -> Unit) {
                         Text("Yo'lovchi", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
                 }
-                BigButton("⚙  Sozlamalar") { selectedTab = "Sozlamalar" }
+                LanguageSelector()
+                BigButton(tr("⚙  Sozlamalar", "⚙  Настройки", "⚙  Settings")) { selectedTab = "Sozlamalar" }
                 DangerButton("Hisobdan chiqish") { onLogout() }
             } else if (selectedTab == "Sozlamalar") {
                 BigLine("Sozlamalar", "Kabinet va hisob ma'lumotlari")
@@ -286,7 +287,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                 )
                 GhostButton("‹ Kabinetga qaytish") { selectedTab = "Kabinet" }
             } else if (selectedTab == "Qo'llab-quvvatlash") {
-                BigLine("Qo'llab-quvvatlash", "TOXA yordam markazi")
+                BigLine(tr("Qo'llab-quvvatlash", "Поддержка", "Support"), tr("TOXA yordam markazi", "Центр помощи TOXA", "TOXA Help Center"))
                 Text("Ko'p uchraydigan savollarga javoblar", fontSize = 13.sp, color = Muted)
                 SupportFaq()
                 Text("Bevosita operator bilan aloqa kanali hali sozlanmagan.", fontSize = 12.sp, color = Muted)
@@ -458,10 +459,10 @@ fun PassengerScreen(onLogout: () -> Unit) {
 @Composable
 private fun PassengerBottomNavigation(selectedTab: String, onSelect: (String) -> Unit) {
     val items = listOf(
-        Triple("Bosh sahifa", "⌂", "Bosh sahifa"),
-        Triple("Buyurtmalar", "▤", "Buyurtmalar"),
-        Triple("Kabinet", "♙", "Kabinet"),
-        Triple("Qo'llab-quvvatlash", "◉", "Yordam"),
+        Triple("Bosh sahifa", "⌂", tr("Bosh sahifa", "Главная", "Home")),
+        Triple("Buyurtmalar", "▤", tr("Buyurtmalar", "Заказы", "Orders")),
+        Triple("Kabinet", "♙", tr("Kabinet", "Кабинет", "Account")),
+        Triple("Qo'llab-quvvatlash", "◉", tr("Yordam", "Помощь", "Support")),
     )
     Surface(
         modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
