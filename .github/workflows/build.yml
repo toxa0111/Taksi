@@ -4,6 +4,8 @@ on:
   workflow_dispatch: {}
   push:
     branches: [main, master, 'claude/**', 'admin/**', 'integration/**', 'feature/**']
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
