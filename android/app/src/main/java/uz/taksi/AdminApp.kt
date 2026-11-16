@@ -480,6 +480,8 @@ fun AdminProfile(prefs: SharedPreferences, onLogout: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var info by remember { mutableStateOf("") }
+    var installUrl by remember { mutableStateOf<String?>(null) }
+    installUrl?.let { InstallDialog(it, "TOXA Admin") { installUrl = null } }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -499,8 +501,8 @@ fun AdminProfile(prefs: SharedPreferences, onLogout: () -> Unit) {
                     info = "Tekshirilmoqda…"
                     val r = latestRelease("toxa-admin")
                     if (r != null && r.first > currentVersionCode(ctx)) {
-                        info = "Yangi versiya bor, yuklab olinmoqda"
-                        try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(r.second))) } catch (e: Exception) { }
+                        info = "Yangi versiya bor"
+                        installUrl = r.second
                     } else info = "Yangi versiya topilmadi"
                 }
             }

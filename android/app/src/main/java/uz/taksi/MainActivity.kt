@@ -268,18 +268,18 @@ fun UpdateDialog(tag: String? = null, appName: String = "TOXA") {
         val r = latestRelease(tag)
         if (r != null && r.first > currentVersionCode(ctx)) update = r
     }
+    var installUrl by remember { mutableStateOf<String?>(null) }
+    installUrl?.let { InstallDialog(it, appName) { installUrl = null; update = null } }
     val u = update ?: return
+    if (installUrl != null) return
     AlertDialog(
         onDismissRequest = { update = null },
         shape = RoundedCornerShape(24.dp),
         containerColor = Color.White,
         title = { Text("Yangi versiya bor", fontWeight = FontWeight.Bold) },
-        text = { Text("$appName ilovasining yangi versiyasi chiqdi. Yuklangach, faylni bosib o'rnating.") },
+        text = { Text("$appName ilovasining yangi versiyasi chiqdi. Ilovaning o'zida yuklab o'rnatiladi.") },
         confirmButton = {
-            BigButton("Yangilash", Modifier.width(150.dp)) {
-                ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u.second)))
-                update = null
-            }
+            BigButton("Yangilash", Modifier.width(150.dp)) { installUrl = u.second }
         },
         dismissButton = { TextButton(onClick = { update = null }) { Text("Keyinroq", color = Muted) } },
     )

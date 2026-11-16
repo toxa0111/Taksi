@@ -192,6 +192,8 @@ fun CabinetTab(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
     val scope = rememberCoroutineScope()
     val orders by rememberMyOrders()
     var info by remember { mutableStateOf("") }
+    var installUrl by remember { mutableStateOf<String?>(null) }
+    installUrl?.let { InstallDialog(it, "TOXA") { installUrl = null } }
     val isDriver = role == "driver"
 
     var profile by remember { mutableStateOf<JSONObject?>(null) }
@@ -245,8 +247,8 @@ fun CabinetTab(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
                     info = "Tekshirilmoqda…"
                     val r = latestRelease()
                     if (r != null && r.first > currentVersionCode(ctx)) {
-                        info = "Yangi versiya bor, yuklab olinmoqda"
-                        try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(r.second))) } catch (e: Exception) { }
+                        info = "Yangi versiya bor"
+                        installUrl = r.second
                     } else info = "Yangi versiya topilmadi"
                 }
             }
