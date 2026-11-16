@@ -3,6 +3,9 @@ package uz.taksi
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
+import android.net.Uri
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -50,6 +53,8 @@ fun DriverDocumentsScreen(initial: JSONObject, onApproved: (JSONObject) -> Unit)
     val photos = remember { mutableStateMapOf<String, String>() }
     var plate by remember { mutableStateOf(initial.optString("vehiclePlate")) }
     var selectedKey by remember { mutableStateOf("") }
+    var cameraUri by remember { mutableStateOf<Uri?>(null) }
+    var cameraFile by remember { mutableStateOf<File?>(null) }
     var message by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     val docs = initial.optJSONObject("documents") ?: JSONObject()
@@ -82,8 +87,24 @@ fun DriverDocumentsScreen(initial: JSONObject, onApproved: (JSONObject) -> Unit)
             } catch (e: Exception) { message = e.message ?: "Suratni yuklashda xato" }
         }
     }
-    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
-        if (bitmap != null && selectedKey.isNotBlank()) storeBitmap(bitmap)
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        val uri = cameraUri
+        if (success && uri != null && selectedKey.isNotBlank()) {
+            try {
+                val bytes = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: throw IllegalStateException("Kamera suratini o‘qib bo‘lmadi")
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                var sample = 1
+                while (bounds.outWidth / sample > 1600 || bounds.outHeight / sample > 1600) sample *= 2
+                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+                    ?: throw IllegalStateException("Kamera surati ochilmadi")
+                storeBitmap(bitmap)
+            } catch (e: Exception) { message = e.message ?: "Kamera suratini yuklashda xato" }
+        }
+        cameraFile?.delete()
+        cameraFile = null
+        cameraUri = null
     }
 
     Column(
@@ -120,7 +141,16 @@ fun DriverDocumentsScreen(initial: JSONObject, onApproved: (JSONObject) -> Unit)
                     Text("✓ Surat tanlandi", color = Fg, fontSize = 12.sp)
                 } else Text("Surat hali tanlanmagan", color = Muted, fontSize = 12.sp)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(onClick = { selectedKey = key; camera.launch(null) }) { Text("📷 Kamera") }
+                    TextButton(onClick = {
+                        try {
+                            selectedKey = key
+                            val dir = File(ctx.cacheDir, "camera").apply { mkdirs() }
+                            val file = File.createTempFile("driver_doc_", ".jpg", dir)
+                            val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
+                            cameraFile = file; cameraUri = uri
+                            camera.launch(uri)
+                        } catch (e: Exception) { message = e.message ?: "Kamerani ochib bo‘lmadi" }
+                    }) { Text("📷 Kamera") }
                     TextButton(onClick = { selectedKey = key; gallery.launch("image/*") }) { Text("Galereya") }
                 }
             }
