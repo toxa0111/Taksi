@@ -10,6 +10,11 @@ import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.Surface
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -97,7 +102,58 @@ private fun DocStatus(status: String?) {
     }
 }
 
-/** Haydovchi Kabinetidagi bo'lim: hujjat rasmlarini yuklash va mashina raqami. */
+/** Kabinetdagi qator: bosilsa, hujjatlar sahifasi to'liq ekranda ochiladi. */
+@Composable
+fun DriverDocsEntry() {
+    var open by remember { mutableStateOf(false) }
+    var summary by remember { mutableStateOf("") }
+    LaunchedEffect(open) {
+        try {
+            val j = io { Api.call("GET", "/driver/docs") }
+            val docs = j.optJSONObject("docs")
+            var up = 0; var ok = 0
+            for ((k, _) in DOC_LABELS) {
+                val st = docs?.optJSONObject(k)?.optString("status")
+                if (st != null && st.isNotEmpty()) up++
+                if (st == "approved") ok++
+            }
+            summary = if (j.optBoolean("verified")) "✅ Tasdiqlangan"
+            else "Yuklangan $up/${DOC_LABELS.size} · Tasdiqlangan $ok/${DOC_LABELS.size}"
+        } catch (e: Exception) { }
+    }
+    Panel {
+        Row(
+            Modifier.fillMaxWidth().clickable { open = true }.padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("🪪", fontSize = 26.sp)
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text("Hujjatlar va tasdiqlash", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                if (summary.isNotEmpty()) Text(summary, fontSize = 12.sp, color = Muted)
+            }
+            Text("›", fontSize = 26.sp, color = Muted)
+        }
+    }
+    if (open) {
+        Dialog(onDismissRequest = { open = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            Surface(Modifier.fillMaxSize(), color = PageBg, contentColor = Fg) {
+                Column(Modifier.fillMaxSize().statusBarsPadding()) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = { open = false }) { Text("‹ Orqaga", fontSize = 15.sp) }
+                    }
+                    Column(
+                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        DriverDocsPanel()
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Hujjat rasmlarini yuklash va mashina raqami (to'liq ekran sahifa ichida). */
 @Composable
 fun DriverDocsPanel() {
     val ctx = LocalContext.current

@@ -238,7 +238,7 @@ fun CabinetTab(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
             Text("So'nggi 30 ta buyurtma bo'yicha", fontSize = 11.sp, color = Muted)
         }
 
-        if (isDriver) DriverDocsPanel()
+        if (isDriver) DriverDocsEntry()
         AppPrefsPanel()
         Panel {
             Text("Ilova", fontWeight = FontWeight.Bold)

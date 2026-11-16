@@ -262,6 +262,9 @@ Admin§Админ§Admin
 🪪 Haydovchilik guvohnomasi§🪪 Водительское удостоверение§🪪 Driver's license
 📄 Mashina tex pasporti§📄 Техпаспорт автомобиля§📄 Vehicle registration
 🚗 Mashina raqami (surat)§🚗 Номер автомобиля (фото)§🚗 Car plate (photo)
+‹ Orqaga§‹ Назад§‹ Back
+=Yuklangan §Загружено §Uploaded 
+= · Tasdiqlangan § · Подтверждено § · Approved 
 Hujjatlar va tasdiqlash§Документы и подтверждение§Documents and verification
 Rasmlarni aniq va to'liq oling. Admin tekshirib tasdiqlaydi.§Снимайте чётко и целиком. Администратор проверит и подтвердит.§Take clear, full photos. An admin will review and approve.
 ✅ Tasdiqlangan§✅ Подтверждён§✅ Verified
