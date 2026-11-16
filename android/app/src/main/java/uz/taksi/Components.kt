@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -183,6 +185,66 @@ fun AccountSettingsContent(name: String, phone: String, role: String, onRefresh:
         }
     }
 }
+
+
+/** Ilova ko'rinishi, bildirishnoma afzalliklari va maxfiylik boshqaruvi. */
+@Composable
+fun SettingsPreferencesContent() {
+    val context = LocalContext.current
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = CardBg, border = BorderStroke(1.dp, Hairline)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Ko'rinish", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
+                Text("Rang rejimi", fontSize = 13.sp, color = Muted)
+                Segmented(
+                    listOf("light" to "Kunduzgi", "dark" to "Tungi"),
+                    if (AppPreferences.darkMode) "dark" else "light",
+                ) { AppPreferences.setDark(it == "dark") }
+                Text("Matn o'lchami", fontSize = 13.sp, color = Muted)
+                Segmented(
+                    listOf("small" to "Kichik", "normal" to "O'rtacha", "large" to "Katta"),
+                    when (AppPreferences.fontScale) { in 0.8f..0.95f -> "small"; in 1.05f..1.3f -> "large"; else -> "normal" },
+                ) {
+                    AppPreferences.setFont(when (it) { "small" -> 0.90f; "large" -> 1.15f; else -> 1f })
+                }
+            }
+        }
+        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = CardBg, border = BorderStroke(1.dp, Hairline)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Ovoz va tebranish", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
+                PreferenceSwitch("Yangi buyurtma ovozi", AppPreferences.orderSound, AppPreferences::setOrderSound)
+                PreferenceSwitch("Bildirishnoma ovozi", AppPreferences.notificationSound, AppPreferences::setNotificationSound)
+                PreferenceSwitch("Tebranish", AppPreferences.vibration, AppPreferences::setVibration)
+                Text("Eslatma: ovoz va tebranish tanlovlari saqlanadi. Ularni ishga tushiradigan buyurtma/bildirishnoma hodisalari ilovaga ulanganda qo'llanadi.", fontSize = 11.sp, color = Muted)
+            }
+        }
+        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = CardBg, border = BorderStroke(1.dp, Hairline)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Maxfiylik va xavfsizlik", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
+                Text("TOXA joylashuv ruxsatidan safar va haydovchi xaritasini ko'rsatish uchun foydalanadi. Ruxsatlarni Android sozlamalarida istalgan vaqtda o'zgartirishingiz mumkin.", fontSize = 12.sp, color = Muted)
+                Surface(
+                    Modifier.fillMaxWidth().clickable {
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            android.net.Uri.parse("package:${context.packageName}"))
+                        context.startActivity(intent)
+                    },
+                    shape = RoundedCornerShape(13.dp), color = if (AppPreferences.darkMode) Color(0xFF303744) else Color(0xFFFFF3D1),
+                ) {
+                    Text("⚙  Ilova ruxsatlari va xavfsizlik", Modifier.padding(13.dp), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ink)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PreferenceSwitch(title: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(title, Modifier.weight(1f), fontSize = 14.sp, color = Ink)
+        Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
+
 
 /** Aloqa kanali serverda sozlanmagani uchun hozircha mustaqil ishlaydigan FAQ ko'rsatiladi. */
 @Composable
