@@ -512,11 +512,17 @@ fun AdminProfile(prefs: SharedPreferences, onLogout: () -> Unit) {
             GhostButton("Yangilanishni tekshirish") {
                 scope.launch {
                     info = "Tekshirilmoqda…"
-                    val r = latestRelease("toxa-admin")
-                    if (r != null && r.first > currentVersionCode(ctx)) {
-                        info = "Yangi versiya bor"
-                        installUrl = r.second
-                    } else info = "Yangi versiya topilmadi"
+                    try {
+                        val r = latestRelease("toxa-admin")
+                        if (r != null && r.first > currentVersionCode(ctx)) {
+                            info = "Yangi versiya ${r.first} topildi"
+                            installUrl = r.second
+                        } else {
+                            info = "Ilova eng so'nggi versiyada (${adminVersion(ctx)})"
+                        }
+                    } catch (e: Exception) {
+                        info = "Yangilanish tekshirilmadi: ${e.message ?: "internet yoki server xatosi"}"
+                    }
                 }
             }
             if (info.isNotEmpty()) Text(info, fontSize = 12.sp, color = Muted)
