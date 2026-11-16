@@ -5,7 +5,7 @@ on:
   push:
     branches: [main, master, 'claude/**', 'admin/**', 'integration/**', 'feature/**']
   pull_request:
-    branches: [main]
+    branches: [main, 'integration/driver-trip-map-admin-settings']
 
 permissions:
   contents: write
