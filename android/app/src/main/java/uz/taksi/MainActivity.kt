@@ -55,6 +55,18 @@ import org.json.JSONObject
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Kutilmagan xato bo'lsa, matnini saqlaymiz va keyingi ochilishda ko'rsatamiz
+        val crashFile = java.io.File(filesDir, "last_crash.txt")
+        val oldHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { th, e ->
+            try { crashFile.writeText(android.util.Log.getStackTraceString(e).take(5000)) } catch (_: Throwable) { }
+            oldHandler?.uncaughtException(th, e)
+        }
+        if (crashFile.exists()) {
+            val trace = try { crashFile.readText() } catch (_: Throwable) { "?" }
+            setContent { CrashScreen(trace) { crashFile.delete(); recreate() } }
+            return
+        }
         if (BuildConfig.MAPKIT_API_KEY.isNotBlank()) {
             MapKitFactory.setApiKey(BuildConfig.MAPKIT_API_KEY)
             MapKitFactory.initialize(this)
