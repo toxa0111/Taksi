@@ -279,6 +279,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                     }
                     "Sozlamalar" -> {
                         BigLine("Sozlamalar", "Kabinet va hisob ma'lumotlari")
+                        SettingsPreferencesContent()
                         AccountSettingsContent(
                             name = profile?.optString("name").orEmpty(),
                             phone = profile?.optString("phone").orEmpty(),
