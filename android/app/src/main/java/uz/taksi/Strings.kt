@@ -257,6 +257,47 @@ Telefon§Телефон§Phone
 Javobingiz§Ваш ответ§Your reply
 Murojaatlar§Обращения§Requests
 Admin§Админ§Admin
+🙂 Haydovchi surati§🙂 Фото водителя§🙂 Driver photo
+🤳 Foto nazorat (selfi)§🤳 Фотоконтроль (селфи)§🤳 Photo check (selfie)
+🪪 Haydovchilik guvohnomasi§🪪 Водительское удостоверение§🪪 Driver's license
+📄 Mashina tex pasporti§📄 Техпаспорт автомобиля§📄 Vehicle registration
+🚗 Mashina raqami (surat)§🚗 Номер автомобиля (фото)§🚗 Car plate (photo)
+Hujjatlar va tasdiqlash§Документы и подтверждение§Documents and verification
+Rasmlarni aniq va to'liq oling. Admin tekshirib tasdiqlaydi.§Снимайте чётко и целиком. Администратор проверит и подтвердит.§Take clear, full photos. An admin will review and approve.
+✅ Tasdiqlangan§✅ Подтверждён§✅ Verified
+Tasdiqlangan§Подтверждено§Approved
+Rad etildi§Отклонено§Rejected
+Tekshirilmoqda§На проверке§Under review
+Yuklanmagan§Не загружено§Not uploaded
+Sabab: §Причина: §Reason: 
+📷 Kamera§📷 Камера§📷 Camera
+🖼 Galereya§🖼 Галерея§🖼 Gallery
+Yuklanmoqda…§Загрузка…§Uploading…
+Mashina raqami (masalan 01 A 123 BC)§Номер автомобиля (например 01 A 123 BC)§Car plate (e.g. 01 A 123 BC)
+Raqamni saqlash§Сохранить номер§Save plate
+Saqlandi§Сохранено§Saved
+Hujjatlar§Документы§Documents
+Hujjat§Документ§Docs
+Kutayotgan§Ожидают§Pending
+Haydovchi yo'q§Водителей нет§No drivers
+Ko'rish va tekshirish§Просмотр и проверка§View and review
+raqam yo'q§номера нет§no plate
+Rasm yuklanmoqda…§Загрузка фото…§Loading photo…
+Orqaga§Назад§Back
+Rad etish sababi§Причина отказа§Rejection reason
+Rad etish§Отклонить§Reject
+✅ Tasdiqlash§✅ Подтвердить§✅ Approve
+❌ Rad§❌ Отказ§❌ Reject
+Rasmni o'qib bo'lmadi§Не удалось прочитать фото§Couldn't read the photo
+Kamerani ochib bo'lmadi§Не удалось открыть камеру§Couldn't open the camera
+Rasm hajmi noto'g'ri (3 MB gacha)§Неверный размер фото (до 3 МБ)§Invalid photo size (up to 3 MB)
+Faqat JPEG rasm qabul qilinadi§Принимаются только JPEG-фото§Only JPEG photos are accepted
+Hujjat turi noto'g'ri§Неверный тип документа§Invalid document type
+Hujjat topilmadi§Документ не найден§Document not found
+Rad etish sababini yozing§Укажите причину отказа§Enter a rejection reason
+Mashina raqamini to'liq yozing§Введите номер автомобиля полностью§Enter the full car plate
+Rasm topilmadi§Фото не найдено§Photo not found
+Ruxsat yo'q§Нет доступа§No access
 Men§Я§Me
 Safar§Поездка§Trip
 Chiqish§Выйти§Log out

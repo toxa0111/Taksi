@@ -138,6 +138,25 @@ async function login(phone, name, role) {
     ok((await call('GET', '/orders/mine', null, D)).s === 403, 'bloklangan foydalanuvchi kira olmaydi');
     ok((await call('POST', `/admin/users/${pid}/block`, { blocked: false }, A)).j.blocked === false, 'blok olib tashlandi');
     ok((await call('GET', '/orders/mine', null, D)).s === 200, 'blokdan keyin yana ishlaydi');
+
+    // ---- Haydovchi hujjatlari ----
+    const jpg = Buffer.concat([Buffer.from([0xFF, 0xD8, 0xFF, 0xE0]), Buffer.alloc(2000, 7)]).toString('base64');
+    ok((await call('POST', '/driver/docs', { kind: 'license', data: jpg }, P)).s === 403, 'yo\'lovchi hujjat yuklay olmaydi');
+    ok((await call('POST', '/driver/docs', { kind: 'xxx', data: jpg }, D)).s === 400, 'noto\'g\'ri hujjat turi rad etildi');
+    ok((await call('POST', '/driver/docs', { kind: 'license', data: Buffer.alloc(2000).toString('base64') }, D)).s === 400, 'JPEG bo\'lmagan fayl rad etildi');
+    const up = await call('POST', '/driver/docs', { kind: 'license', data: jpg }, D);
+    ok(up.s === 200 && up.j.docs.license.status === 'pending', 'guvohnoma yuklandi (kutilmoqda)');
+    ok((await call('POST', '/driver/plate', { plate: '01 A 123 BC' }, D)).j.plate === '01 A 123 BC', 'mashina raqami saqlandi');
+    const dl = await call('GET', '/admin/drivers?status=pending', null, A);
+    const did = dl.j.drivers[0] && dl.j.drivers[0].id;
+    ok(did && dl.j.drivers[0].docs.license.status === 'pending', 'admin kutayotgan hujjatni ko\'rdi');
+    ok((await call('POST', `/admin/docs/${did}/license/review`, { approve: false }, A)).s === 400, 'sababsiz rad etib bo\'lmaydi');
+    ok((await call('POST', `/admin/docs/${did}/license/review`, { approve: false, note: 'Xira rasm' }, A)).j.docs.license.status === 'rejected', 'hujjat rad etildi');
+    ok((await call('GET', '/driver/docs', null, D)).j.docs.license.note === 'Xira rasm', 'haydovchi rad sababini ko\'rdi');
+    ok((await call('POST', `/admin/docs/${did}/license/review`, { approve: true }, A)).j.docs.license.status === 'approved', 'hujjat tasdiqlandi');
+    const img = await fetch(B + `/docs/${did}/license`, { headers: { Authorization: 'Bearer ' + A } });
+    ok(img.status === 200 && img.headers.get('content-type') === 'image/jpeg', 'admin rasmni ko\'ra oladi');
+    ok((await fetch(B + `/docs/${did}/license`, { headers: { Authorization: 'Bearer ' + P } })).status === 403, 'begona foydalanuvchi rasmni ko\'ra olmaydi');
   }
 
   console.log(fails ? `\n${fails} ta xato` : '\nHammasi o\'tdi');

@@ -19,6 +19,16 @@ object Api {
     var base = "https://taksi-server.onrender.com"
     var token = ""
 
+    /** Rasm (yoki boshqa fayl) baytlarini oladi, masalan admin uchun hujjat rasmi. */
+    fun bytes(path: String): ByteArray {
+        val c = URL(base + path).openConnection() as HttpURLConnection
+        c.connectTimeout = 15000
+        c.readTimeout = 45000
+        if (token.isNotEmpty()) c.setRequestProperty("Authorization", "Bearer $token")
+        if (c.responseCode !in 200..299) throw Exception("Rasm topilmadi")
+        return c.inputStream.use { it.readBytes() }
+    }
+
     fun call(method: String, path: String, body: JSONObject? = null): JSONObject {
         val c = URL(base + path).openConnection() as HttpURLConnection
         c.requestMethod = method

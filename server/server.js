@@ -18,6 +18,17 @@ const DB_FILE = process.env.DB_FILE || path.join(__dirname, 'db.json');
 let db = { users: {}, sessions: {}, codes: {}, orders: [], seq: 1, tickets: [], tseq: 1, tariffs: { base: 5000, perKm: 2500, minimum: 8000 } };
 try { db = Object.assign(db, JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))); } catch {}
 const save = () => fs.writeFileSync(DB_FILE, JSON.stringify(db));
+// Haydovchi hujjatlari rasmlari db.json ichida emas, alohida papkada saqlanadi.
+const DOCS_DIR = process.env.DOCS_DIR || path.join(path.dirname(DB_FILE), 'docs');
+const DOC_KINDS = ['face', 'selfie', 'license', 'techpass', 'carplate'];   // surat, foto nazorat, guvohnoma, tex pasport, mashina raqami
+const docFile = (uid, kind) => path.join(DOCS_DIR, uid + '_' + kind + '.jpg');
+const docsView = u => {
+  const d = u.docs || {};
+  const out = {};
+  for (const k of DOC_KINDS) if (d[k]) out[k] = { status: d[k].status, at: d[k].at, note: d[k].note || '' };
+  return out;
+};
+const isVerified = u => DOC_KINDS.every(k => u.docs && u.docs[k] && u.docs[k].status === 'approved') && !!u.plate;
 
 let eskizToken = null;
 async function eskizLogin() {
@@ -65,9 +76,9 @@ function quote(a, b, c, d, kmHint) {
 
 // ---- Yordamchilar ----
 const send = (res, code, obj) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); };
-const readBody = req => new Promise(r => {
+const readBody = (req, limit = 1e5) => new Promise(r => {
   let s = '';
-  req.on('data', c => { s += c; if (s.length > 1e5) req.destroy(); });
+  req.on('data', c => { s += c; if (s.length > limit) req.destroy(); });
   req.on('end', () => { try { r(JSON.parse(s || '{}')); } catch { r({}); } });
 });
 // Maxfiylik: buyurtma obyektida tomonlarning telefon raqami hech qachon uzatilmaydi.
@@ -92,7 +103,7 @@ const PHONE_RE = /^\+998\d{9}$/;
 http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x'), p = url.pathname, m = req.method;
-    const b = m === 'POST' ? await readBody(req) : {};
+    const b = m === 'POST' ? await readBody(req, p === '/driver/docs' ? 4e6 : 1e5) : {};
 
     // ---- Kirish (telefon + kod) ----
     if (m === 'POST' && p === '/auth/request') {
@@ -173,6 +184,36 @@ http.createServer(async (req, res) => {
         db.tariffs = { base, perKm, minimum, updatedAt: Date.now(), updatedBy: user.id };
         save();
         return send(res, 200, { ok: true, tariffs: db.tariffs });
+      }
+
+
+      // ---- Haydovchi hujjatlari (foto nazorat): admin ko'radi va tasdiqlaydi yoki rad etadi ----
+      if (m === 'GET' && p === '/admin/drivers') {
+        const st = url.searchParams.get('status') || 'pending';
+        const list = all.filter(u => u.role === 'driver').filter(u => {
+          const d = u.docs || {};
+          const has = DOC_KINDS.some(k => d[k]);
+          if (st === 'pending') return DOC_KINDS.some(k => d[k] && d[k].status === 'pending');
+          if (st === 'verified') return isVerified(u);
+          return has;
+        }).slice(0, 100).map(u => ({
+          id: u.id, name: u.name, phone: u.phone, plate: u.plate || '', verified: isVerified(u), docs: docsView(u),
+        }));
+        return send(res, 200, { drivers: list });
+      }
+      const rm = p.match(/^\/admin\/docs\/([\w-]+)\/(\w+)\/review$/);
+      if (m === 'POST' && rm) {
+        const target = db.users[rm[1]], kind = rm[2];
+        if (!target || target.role !== 'driver') return send(res, 404, { error: 'Foydalanuvchi topilmadi' });
+        if (!DOC_KINDS.includes(kind) || !(target.docs && target.docs[kind])) return send(res, 404, { error: 'Hujjat topilmadi' });
+        const approve = b.approve === true;
+        const note = String(b.note || '').trim().slice(0, 200);
+        if (!approve && !note) return send(res, 400, { error: 'Rad etish sababini yozing' });
+        target.docs[kind].status = approve ? 'approved' : 'rejected';
+        target.docs[kind].note = approve ? '' : note;
+        target.docs[kind].reviewedAt = Date.now();
+        save();
+        return send(res, 200, { ok: true, verified: isVerified(target), docs: docsView(target) });
       }
 
       if (m === 'GET' && p === '/admin/overview') {
@@ -282,6 +323,44 @@ http.createServer(async (req, res) => {
       const [a, b2, c, d] = ['flat', 'flng', 'tlat', 'tlng'].map(k => parseFloat(url.searchParams.get(k)));
       if ([a, b2, c, d].some(isNaN)) return send(res, 400, { error: 'Koordinata xato' });
       return send(res, 200, quote(a, b2, c, d, parseFloat(url.searchParams.get('km'))));
+    }
+
+
+    // ---- Haydovchi hujjatlari: surat, foto nazorat, guvohnoma, tex pasport, mashina raqami ----
+    if (m === 'GET' && p === '/driver/docs') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      return send(res, 200, { docs: docsView(user), plate: user.plate || '', verified: isVerified(user) });
+    }
+    if (m === 'POST' && p === '/driver/plate') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      const plate = String(b.plate || '').toUpperCase().replace(/[^0-9A-Z ]/g, '').trim().slice(0, 12);
+      if (plate.length < 5) return send(res, 400, { error: 'Mashina raqamini to\'liq yozing' });
+      user.plate = plate; save();
+      return send(res, 200, { ok: true, plate, verified: isVerified(user) });
+    }
+    if (m === 'POST' && p === '/driver/docs') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      const kind = String(b.kind || '');
+      if (!DOC_KINDS.includes(kind)) return send(res, 400, { error: 'Hujjat turi noto\'g\'ri' });
+      let buf;
+      try { buf = Buffer.from(String(b.data || ''), 'base64'); } catch { buf = null; }
+      if (!buf || buf.length < 1000 || buf.length > 3 * 1024 * 1024) return send(res, 400, { error: 'Rasm hajmi noto\'g\'ri (3 MB gacha)' });
+      if (!(buf[0] === 0xFF && buf[1] === 0xD8)) return send(res, 400, { error: 'Faqat JPEG rasm qabul qilinadi' });
+      fs.mkdirSync(DOCS_DIR, { recursive: true });
+      fs.writeFileSync(docFile(user.id, kind), buf);
+      user.docs = user.docs || {};
+      user.docs[kind] = { status: 'pending', at: Date.now(), note: '' };
+      save();
+      return send(res, 200, { ok: true, docs: docsView(user) });
+    }
+    const dm = p.match(/^\/docs\/([\w-]+)\/(\w+)$/);
+    if (m === 'GET' && dm) {
+      if (user.role !== 'admin' && user.id !== dm[1]) return send(res, 403, { error: 'Ruxsat yo\'q' });
+      if (!DOC_KINDS.includes(dm[2])) return send(res, 404, { error: 'Topilmadi' });
+      let img;
+      try { img = fs.readFileSync(docFile(dm[1].replace(/[^\w-]/g, ''), dm[2])); } catch { return send(res, 404, { error: 'Topilmadi' }); }
+      res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=60' });
+      return res.end(img);
     }
 
     // Haydovchi ish holati: onlayn bo'lmasa yangi buyurtmalar ko'rsatilmaydi.
