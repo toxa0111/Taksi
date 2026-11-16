@@ -397,7 +397,7 @@ fun AdminUsers() {
             val blocked = u.optBoolean("blocked")
             Panel {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
+                    Column(modifier) {
                         Text(u.optString("name").ifBlank { "—" }, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         Text(u.optString("phone"), fontSize = 13.sp, color = Muted)
                     }
@@ -662,7 +662,7 @@ private val VEHICLE_CLASSES = listOf(
 )
 
 @Composable
-private fun ReviewDocumentPhoto(data: String, label: String) {
+private fun ReviewDocumentPhoto(data: String, label: String, modifier: Modifier = Modifier) {
     val bitmap = remember(data) {
         try {
             val bytes = Base64.decode(data.substringAfter(','), Base64.DEFAULT)
@@ -712,12 +712,12 @@ private fun AdminDriverReview(onBack: () -> Unit) {
                 Text("Davlat raqami: " + driver.optString("vehiclePlate"), fontWeight = FontWeight.Bold)
                 val docs = driver.optJSONObject("documents") ?: JSONObject()
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ReviewDocumentPhoto(docs.optString("licenseFront"), "Guvohnoma oldi")
-                    ReviewDocumentPhoto(docs.optString("licenseBack"), "Guvohnoma orqasi")
+                    ReviewDocumentPhoto(docs.optString("licenseFront"), "Guvohnoma oldi", Modifier.weight(1f))
+                    ReviewDocumentPhoto(docs.optString("licenseBack"), "Guvohnoma orqasi", Modifier.weight(1f))
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ReviewDocumentPhoto(docs.optString("vehicleDoc"), "Texnik pasport")
-                    ReviewDocumentPhoto(docs.optString("platePhoto"), "Davlat raqami")
+                    ReviewDocumentPhoto(docs.optString("vehicleDoc"), "Texnik pasport", Modifier.weight(1f))
+                    ReviewDocumentPhoto(docs.optString("platePhoto"), "Davlat raqami", Modifier.weight(1f))
                 }
                 if (filter != "approved") {
                     Text("Avtomobil toifasi", fontWeight = FontWeight.Bold)
