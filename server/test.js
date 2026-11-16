@@ -13,8 +13,8 @@ async function login(phone, name, role) {
 }
 (async () => {
   ok((await call('POST', '/auth/request', { phone: '123' })).s === 400, 'noto\'g\'ri telefon rad etildi');
-  await call('POST', '/auth/request', { phone: '+998901112233' });
-  ok((await call('POST', '/auth/verify', { phone: '+998901112233', code: '000000', name: 'X' })).s === 400, 'noto\'g\'ri kod rad etildi');
+  await call('POST', '/auth/request', { phone: '+998901112244' });
+  ok((await call('POST', '/auth/verify', { phone: '+998901112244', code: '000000', name: 'X' })).s === 400, 'noto\'g\'ri kod rad etildi');
   const P = await login('+998901112233', 'Ali', 'passenger');
   const D = await login('+998907778899', 'Vali', 'driver');
   ok(P && D, 'ro\'yxatdan o\'tish');
