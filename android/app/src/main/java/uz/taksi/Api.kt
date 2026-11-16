@@ -59,9 +59,23 @@ val STATUS = mapOf(
 )
 val ACTIVE = setOf("searching", "accepted", "arrived", "started")
 
+fun statusText(status: String): String = when (status) {
+    "searching" -> tr("🔎 Haydovchi qidirilmoqda", "🔎 Поиск водителя", "🔎 Finding a driver")
+    "accepted" -> tr("🚕 Haydovchi yo'lda", "🚕 Водитель в пути", "🚕 Driver is on the way")
+    "arrived" -> tr("📍 Haydovchi yetib keldi", "📍 Водитель прибыл", "📍 Driver arrived")
+    "started" -> tr("➡️ Safar davom etmoqda", "➡️ Поездка продолжается", "➡️ Trip in progress")
+    "done" -> tr("✅ Yakunlandi", "✅ Завершено", "✅ Completed")
+    "cancelled" -> tr("❌ Bekor qilindi", "❌ Отменено", "❌ Cancelled")
+    else -> status
+}
+
 fun payText(o: JSONObject): String {
-    val m = if (o.optString("payMethod") == "card") "💳 Karta" else "💵 Naqd"
-    return if (o.optString("payStatus") == "paid") "$m · to'langan" else m
+    val method = if (o.optString("payMethod") == "card")
+        tr("💳 Karta", "💳 Карта", "💳 Card")
+    else tr("💵 Naqd", "💵 Наличные", "💵 Cash")
+    return if (o.optString("payStatus") == "paid")
+        "$method · " + tr("to'langan", "оплачено", "paid")
+    else method
 }
 
 /** JSON ichidagi {lat,lng} obyektini juftlikka aylantiradi. */
