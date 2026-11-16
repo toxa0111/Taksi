@@ -35,7 +35,8 @@ async function login(phone, name, role) {
   ok(adminLogin.s === 200, 'admin tekshiruv uchun kirdi');
   const reviewList = await call('GET', '/admin/drivers/review?status=pending', null, AReview);
   const driverRecord = reviewList.j.drivers.find(x => x.id);
-  ok(!!driverRecord && !!driverRecord.documents.licenseFront, 'admin haydovchi hujjat suratlarini ko\'rdi');
+  const driverPhotos = await call('GET', '/admin/drivers/' + driverRecord.id + '/documents', null, AReview);
+  ok(!!driverRecord && !!driverPhotos.j.documents.licenseFront, 'admin haydovchi hujjat suratlarini ko\'rdi');
   const decision = await call('POST', '/admin/drivers/' + driverRecord.id + '/review', {
     status: 'approved', vehicleClass: 'comfort'
   }, AReview);
