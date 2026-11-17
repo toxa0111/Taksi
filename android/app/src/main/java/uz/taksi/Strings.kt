@@ -18,6 +18,57 @@ import androidx.compose.ui.unit.TextUnit
  */
 private const val TABLE = """
 Yuklanmoqda…§Загрузка…§Loading…
+Xabarlar§Сообщения§Messages
+TOXA ofisi§Офис TOXA§TOXA office
+Ogohlantirishlar§Предупреждения§Warnings
+TOXA yangiliklari§Новости TOXA§TOXA news
+Bonuslar§Бонусы§Bonuses
+Qo'llab-quvvatlash§Поддержка§Support
+Hisob balansidagi o'zgarishlar§Изменения баланса счёта§Account balance changes
+Claude yordamchi · 24/7§Помощник Claude · 24/7§Claude assistant · 24/7
+Maqsadli bonus va taklif kodi§Целевой бонус и код приглашения§Goal bonus and invite code
+Operator bilan yozishma§Переписка с оператором§Chat with an operator
+Komissiya, to'ldirish, bonus§Комиссия, пополнение, бонус§Commission, top-ups, bonus
+Hozircha xabar yo'q§Пока нет сообщений§No messages yet
+Yangi ogohlantirish yo'q§Нет новых предупреждений§No new warnings
+Hisobni qanday to'ldiraman?§Как пополнить счёт?§How do I top up my account?
+Nega buyurtmalar yo'q?§Почему нет заказов?§Why are there no orders?
+Komissiya haqida§О комиссии§About the commission
+Yangi haydovchi bonusi§Бонус для нового водителя§New driver bonus
+Yozmoqda…§Печатает…§Typing…
+Savolingiz§Ваш вопрос§Your question
+🎧 Operator bilan bog'lanish§🎧 Связаться с оператором§🎧 Contact an operator
+Hisobni to'ldirish§Пополнение счёта§Top up account
+To'lov usuli§Способ оплаты§Payment method
+Taksi ofislari§Офисы такси§Taxi offices
+Boshqa summa (so'm)§Другая сумма (сум)§Other amount (UZS)
+So'rov yuborish§Отправить запрос§Send request
+So'rov yuborildi§Запрос отправлен§Request sent
+Tushunarli§Понятно§Got it
+So'rovlarim§Мои запросы§My requests
+To'ldirildi§Пополнено§Topped up
+To'ldirish§Пополнить§Top up
+To'lov usullari hali sozlanmagan. Operatorga murojaat qiling.§Способы оплаты ещё не настроены. Обратитесь к оператору.§Payment methods are not set up yet. Contact an operator.
+🤖 Yordamchi bilan suhbat (Claude)§🤖 Чат с помощником (Claude)§🤖 Chat with the assistant (Claude)
+Moliya§Финансы§Finance
+Yechish§Вывод§Payouts
+Sozlama§Настройки§Settings
+Admin daromadi (komissiya §Доход админа (комиссия §Admin income (commission 
+Haydovchilar daromadi (komissiyasiz)§Доход водителей (без комиссии)§Drivers' income (after commission)
+7 kun§7 дней§7 days
+Jami§Итого§Total
+Oxirgi 7 kun§Последние 7 дней§Last 7 days
+Hisob-kitob§Расчёты§Settlements
+Naqd pul qabul qilish (ofis)§Приём наличных (офис)§Cash received (office)
+Haydovchi telefoni§Телефон водителя§Driver phone
+Hisobga qo'shish§Зачислить на счёт§Add to account
+To'ldirish so'rovlari§Запросы на пополнение§Top-up requests
+Tasdiqlash§Подтвердить§Confirm
+Komissiya va qoidalar§Комиссия и правила§Commission and rules
+To'lov rekvizitlari§Платёжные реквизиты§Payment details
+Haydovchilarga yangilik§Новость для водителей§News for drivers
+Sarlavha§Заголовок§Title
+Matn§Текст§Text
 Bugungi daromad§Доход за сегодня§Today's earnings
 Jami daromad§Общий доход§Total earnings
 Hozir barcha to'lovlar naqd: pulni yo'lovchidan o'zingiz olasiz.§Сейчас все платежи наличными: вы получаете деньги от пассажира.§All payments are cash for now: you collect the money from the passenger.

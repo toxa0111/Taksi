@@ -47,7 +47,7 @@ fun Shell(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
                         when (tab) {
                             1 -> DriverIntercityTab()
                             2 -> DriverMoney { tab = 3 }
-                            3 -> SupportTab(role)
+                            3 -> DriverChats()
                             else -> DriverProfile(prefs, onLogout) { tab = 3 }
                         }
                     } else when (tab) {

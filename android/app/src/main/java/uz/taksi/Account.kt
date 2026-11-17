@@ -320,11 +320,15 @@ fun SupportTab(role: String) {
         while (true) { refresh(); delay(8000) }
     }
 
+    var ai by remember { mutableStateOf(false) }
+    if (ai) { AiChat(onBack = { ai = false }, onOperator = { ai = false }); return }
+
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         TabTitle("Yordam")
+        BigButton("🤖 Yordamchi bilan suhbat (Claude)") { ai = true }
         Panel {
             Text("Savol yoki muammo yozing", fontWeight = FontWeight.Bold)
             Text("Xabaringiz qo'llab-quvvatlash xizmatiga boradi, javob shu yerda chiqadi.", fontSize = 13.sp, color = Muted)

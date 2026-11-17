@@ -243,7 +243,7 @@ fun LostItemDialog(orderId: Int, onClose: (sent: Boolean) -> Unit) {
 // ───────────────────────── Admin: pul yechish va tariflar ─────────────────────────
 
 @Composable
-fun AdminPayments() {
+fun AdminPayouts() {
     val scope = rememberCoroutineScope()
     var tick by remember { mutableIntStateOf(0) }
     val wd by rememberPoll("/admin/withdrawals?status=pending", tick)

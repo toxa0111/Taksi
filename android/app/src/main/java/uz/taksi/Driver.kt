@@ -68,10 +68,18 @@ fun DriverScreen(onLogout: () -> Unit) {
     LaunchedEffect(Unit) { Voice.init(ctx) }
     var verified by remember { mutableStateOf(true) }
     var diagWarn by remember { mutableStateOf<String?>(null) }
+    var lowWarn by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         while (true) {
             try { verified = io { Api.call("GET", "/driver/docs") }.optBoolean("verified", true) } catch (e: Exception) { }
             try { diagWarn = diagAlert(io { Api.call("GET", "/driver/diagnostics") }.optJSONObject("items")) } catch (e: Exception) { }
+            try {
+                val b = io { Api.call("GET", "/driver/balance") }
+                val bl = b.optLong("balance"); val wn = b.optLong("warn", 5000); val rs = b.optLong("resume", 10000)
+                lowWarn = if (b.optBoolean("locked")) "⛔ Hisobingiz kam (" + som(bl) + "). Liniyaga chiqish uchun hisobni " + som(rs) + " dan oshirib to'ldiring: Pul → To'ldirish."
+                else if (bl <= wn + 3000) "⚠ Hisobingizda " + som(bl) + " qoldi. " + som(wn) + " ga tushsa liniyadan chiqarilasiz. Hisobni to'ldiring."
+                else null
+            } catch (e: Exception) { }
             delay(30000)
         }
     }
@@ -241,7 +249,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                     }
                 }
             }
-            val warnText = if (!verified) "⚠ Hujjatlaringiz tasdiqlanmagan. Kabinet → Hujjatlar bo'limidan yuboring." else diagWarn
+            val warnText = if (lowWarn != null) lowWarn else if (!verified) "⚠ Hujjatlaringiz tasdiqlanmagan. Kabinet → Hujjatlar bo'limidan yuboring." else diagWarn
             if (warnText != null && !navActive) {
                 Text(
                     warnText,

@@ -121,7 +121,8 @@ fun DriverMoney(goSupport: () -> Unit) {
 
     when (screen) {
         "earn" -> EarnScreen(d, days, sel, onSelect = { day = it }, onBack = { screen = "home"; day = "" })
-        "balance" -> BalanceScreen(onBack = { screen = "home" })
+        "balance" -> BalanceScreen(onBack = { screen = "home" }, onTopUp = { screen = "topup" })
+        "topup" -> TopUpScreen { screen = "balance" }
         else -> Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -201,6 +202,8 @@ private fun EarnScreen(d: JSONObject?, days: List<JSONObject>, sel: String, onSe
                 Chip2("Bonuslar · " + som(bonus), Modifier.weight(1f))
             }
             if (card > 0) Chip2("Karta bilan · " + som(card), Modifier)
+            val fee = kotlin.math.abs(d?.optLong("commission") ?: 0L)
+            if (fee > 0) Chip2("Komissiya (" + (d?.optInt("commissionPercent", 10) ?: 10) + "%) · −" + som(fee), Modifier)
         } else {
             val sum = (cash + card + bonus).coerceAtLeast(1L)
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Chip).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -238,7 +241,7 @@ private fun BreakdownRow(label: String, value: Long, sum: Long, color: Color) {
 }
 
 @Composable
-private fun BalanceScreen(onBack: () -> Unit) {
+fun BalanceScreen(onBack: () -> Unit, onTopUp: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     var data by remember { mutableStateOf<JSONObject?>(null) }
     var tick by remember { mutableIntStateOf(0) }
@@ -253,7 +256,11 @@ private fun BalanceScreen(onBack: () -> Unit) {
     val d = data
     val balance = d?.optLong("balance") ?: 0L
     val min = d?.optLong("minWithdraw", 20000) ?: 20000L
-    if (dialog) WithdrawDialog(balance, min) { sent -> dialog = false; if (sent) tick++ }
+    val wdAble = d?.optLong("withdrawable", balance) ?: balance
+    val locked = d?.optBoolean("locked") ?: false
+    val warn = d?.optLong("warn", 5000) ?: 5000L
+    val resume = d?.optLong("resume", 10000) ?: 10000L
+    if (dialog) WithdrawDialog(wdAble, min) { sent -> dialog = false; if (sent) tick++ }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         BackRow(onBack)
@@ -261,13 +268,28 @@ private fun BalanceScreen(onBack: () -> Unit) {
             Text("Balans", fontSize = 18.sp)
             Text(som(balance), fontSize = 40.sp, fontWeight = FontWeight.ExtraBold)
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            Column(Modifier.clickable(enabled = balance >= min) { dialog = true }, horizontalAlignment = Alignment.CenterHorizontally) {
+        if (locked || balance <= warn) {
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xFFFCE4E4)).padding(12.dp)) {
+                Text(
+                    if (locked) "Hisobingiz kam: liniyaga chiqish yopilgan. Hisobni " + som(resume) + " dan oshirib to'ldiring."
+                    else "Hisobingizda " + som(balance) + " qoldi. " + som(warn) + " ga tushsa liniyadan chiqarilasiz.",
+                    fontSize = 13.sp, color = Color(0xFFA32626), fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(36.dp, Alignment.CenterHorizontally)) {
+            Column(Modifier.clickable(onClick = onTopUp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.size(64.dp).clip(CircleShape).background(Yellow), contentAlignment = Alignment.Center) { Text("+", fontSize = 32.sp, color = Ink) }
+                Text("To'ldirish", fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp))
+            }
+            Column(Modifier.clickable(enabled = wdAble >= min) { dialog = true }, horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(64.dp).clip(CircleShape).background(Chip), contentAlignment = Alignment.Center) { Text("↑", fontSize = 28.sp) }
                 Text("Chiqarish", fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp))
             }
         }
-        if (balance < min) Text("Pul chiqarish uchun kamida " + som(min) + " kerak", fontSize = 12.sp, color = Muted, modifier = Modifier.fillMaxWidth())
+        if (wdAble < balance) Text("Yechish mumkin: " + som(wdAble) + " (bonus qismi faqat komissiyaga sarflanadi)", fontSize = 12.sp, color = Muted, modifier = Modifier.fillMaxWidth())
+        else if (wdAble < min) Text("Pul chiqarish uchun kamida " + som(min) + " kerak", fontSize = 12.sp, color = Muted, modifier = Modifier.fillMaxWidth())
+        Text("Har bir safardan " + (d?.optInt("commission", 10) ?: 10) + "% komissiya yechiladi", fontSize = 12.sp, color = Muted, modifier = Modifier.fillMaxWidth())
 
         val ws = d?.optJSONArray("withdrawals")?.items() ?: emptyList()
         if (ws.isNotEmpty()) {
@@ -291,7 +313,9 @@ private fun BalanceScreen(onBack: () -> Unit) {
             val amt = e.optLong("amount")
             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(46.dp).clip(CircleShape).background(Chip), contentAlignment = Alignment.Center) {
-                    Text(if (e.optString("type") == "withdraw") "↑" else "🎁", fontSize = 20.sp)
+                    Text(when (e.optString("type")) {
+                        "withdraw" -> "↑"; "commission" -> "％"; "topup" -> "＋"; "welcome" -> "🎉"; else -> "🎁"
+                    }, fontSize = 20.sp)
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
