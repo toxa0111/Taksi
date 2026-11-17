@@ -298,7 +298,12 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
                                 val r = io { Api.call("POST", "/auth/request", JSONObject().put("phone", phone.trim())) }
                                 sent = true
                                 // Test rejimida server kodni o'zi qaytaradi. Haqiqiy SMS ulanganda bu o'chadi.
-                                devCode = if (r.has("devCode")) r.optString("devCode") else ""
+                                val apiHost = android.net.Uri.parse(Api.base).host.orEmpty().lowercase()
+                                val isTestServer = apiHost == "localhost" ||
+                                    apiHost == "127.0.0.1" ||
+                                    apiHost == "10.0.2.2" ||
+                                    apiHost.contains("test")
+                                devCode = if (isTestServer && r.has("devCode")) r.optString("devCode") else ""
                             } catch (e: Exception) { msg = e.message ?: "Xato" }
                             busy = false
                         }
