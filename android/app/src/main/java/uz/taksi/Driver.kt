@@ -317,6 +317,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                 }
             } else {
                 if (!online) {
+                    DayCard(stats?.optInt("todayCount") ?: 0, stats?.optLong("todaySum") ?: 0L)
                     Panel(color = Ink) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {

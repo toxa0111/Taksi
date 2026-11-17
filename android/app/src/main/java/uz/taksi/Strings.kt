@@ -440,6 +440,9 @@ Karta raqami yoki izohni yozing§Укажите номер карты или к�
 ~^🛣 Shaharlararo: (.*) · (\d+) o'rin(.*)$§🛣 Межгород: \1 · \2 мест\3§🛣 Intercity: \1 · \2 seats\3
 ~^Mavjud: (.+)  ·  kamida (.+)$§Доступно: \1  ·  минимум \2§Available: \1  ·  minimum \2
 ⚠ Hujjatlaringiz tasdiqlanmagan. Kabinet → Hujjatlar bo'limidan yuboring.§⚠ Ваши документы не подтверждены. Отправьте их в Кабинет → Документы.§⚠ Your documents are not verified. Submit them in Cabinet → Documents.
+~^(\d+) ta buyurtma$§\1 заказов§\1 orders
+~^Yana (\d+) ta buyurtma$§Ещё \1 заказов§\1 more orders
+~^(\d+)/(\d+) · Bugun$§\1/\2 · Сегодня§\1/\2 · Today
 """
 
 private class Rules(

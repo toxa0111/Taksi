@@ -385,3 +385,41 @@ fun IntercityOrder(pickup: Pair<Double, Double>?, pickupName: String, pay: Strin
         }
     }
 }
+
+/** Yandex Pro uslubidagi qisqa kartochka: bugungi buyurtmalar, daromad va keyingi bonus. */
+@Composable
+fun DayCard(count: Int, sum: Long) {
+    var next by remember { mutableStateOf<JSONObject?>(null) }
+    var today by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            try {
+                val d = io { Api.call("GET", "/driver/bonus") }
+                today = d.optInt("today")
+                next = d.optJSONArray("tiers")?.items()?.firstOrNull { !it.optBoolean("done") }
+            } catch (e: Exception) { }
+            delay(15000)
+        }
+    }
+    Panel {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("$count ta buyurtma", fontSize = 12.sp, color = Muted)
+                Text(som(sum), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+            }
+        }
+        next?.let { t ->
+            val need = t.optInt("trips")
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Chip).padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Yana ${maxOf(0, need - today)} ta buyurtma", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("$today/$need · Bugun", fontSize = 12.sp, color = Muted)
+                }
+                Pill("+" + som(t.optLong("reward")), Color(0xFFDDE6FF), Color(0xFF2747C9))
+            }
+        }
+    }
+}
