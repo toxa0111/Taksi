@@ -15,7 +15,10 @@ const SMS_ENABLED = !!(ESKIZ_EMAIL && ESKIZ_PASSWORD);
 const ADMIN_PHONES = (process.env.ADMIN_PHONES || '').split(',').map(x => x.trim()).filter(Boolean);
 const DB_FILE = process.env.DB_FILE || path.join(__dirname, 'db.json');
 
-let db = { users: {}, sessions: {}, codes: {}, orders: [], seq: 1, tickets: [], tseq: 1, tariffs: { base: 5000, perKm: 2500, minimum: 8000 } };
+let db = { users: {}, sessions: {}, codes: {}, orders: [], seq: 1, tickets: [], tseq: 1, tariffs: { base: 5000, perKm: 2500, minimum: 8000 },
+  wseq: 1, withdrawals: [],
+  bonus: { tiers: [{ trips: 5, reward: 10000 }, { trips: 10, reward: 30000 }] },
+  intercity: { perKm: 700, minimum: 50000 } };
 try { db = Object.assign(db, JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))); } catch {}
 const save = () => fs.writeFileSync(DB_FILE, JSON.stringify(db));
 // Haydovchi hujjatlari rasmlari db.json ichida emas, alohida papkada saqlanadi.
@@ -73,6 +76,50 @@ function quote(a, b, c, d, kmHint) {
   const price = Math.max(tariffs.minimum, Math.round((tariffs.base + km * tariffs.perKm) / 500) * 500);
   return { km, price };
 }
+
+
+// ---- Shaharlararo safarlar (Toshkentdan) ----
+const INTERCITY = {
+  samarqand: { name: 'Samarqand', lat: 39.654, lng: 66.975, km: 300 },
+  jizzax: { name: 'Jizzax', lat: 40.115, lng: 67.842, km: 190 },
+  guliston: { name: 'Guliston', lat: 40.489, lng: 68.784, km: 110 },
+  buxoro: { name: 'Buxoro', lat: 39.768, lng: 64.421, km: 570 },
+  navoiy: { name: 'Navoiy', lat: 40.103, lng: 65.374, km: 430 },
+  qarshi: { name: 'Qarshi', lat: 38.861, lng: 65.789, km: 480 },
+  andijon: { name: 'Andijon', lat: 40.782, lng: 72.344, km: 320 },
+  namangan: { name: 'Namangan', lat: 41.001, lng: 71.672, km: 290 },
+  fargona: { name: "Farg'ona", lat: 40.384, lng: 71.789, km: 320 },
+  qoqon: { name: "Qo'qon", lat: 40.529, lng: 70.943, km: 230 },
+  termiz: { name: 'Termiz', lat: 37.224, lng: 67.278, km: 700 },
+  urganch: { name: 'Urganch', lat: 41.55, lng: 60.633, km: 1000 },
+  nukus: { name: 'Nukus', lat: 42.46, lng: 59.603, km: 1150 },
+};
+const intercityPrice = km => {
+  const t = db.intercity || { perKm: 700, minimum: 50000 };
+  return Math.max(t.minimum, Math.round(km * t.perKm / 5000) * 5000);
+};
+
+// ---- Bonus va balans ----
+const tashkentDay = (t = Date.now()) => new Date(t + 5 * 3600e3).toISOString().slice(0, 10);
+const balanceOf = u => (u.ledger || []).reduce((s, e) => s + e.amount, 0);
+const ledgerAdd = (u, type, amount, note, ref) => {
+  u.ledger = u.ledger || [];
+  u.ledger.push({ id: crypto.randomBytes(4).toString('hex'), t: Date.now(), type, amount, note: note || '', ref });
+};
+const todayDone = u => db.orders.filter(o => o.driverId === u.id && o.status === 'done' && tashkentDay(o.doneAt) === tashkentDay());
+function awardBonuses(u) {
+  const day = tashkentDay(), n = todayDone(u).length;
+  u.bonusClaims = u.bonusClaims || {};
+  for (const tier of (db.bonus && db.bonus.tiers) || []) {
+    const key = day + ':' + tier.trips;
+    if (n >= tier.trips && !u.bonusClaims[key]) {
+      u.bonusClaims[key] = true;
+      ledgerAdd(u, 'bonus', tier.reward, tier.trips + ' ta safar bonusi');
+    }
+  }
+}
+const OFFER_MS = { near: 20000, mid: 45000 };   // yaqin haydovchilarga avval, keyin kengroq, oxirida hammaga
+const reserveValid = o => o.reservedBy && Date.now() - (o.reservedAt || 0) < 20 * 60 * 1000;
 
 // ---- Yordamchilar ----
 const send = (res, code, obj) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); };
@@ -216,6 +263,45 @@ http.createServer(async (req, res) => {
         return send(res, 200, { ok: true, verified: isVerified(target), docs: docsView(target) });
       }
 
+
+      // ---- To'lov so'rovlari, bonus va shaharlararo tarif ----
+      if (m === 'GET' && p === '/admin/withdrawals') {
+        const st = url.searchParams.get('status') || 'pending';
+        const list = db.withdrawals.filter(w => st === 'all' || w.status === st).slice(-100).reverse().map(w => ({
+          ...w, name: db.users[w.userId] && db.users[w.userId].name, phone: db.users[w.userId] && db.users[w.userId].phone,
+        }));
+        return send(res, 200, { withdrawals: list });
+      }
+      const wm = p.match(/^\/admin\/withdrawals\/(\d+)$/);
+      if (m === 'POST' && wm) {
+        const w = db.withdrawals.find(x => x.id === +wm[1]);
+        if (!w) return send(res, 404, { error: 'So\'rov topilmadi' });
+        if (w.status !== 'pending') return send(res, 400, { error: 'So\'rov allaqachon ko\'rib chiqilgan' });
+        const target = db.users[w.userId];
+        if (b.action === 'paid') { w.status = 'paid'; }
+        else if (b.action === 'reject') {
+          w.status = 'rejected'; w.note2 = String(b.note || '').slice(0, 120);
+          if (target) ledgerAdd(target, 'refund', w.amount, 'So\'rov #' + w.id + ' rad etildi', w.id);
+        } else return send(res, 400, { error: 'Noto\'g\'ri amal' });
+        w.reviewedAt = Date.now(); save();
+        return send(res, 200, { ok: true, withdrawal: w });
+      }
+      if (m === 'GET' && p === '/admin/bonus') return send(res, 200, { bonus: db.bonus, intercity: db.intercity });
+      if (m === 'POST' && p === '/admin/bonus') {
+        const tiers = Array.isArray(b.tiers) ? b.tiers.map(t => ({ trips: Math.round(Number(t.trips)), reward: Math.round(Number(t.reward)) })) : null;
+        if (tiers && (tiers.length > 5 || tiers.some(t => !(t.trips >= 1 && t.trips <= 100 && t.reward >= 0 && t.reward <= 5000000)))) {
+          return send(res, 400, { error: 'Bonus qiymatlari noto\'g\'ri' });
+        }
+        if (tiers) db.bonus = { tiers: tiers.sort((x, y) => x.trips - y.trips) };
+        if (b.intercity) {
+          const perKm = Math.round(Number(b.intercity.perKm)), minimum = Math.round(Number(b.intercity.minimum));
+          if (!(perKm >= 100 && perKm <= 100000 && minimum >= 5000 && minimum <= 10000000)) return send(res, 400, { error: 'Shaharlararo tarif noto\'g\'ri' });
+          db.intercity = { perKm, minimum };
+        }
+        save();
+        return send(res, 200, { ok: true, bonus: db.bonus, intercity: db.intercity });
+      }
+
       if (m === 'GET' && p === '/admin/overview') {
         const done = db.orders.filter(o => o.status === 'done');
         const today = new Date().toDateString();
@@ -326,6 +412,61 @@ http.createServer(async (req, res) => {
     }
 
 
+
+    // ---- Talab xaritasi: so'nggi buyurtmalar zichligi ----
+    if (m === 'GET' && p === '/driver/demand') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      const pick = ms => db.orders.filter(o => o.status !== 'cancelled' && Date.now() - o.createdAt < ms);
+      let src = pick(90 * 60 * 1000), win = 90;
+      if (!src.length) { src = pick(24 * 3600e3); win = 24 * 60; }
+      const cells = {};
+      for (const o of src) {
+        const k = Math.round(o.fromLat * 100) + ':' + Math.round(o.fromLng * 100);   // ~1 km katak
+        const c = cells[k] || (cells[k] = { n: 0, lat: 0, lng: 0, searching: 0 });
+        c.n++; c.lat += o.fromLat; c.lng += o.fromLng; if (o.status === 'searching') c.searching++;
+      }
+      const zones = Object.values(cells).sort((x, y) => y.n - x.n).slice(0, 8)
+        .map(c => ({ lat: c.lat / c.n, lng: c.lng / c.n, count: c.n, searching: c.searching }));
+      return send(res, 200, { zones, windowMin: win });
+    }
+
+    // ---- Bonus ----
+    if (m === 'GET' && p === '/driver/bonus') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      const n = todayDone(user).length, day = tashkentDay();
+      const tiers = ((db.bonus && db.bonus.tiers) || []).map(t => ({ ...t, done: n >= t.trips, claimed: !!(user.bonusClaims && user.bonusClaims[day + ':' + t.trips]) }));
+      return send(res, 200, { today: n, tiers });
+    }
+
+    // ---- Balans va pul yechish ----
+    if (m === 'GET' && p === '/driver/balance') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      return send(res, 200, {
+        balance: balanceOf(user),
+        ledger: (user.ledger || []).slice(-30).reverse(),
+        withdrawals: db.withdrawals.filter(w => w.userId === user.id).slice(-10).reverse(),
+        minWithdraw: 20000,
+      });
+    }
+    if (m === 'POST' && p === '/driver/withdraw') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      const amount = Math.round(num(b.amount)), note = String(b.note || '').trim().slice(0, 80);
+      if (!(amount >= 20000)) return send(res, 400, { error: 'Eng kam miqdor 20 000 so\'m' });
+      if (amount > balanceOf(user)) return send(res, 400, { error: 'Balansda mablag\' yetarli emas' });
+      if (note.length < 4) return send(res, 400, { error: 'Pul qayerga yuborilishini yozing (karta yoki telefon)' });
+      if (db.withdrawals.filter(w => w.userId === user.id && w.status === 'pending').length >= 3) return send(res, 400, { error: 'Kutilayotgan so\'rovlar ko\'p' });
+      const w = { id: db.wseq++, userId: user.id, amount, note, status: 'pending', at: Date.now() };
+      db.withdrawals.push(w);
+      ledgerAdd(user, 'withdraw', -amount, 'Pul yechish so\'rovi #' + w.id, w.id);
+      save();
+      return send(res, 200, { ok: true, balance: balanceOf(user), withdrawal: w });
+    }
+
+    // ---- Shaharlararo shaharlar ro'yxati ----
+    if (m === 'GET' && p === '/intercity/cities') {
+      return send(res, 200, { cities: Object.entries(INTERCITY).map(([key, c]) => ({ key, name: c.name, km: c.km, price: intercityPrice(c.km) })) });
+    }
+
     // ---- Haydovchi hujjatlari: surat, foto nazorat, guvohnoma, tex pasport, mashina raqami ----
     if (m === 'GET' && p === '/driver/docs') {
       if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
@@ -391,12 +532,20 @@ http.createServer(async (req, res) => {
       const [a, b2, c, d] = [num(b.fromLat), num(b.fromLng), num(b.toLat), num(b.toLng)];
       if ([a, b2, c, d].some(isNaN) || !b.from || !b.to) return send(res, 400, { error: 'Manzil to\'liq emas' });
       if (b.payMethod === 'card' && !PAY_DEV) return send(res, 400, { error: 'Karta to\'lovi hali ulanmagan. Naqd to\'lovni tanlang' });
-      const q = quote(a, b2, c, d, num(b.km));
+      let q = quote(a, b2, c, d, num(b.km));
+      let extra = {};
+      if (b.kind === 'intercity') {
+        const city = INTERCITY[String(b.city || '')];
+        if (!city) return send(res, 400, { error: 'Shahar noto\'g\'ri' });
+        if (distKm(a, b2, 41.311, 69.279) > 40) return send(res, 400, { error: 'Shaharlararo safar hozircha Toshkentdan' });
+        q = { km: city.km, price: intercityPrice(city.km) };
+        extra = { kind: 'intercity', toCity: city.name, seats: Math.min(4, Math.max(1, Math.round(num(b.seats)) || 1)), when: String(b.when || '').trim().slice(0, 40) };
+      }
       const o = {
         id: db.seq++, passengerId: user.id, driverId: null, status: 'searching',
         from: String(b.from).slice(0, 120), to: String(b.to).slice(0, 120),
         fromLat: a, fromLng: b2, toLat: c, toLng: d, km: q.km, price: q.price, createdAt: Date.now(),
-        payMethod: b.payMethod === 'card' ? 'card' : 'cash', payStatus: 'unpaid',
+        payMethod: b.payMethod === 'card' ? 'card' : 'cash', payStatus: 'unpaid', ...extra,
       };
       db.orders.push(o); save();
       return send(res, 200, { order: view(o) });
@@ -405,7 +554,11 @@ http.createServer(async (req, res) => {
     // Mening buyurtmalarim (yo'lovchi yoki haydovchi)
     if (m === 'GET' && p === '/orders/mine') {
       const key = user.role === 'driver' ? 'driverId' : 'passengerId';
-      const list = db.orders.filter(o => o[key] === user.id).sort((x, y) => y.id - x.id).slice(0, 30).map(view);
+      const list = db.orders.filter(o => o[key] === user.id).sort((x, y) => y.id - x.id).slice(0, 30).map(o => {
+        const v = view(o);
+        if (user.role === 'driver' && o.lost && db.users[o.passengerId]) v.lostPhone = db.users[o.passengerId].phone;   // faqat narsa yo'qotilgan bo'lsa
+        return v;
+      });
       return send(res, 200, { orders: list });
     }
 
@@ -414,10 +567,20 @@ http.createServer(async (req, res) => {
       if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
       if (user.online !== true) return send(res, 200, { orders: [] });
       const me = fresh(user);
-      const list = db.orders.filter(o => o.status === 'searching').sort((x, y) => y.id - x.id).slice(0, 20).map(o => ({
+      const now = Date.now();
+      const list = db.orders.filter(o => o.status === 'searching').filter(o => {
+        if (reserveValid(o) && o.reservedBy !== user.id) return false;       // boshqa haydovchi band qilgan
+        if (o.reservedBy === user.id && reserveValid(o)) return true;
+        const age = now - o.createdAt;
+        if (age >= OFFER_MS.mid) return true;                                 // hammaga ko'rinadi
+        if (!me) return age >= OFFER_MS.near;                                 // joylashuvi noma'lum: biroz keyin
+        const d = distKm(me.lat, me.lng, o.fromLat, o.fromLng);
+        return d <= (age < OFFER_MS.near ? 3 : 7);                            // avval 3 km, keyin 7 km
+      }).map(o => ({
         ...view(o),
         pickupKm: me ? Math.round(distKm(me.lat, me.lng, o.fromLat, o.fromLng) * 10) / 10 : undefined,
-      }));
+        reservedByMe: o.reservedBy === user.id && reserveValid(o) ? true : undefined,
+      })).sort((x, y) => (x.pickupKm ?? 1e9) - (y.pickupKm ?? 1e9) || y.id - x.id).slice(0, 20);
       return send(res, 200, { orders: list });
     }
 
@@ -438,18 +601,42 @@ http.createServer(async (req, res) => {
       });
     }
 
-    const mm = p.match(/^\/orders\/(\d+)\/(accept|status|cancel|pay|rate)$/);
+    const mm = p.match(/^\/orders\/(\d+)\/(accept|status|cancel|pay|rate|reserve|unreserve|lost)$/);
     if (m === 'POST' && mm) {
       const o = db.orders.find(x => x.id === +mm[1]);
       if (!o) return send(res, 404, { error: 'Buyurtma topilmadi' });
       const act = mm[2];
 
+      if (act === 'reserve' || act === 'unreserve') {
+        if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+        if (act === 'unreserve') {
+          if (o.reservedBy === user.id) { delete o.reservedBy; delete o.reservedAt; save(); }
+          return send(res, 200, { ok: true });
+        }
+        if (user.online !== true) return send(res, 400, { error: 'Avval ishga chiqing' });
+        if (o.status !== 'searching') return send(res, 400, { error: 'Buyurtma allaqachon olingan' });
+        if (reserveValid(o) && o.reservedBy !== user.id) return send(res, 400, { error: 'Buyurtmani boshqa haydovchi band qilgan' });
+        if (!db.orders.some(x => x.driverId === user.id && x.status === 'started')) return send(res, 400, { error: 'Keyingi buyurtmani faqat safar davomida band qilish mumkin' });
+        if (db.orders.some(x => x.id !== o.id && x.reservedBy === user.id && x.status === 'searching' && reserveValid(x))) return send(res, 400, { error: 'Sizda band qilingan buyurtma bor' });
+        o.reservedBy = user.id; o.reservedAt = Date.now(); save();
+        return send(res, 200, { order: view(o) });
+      }
+      if (act === 'lost') {
+        if (o.passengerId !== user.id) return send(res, 403, { error: 'Bu sizning buyurtmangiz emas' });
+        if (o.status !== 'done' || !o.driverId) return send(res, 400, { error: 'Faqat yakunlangan safar uchun' });
+        if (Date.now() - (o.doneAt || 0) > 48 * 3600e3) return send(res, 400, { error: 'Muddat o\'tgan (48 soat)' });
+        const text = String(b.text || '').trim().slice(0, 200);
+        if (text.length < 3) return send(res, 400, { error: 'Nima unutganingizni yozing' });
+        o.lost = { text, at: Date.now() }; save();
+        return send(res, 200, { order: view(o) });
+      }
       if (act === 'accept') {
         if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
         if (user.online !== true) return send(res, 400, { error: 'Avval ishga chiqing' });
         if (o.status !== 'searching') return send(res, 400, { error: 'Buyurtma allaqachon olingan' });
+        if (reserveValid(o) && o.reservedBy !== user.id) return send(res, 400, { error: 'Buyurtmani boshqa haydovchi band qilgan' });
         if (db.orders.some(x => x.driverId === user.id && isActive(x))) return send(res, 400, { error: 'Avval joriy buyurtmani tugating' });
-        o.driverId = user.id; o.status = 'accepted'; save();
+        o.driverId = user.id; o.status = 'accepted'; delete o.reservedBy; delete o.reservedAt; save();
         return send(res, 200, { order: view(o) });
       }
       if (act === 'status') {
@@ -460,6 +647,10 @@ http.createServer(async (req, res) => {
         if (b.status === 'done') {
           o.doneAt = Date.now();
           if (o.payMethod === 'cash') { o.payStatus = 'paid'; o.paidAt = o.doneAt; }   // naqd: haydovchi pulni oldi
+          awardBonuses(user);
+          // Oldindan band qilingan keyingi buyurtma avtomatik qabul qilinadi
+          const nx = db.orders.find(x => x.status === 'searching' && x.reservedBy === user.id && reserveValid(x));
+          if (nx) { nx.driverId = user.id; nx.status = 'accepted'; delete nx.reservedBy; delete nx.reservedAt; }
         }
         save();
         return send(res, 200, { order: view(o) });
