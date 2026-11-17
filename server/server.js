@@ -495,6 +495,31 @@ http.createServer(async (req, res) => {
       return send(res, 200, { zones, windowMin: win });
     }
 
+    // ---- Daromad: kunlar bo'yicha taqqoslash va tafsilotlar ----
+    if (m === 'GET' && p === '/driver/earnings') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      const q = url.searchParams.get('day') || '';
+      const dayQ = /^\d{4}-\d{2}-\d{2}$/.test(q) ? q : tashkentDay();
+      const mine = db.orders.filter(o => o.driverId === user.id && o.status === 'done');
+      const led = (user.ledger || []).filter(e => ['bonus', 'referral', 'promo'].includes(e.type));
+      const days = [];
+      for (let i = 7; i >= 0; i--) {
+        const d = tashkentDay(Date.now() - i * 86400e3);
+        const os = mine.filter(o => tashkentDay(o.doneAt) === d);
+        const bn = led.filter(e => tashkentDay(e.t) === d).reduce((a, e) => a + e.amount, 0);
+        days.push({ date: d, sum: os.reduce((a, o) => a + o.price, 0) + bn, count: os.length });
+      }
+      const os = mine.filter(o => tashkentDay(o.doneAt) === dayQ).sort((a, b) => b.doneAt - a.doneAt);
+      const bonus = led.filter(e => tashkentDay(e.t) === dayQ).reduce((a, e) => a + e.amount, 0);
+      const sumP = a => a.reduce((x, o) => x + o.price, 0);
+      return send(res, 200, {
+        day: dayQ, days,
+        cash: sumP(os.filter(o => o.payMethod === 'cash')), card: sumP(os.filter(o => o.payMethod === 'card')), bonus,
+        total: sumP(os) + bonus,
+        orders: os.slice(0, 50).map(o => ({ id: o.id, t: o.doneAt, from: o.from, to: o.to, price: o.price })),
+      });
+    }
+
     // ---- Taklif kodi ----
     if (m === 'GET' && p === '/driver/referral') {
       if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });

@@ -256,6 +256,8 @@ async function login(phone, name, role) {
     }
     ok((await call('GET', '/driver/balance', null, D5)).j.balance === rf.j.reward, 'taklif bonusi balansga tushdi');
 
+    const er = await call('GET', '/driver/earnings', null, D5);
+    ok(er.j.days.length === 8 && er.j.total >= 0 && Array.isArray(er.j.orders), 'daromad hisoboti qaytdi');
     // diagnostika
     ok((await call('POST', '/driver/diagnostics', { insurance: '2027-01-15' }, D5)).j.items.insurance === '2027-01-15', 'diagnostika sanasi saqlandi');
     ok((await call('POST', '/driver/diagnostics', { insurance: 'bugun' }, D5)).s === 400, 'noto\'g\'ri sana rad etildi');

@@ -491,6 +491,25 @@ Taklif bonusi (do'st necha safar qilsa, qancha beriladi)§Бонус за при
 ~^(\d+) kun qoldi$§Осталось \1 дн.§\1 days left
 ~^⚠ (.+) muddati o'tgan$§⚠ Срок истёк: \1§⚠ \1 has expired
 ~^⚠ (.+): (\d+) kun qoldi$§⚠ \1: осталось \2 дн.§⚠ \1: \2 days left
+Yordam xizmati§Служба поддержки§Support
+👋 Yordam xizmati§👋 Служба поддержки§👋 Support
+Oxirgi buyurtmalar§Последние заказы§Recent orders
+Hisob balansi§Баланс счёта§Account balance
+Pul yechish va harakatlar tarixi uchun bosing§Нажмите для вывода средств и истории операций§Tap for withdrawals and transaction history
+Taqqoslash§Сравнение§Compare
+Tafsilotlar§Детали§Details
+Bugun§Сегодня§Today
+Bu kunda safarlar yo'q§В этот день поездок нет§No trips on this day
+Naqd pulda§Наличными§In cash
+Balans§Баланс§Balance
+Chiqarish§Вывести§Withdraw
+Tranzaksiyalar tarixi§История операций§Transaction history
+Hali harakatlar yo'q§Операций пока нет§No transactions yet
+Hammasini ochish§Показать все§Show all
+~^Naqd pul bilan · (.+)$§Наличными · \1§In cash · \1
+~^Bonuslar · (.+)$§Бонусы · \1§Bonuses · \1
+~^Karta bilan · (.+)$§Картой · \1§By card · \1
+~^Pul chiqarish uchun kamida (.+) kerak$§Для вывода нужно минимум \1§Minimum \1 required to withdraw
 """
 
 private class Rules(
