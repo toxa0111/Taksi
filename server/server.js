@@ -511,6 +511,9 @@ http.createServer(async (req, res) => {
       if (!online && db.orders.some(o => o.driverId === user.id && ['accepted', 'arrived', 'started'].includes(o.status))) {
         return send(res, 400, { error: "Faol safar tugamaguncha ishdan chiqa olmaysiz" });
       }
+      if (online && process.env.REQUIRE_VERIFIED === '1' && !isVerified(user)) {
+        return send(res, 403, { error: "Hujjatlaringiz tasdiqlanmagan. Kabinet → Hujjatlar bo'limidan yuboring" });
+      }
       user.online = online;
       save();
       return send(res, 200, { ok: true, online: user.online });
