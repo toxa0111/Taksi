@@ -732,6 +732,31 @@ http.createServer(async (req, res) => {
     }
     // ---- Bildirishnomalar va yangiliklar ----
     if (m === 'GET' && p === '/notifications') return send(res, 200, { notes: (user.notes || []).slice().reverse() });
+    // ---- To'lov kartalari (faqat oxirgi 4 raqam saqlanadi; to'liq raqam hech qachon saqlanmaydi) ----
+    if (p === '/cards') {
+      if (m === 'GET') return send(res, 200, { cards: user.cards || [] });
+      if (m === 'POST') {
+        const last4 = String(b.last4 || ''), bin = String(b.bin || '');
+        if (!/^\d{4}$/.test(last4) || !/^\d{4,6}$/.test(bin)) return send(res, 400, { error: 'Karta ma\'lumoti noto\'g\'ri' });
+        user.cards = user.cards || [];
+        if (user.cards.length >= 5) return send(res, 400, { error: 'Ko\'pi bilan 5 ta karta saqlanadi' });
+        if (user.cards.some(c => c.last4 === last4 && c.bin === bin)) return send(res, 400, { error: 'Bu karta allaqachon qo\'shilgan' });
+        const brand = bin.startsWith('8600') ? 'Uzcard' : bin.startsWith('9860') ? 'Humo' : bin[0] === '4' ? 'Visa' : bin[0] === '5' ? 'Mastercard' : 'Karta';
+        const c = { id: crypto.randomBytes(3).toString('hex'), brand, bin, last4, at: Date.now(), main: user.cards.length === 0 };
+        user.cards.push(c); save();
+        return send(res, 200, { ok: true, card: c, cards: user.cards });
+      }
+    }
+    const cm = p.match(/^\/cards\/([0-9a-f]+)$/);
+    if (cm && (m === 'DELETE' || m === 'POST')) {
+      user.cards = user.cards || [];
+      const c = user.cards.find(x => x.id === cm[1]);
+      if (!c) return send(res, 404, { error: 'Karta topilmadi' });
+      if (m === 'DELETE') { user.cards = user.cards.filter(x => x !== c); if (user.cards.length && !user.cards.some(x => x.main)) user.cards[0].main = true; }
+      else user.cards.forEach(x => { x.main = x === c; });
+      save();
+      return send(res, 200, { ok: true, cards: user.cards });
+    }
     if (m === 'GET' && p === '/news') return send(res, 200, { news: db.news.slice(-20).reverse() });
 
     // ---- Daromad: kunlar bo'yicha taqqoslash va tafsilotlar ----

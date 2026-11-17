@@ -18,6 +18,15 @@ import androidx.compose.ui.unit.TextUnit
  */
 private const val TABLE = """
 Yuklanmoqda…§Загрузка…§Loading…
+To'lov kartalari§Платёжные карты§Payment cards
+Hali karta qo'shilmagan§Карты ещё не добавлены§No cards added yet
+Asosiy karta§Основная карта§Main card
+Asosiy qilish§Сделать основной§Make main
+Yangi karta qo'shish§Добавить новую карту§Add a new card
+Karta raqami (16 xona)§Номер карты (16 цифр)§Card number (16 digits)
+Qo'shish§Добавить§Add
+Karta raqami noto'g'ri§Неверный номер карты§Invalid card number
+Xavfsizlik: ilova faqat kartaning birinchi 6 va oxirgi 4 raqamini saqlaydi. To'liq raqam, muddat va CVV hech qayerda saqlanmaydi. Karta orqali avtomatik to'lov to'lov tizimi (Click/Payme) ulangach ishga tushadi, hozircha to'lov naqd.§Безопасность: приложение хранит только первые 6 и последние 4 цифры карты. Полный номер, срок и CVV нигде не хранятся. Автоплатёж картой заработает после подключения платёжной системы (Click/Payme), пока оплата наличными.§Security: the app stores only the first 6 and last 4 digits of the card. The full number, expiry and CVV are never stored. Automatic card payment will start once a payment system (Click/Payme) is connected; for now payment is cash.
 Xabarlar§Сообщения§Messages
 TOXA ofisi§Офис TOXA§TOXA office
 Ogohlantirishlar§Предупреждения§Warnings

@@ -349,6 +349,17 @@ async function login(phone, name, role) {
     ok(ai.s === 200 && /10%/.test(ai.j.reply) && ai.j.messages.length === 2, 'yordamchi komissiya haqida javob berdi');
     ok((await call('GET', '/support/ai', null, D7)).j.messages.length === 2, 'yordamchi tarixi saqlandi');
     ok((await call('POST', '/support/ai', { text: '' }, D7)).s === 400, 'bo\'sh savol rad etildi');
+    const c1 = await call('POST', '/cards', { bin: '860012', last4: '1234' }, D7);
+    ok(c1.s === 200 && c1.j.card.brand === 'Uzcard' && c1.j.card.main, 'karta qo\'shildi (Uzcard, asosiy)');
+    ok(!JSON.stringify(c1.j).includes('8600123456781234'), 'to\'liq raqam saqlanmaydi');
+    ok((await call('POST', '/cards', { bin: '860012', last4: '1234' }, D7)).s === 400, 'takroriy karta rad etildi');
+    ok((await call('POST', '/cards', { bin: '12', last4: '99' }, D7)).s === 400, 'noto\'g\'ri karta rad etildi');
+    const c2 = await call('POST', '/cards', { bin: '986012', last4: '5678' }, D7);
+    ok(c2.j.card.brand === 'Humo' && !c2.j.card.main, 'Humo kartasi qo\'shildi');
+    const mk = await call('POST', '/cards/' + c2.j.card.id, null, D7);
+    ok(mk.j.cards.find(x => x.id === c2.j.card.id).main, 'asosiy karta almashtirildi');
+    const dl = await call('DELETE', '/cards/' + c2.j.card.id, null, D7);
+    ok(dl.j.cards.length === 1 && dl.j.cards[0].main, 'karta o\'chirildi, qolgani asosiy bo\'ldi');
   }
 
   console.log(fails ? `\n${fails} ta xato` : '\nHammasi o\'tdi');

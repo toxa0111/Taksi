@@ -201,6 +201,8 @@ fun CabinetTab(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
     var installUrl by remember { mutableStateOf<String?>(null) }
     installUrl?.let { InstallDialog(it, "TOXA") { installUrl = null } }
     val isDriver = role == "driver"
+    var showCards by remember { mutableStateOf(false) }
+    if (showCards) { CardsScreen { showCards = false }; return }
 
     var profile by remember { mutableStateOf<JSONObject?>(null) }
     var stats by remember { mutableStateOf<JSONObject?>(null) }
@@ -246,6 +248,7 @@ fun CabinetTab(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
         }
 
         if (isDriver) DriverDocsEntry()
+        else Panel { MenuRow("💳", "To'lov kartalari") { showCards = true } }
         AppPrefsPanel()
         Panel {
             Text("Ilova", fontWeight = FontWeight.Bold)
