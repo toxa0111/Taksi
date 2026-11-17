@@ -6,8 +6,3 @@ services:
     buildCommand: echo "tayyor"
     startCommand: node server.js
     plan: free
-    envVars:
-      - key: DEV_SMS
-        value: "1"
-      - key: PAY_DEV
-        value: "1"
