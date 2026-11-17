@@ -6,6 +6,8 @@ async function call(m, p, body, tok) {
   const r = await fetch(B + p, { method: m, headers: { 'Content-Type': 'application/json', ...(tok ? { Authorization: 'Bearer ' + tok } : {}) }, body: body ? JSON.stringify(body) : undefined });
   return { s: r.status, j: await r.json() };
 }
+const bal = async tok => (await call('GET', '/driver/balance', null, tok)).j;
+const ledgerSum = async (tok, type) => (await bal(tok)).ledger.filter(e => e.type === type).reduce((a, e) => a + e.amount, 0);
 async function login(phone, name, role) {
   const a = await call('POST', '/auth/request', { phone });
   const v = await call('POST', '/auth/verify', { phone, code: a.j.devCode, name, role });
@@ -176,18 +178,19 @@ async function login(phone, name, role) {
     for (let i = 0; i < 5; i++) lastId = await fullTrip(P2, D2);
     const bn = await call('GET', '/driver/bonus', null, D2);
     ok(bn.j.today === 5 && bn.j.tiers[0].claimed === true && bn.j.tiers[1].claimed === false, 'bonus: 5 safar uchun mukofot berildi');
-    ok((await call('GET', '/driver/balance', null, D2)).j.balance === 10000, 'balansda 10 000 so\'m');
+    ok(await ledgerSum(D2, 'bonus') === 10000, 'bonus: 10 000 so\'m tushdi');
     ok((await call('POST', '/driver/withdraw', { amount: 10000, note: 'Karta 8600' }, D2)).s === 400, 'eng kam miqdordan kam yechib bo\'lmaydi');
     for (let i = 0; i < 5; i++) lastId = await fullTrip(P2, D2);
-    ok((await call('GET', '/driver/balance', null, D2)).j.balance === 40000, '10 safar: jami 40 000 so\'m bonus');
+    ok(await ledgerSum(D2, 'bonus') === 40000, '10 safar: jami 40 000 so\'m bonus');
+    const bBefore = (await bal(D2)).balance;
     ok((await call('POST', '/driver/withdraw', { amount: 50000, note: 'Karta 8600' }, D2)).s === 400, 'balansdan ko\'p yechib bo\'lmaydi');
     ok((await call('POST', '/driver/withdraw', { amount: 20000 }, D2)).s === 400, 'qayerga yuborilishi shart');
     const w1 = await call('POST', '/driver/withdraw', { amount: 20000, note: 'Karta 8600 1234' }, D2);
-    ok(w1.s === 200 && w1.j.balance === 20000, 'pul yechish so\'rovi yaratildi, balans kamaydi');
+    ok(w1.s === 200 && w1.j.balance === bBefore - 20000, 'pul yechish so\'rovi yaratildi, balans kamaydi');
     const wl = await call('GET', '/admin/withdrawals', null, A);
     ok(wl.j.withdrawals.length >= 1 && wl.j.withdrawals[0].phone === '+998905550002', 'admin so\'rovni ko\'rdi');
     ok((await call('POST', `/admin/withdrawals/${w1.j.withdrawal.id}`, { action: 'reject', note: 'Xato karta' }, A)).s === 200, 'so\'rov rad etildi');
-    ok((await call('GET', '/driver/balance', null, D2)).j.balance === 40000, 'rad etilganda pul qaytdi');
+    ok((await bal(D2)).balance === bBefore, 'rad etilganda pul qaytdi');
     const w2 = await call('POST', '/driver/withdraw', { amount: 20000, note: 'Karta 8600 1234' }, D2);
     ok((await call('POST', `/admin/withdrawals/${w2.j.withdrawal.id}`, { action: 'paid' }, A)).j.withdrawal.status === 'paid', 'so\'rov to\'landi deb belgilandi');
     ok((await call('POST', `/admin/withdrawals/${w2.j.withdrawal.id}`, { action: 'paid' }, A)).s === 400, 'qayta ko\'rib chiqib bo\'lmaydi');
@@ -254,7 +257,7 @@ async function login(phone, name, role) {
       await call('POST', `/orders/${x.j.order.id}/accept`, null, D6);
       for (const st of ['arrived', 'started', 'done']) await call('POST', `/orders/${x.j.order.id}/status`, { status: st }, D6);
     }
-    ok((await call('GET', '/driver/balance', null, D5)).j.balance === rf.j.reward, 'taklif bonusi balansga tushdi');
+    ok(await ledgerSum(D5, 'referral') === rf.j.reward, 'taklif bonusi balansga tushdi');
 
     const er = await call('GET', '/driver/earnings', null, D5);
     ok(er.j.days.length === 8 && er.j.total >= 0 && Array.isArray(er.j.orders), 'daromad hisoboti qaytdi');
@@ -277,12 +280,75 @@ async function login(phone, name, role) {
       ok(po.j.order && po.j.order.discount > 0 && po.j.order.price === po.j.order.fullPrice - po.j.order.discount, 'buyurtma chegirma bilan yaratildi');
       await call('POST', '/driver/availability', { online: true }, D5);
       await call('POST', '/location', { lat: 41.30, lng: 69.27 }, D5);
-      const before = (await call('GET', '/driver/balance', null, D5)).j.balance;
       await call('POST', `/orders/${po.j.order.id}/accept`, null, D5);
       for (const st of ['arrived', 'started', 'done']) await call('POST', `/orders/${po.j.order.id}/status`, { status: st }, D5);
-      ok((await call('GET', '/driver/balance', null, D5)).j.balance === before + po.j.order.discount, 'chegirma haydovchiga qoplandi');
+      ok(await ledgerSum(D5, 'promo') === po.j.order.discount, 'chegirma haydovchiga qoplandi');
       ok((await call('POST', '/orders', { ...tr5, promo: 'TOXA10' }, P6)).s === 400, 'promokod ikkinchi marta ishlamaydi');
     }
+  }
+
+  // ---- Komissiya, xush kelibsiz bonusi, past balans, hisobni to'ldirish, AI yordamchi ----
+  {
+    const D7 = await login('+998907770001', 'Komil', 'driver');
+    const P7 = await login('+998907770002', 'Yo\'lovchi7', 'passenger');
+    const b0 = await bal(D7);
+    ok(b0.balance === 20000 && b0.ledger[0].type === 'welcome', 'yangi haydovchiga 20 000 xush kelibsiz bonusi tushdi');
+    ok(b0.withdrawable === 0, 'xush kelibsiz bonusi yechilmaydi');
+    ok((await call('POST', '/driver/availability', { online: true }, D7)).j.online === true, 'balans yetarli: liniyaga chiqdi');
+    await call('POST', '/location', { lat: 41.30, lng: 69.27 }, D7);
+    const tr7 = { from: 'A', to: 'B', fromLat: 41.311, fromLng: 69.279, toLat: 41.34, toLng: 69.285, payMethod: 'cash' };
+    const x7 = await call('POST', '/orders', tr7, P7);
+    const price7 = x7.j.order.price;
+    await call('POST', `/orders/${x7.j.order.id}/accept`, null, D7);
+    for (const st of ['arrived', 'started', 'done']) await call('POST', `/orders/${x7.j.order.id}/status`, { status: st }, D7);
+    const fee7 = Math.round(price7 * 10 / 100);
+    ok(await ledgerSum(D7, 'commission') === -fee7, 'safardan 10% komissiya yechildi: ' + fee7);
+    const er7 = await call('GET', '/driver/earnings', null, D7);
+    ok(er7.j.commission === -fee7 && er7.j.total === price7 - fee7, 'daromad komissiyadan keyin hisoblandi');
+
+    if (process.env.ADMIN_PHONE) {
+      const ra = await call('POST', '/auth/request', { phone: process.env.ADMIN_PHONE });
+      const AD = (await call('POST', '/auth/verify', { phone: process.env.ADMIN_PHONE, code: ra.j.devCode, name: 'Admin', admin: true })).j.token;
+      // past balans: chegarani balansdan yuqori qilamiz
+      ok((await call('POST', '/admin/settings', { balRule: { enabled: true, warn: 25000, resume: 30000 } }, AD)).j.ok, 'admin balans chegarasini o\'zgartirdi');
+      await call('POST', '/driver/availability', { online: false }, D7);
+      const low = await call('POST', '/driver/availability', { online: true }, D7);
+      ok(low.s === 403 && low.j.lowBalance === true, 'balans kam: liniyaga chiqish rad etildi');
+      // to'ldirish: sozlanmagan bo'lsa usullar bo'sh
+      ok((await call('POST', '/admin/settings', { topupCfg: { card: '8600 1234 5678 9012', holder: 'TOXA', click: '+998900000000', offices: [{ name: 'Markaziy ofis', address: 'Toshkent', phone: '+998712000000' }] } }, AD)).j.ok, 'to\'ldirish rekvizitlari saqlandi');
+      const tu = await call('GET', '/driver/topup', null, D7);
+      ok(tu.j.methods.some(m => m.key === 'card') && tu.j.methods.some(m => m.key === 'cash') && tu.j.offices.length === 1, 'haydovchi to\'ldirish usullarini ko\'rdi');
+      ok((await call('POST', '/driver/topup', { method: 'yoq', amount: 20000 }, D7)).s === 400, 'noto\'g\'ri usul rad etildi');
+      ok((await call('POST', '/driver/topup', { method: 'card', amount: 100 }, D7)).s === 400, 'kichik summa rad etildi');
+      const rq = await call('POST', '/driver/topup', { method: 'card', amount: 20000 }, D7);
+      ok(rq.j.request && rq.j.request.status === 'pending' && /^T\d+/.test(rq.j.request.code), 'to\'ldirish so\'rovi yaratildi');
+      const bb = (await bal(D7)).balance;
+      ok((await call('GET', '/admin/topups', null, AD)).j.topups.some(t => t.id === rq.j.request.id && t.phone === '+998907770001'), 'admin so\'rovni ko\'rdi');
+      ok((await call('POST', `/admin/topups/${rq.j.request.id}`, { action: 'confirm' }, AD)).j.ok, 'admin to\'ldirishni tasdiqladi');
+      ok((await bal(D7)).balance === bb + 20000, 'hisobga pul tushdi');
+      ok((await call('POST', `/admin/topups/${rq.j.request.id}`, { action: 'confirm' }, AD)).s === 400, 'qayta tasdiqlab bo\'lmaydi');
+      const nb = (await bal(D7)).balance;
+      const lowMsg = nb <= 30000;
+      const again = await call('POST', '/driver/availability', { online: true }, D7);
+      ok(lowMsg ? again.s === 403 : again.s === 200, 'gisteresis: balans ' + nb + ' (30 000 dan oshmaguncha chiqib bo\'lmaydi)');
+      const cr = await call('POST', '/admin/credit', { phone: '+998907770001', amount: 20000, note: 'ofis' }, AD);
+      ok(cr.j.ok && cr.j.balance === nb + 20000, 'admin naqd to\'ldirdi (ofis)');
+      ok((await call('POST', '/driver/availability', { online: true }, D7)).j.online === true, 'hisob to\'ldirildi: liniyaga qaytdi');
+      const notes = (await call('GET', '/notifications', null, D7)).j.notes;
+      ok(notes.some(n => n.kind === 'warn') && notes.some(n => n.kind === 'money'), 'bildirishnomalar yozildi');
+      await call('POST', '/admin/settings', { balRule: { enabled: true, warn: 5000, resume: 10000 } }, AD);
+      ok((await call('POST', '/admin/settings', { commission: 99 }, AD)).s === 400, 'noto\'g\'ri komissiya rad etildi');
+      const rv = await call('GET', '/admin/revenue', null, AD);
+      ok(rv.j.total.commission >= fee7 && rv.j.days.length === 7 && rv.j.percent === 10, 'admin daromadi (komissiya) ko\'rinadi: ' + rv.j.total.commission);
+      ok((await call('POST', '/admin/news', { title: 'Yangilik', text: 'Matn bor' }, AD)).j.ok && (await call('GET', '/news', null, D7)).j.news.length >= 1, 'yangilik e\'lon qilindi');
+      const usr = await call('GET', '/admin/users?role=driver&q=Komil', null, AD);
+      ok(usr.j.users[0] && typeof usr.j.users[0].balance === 'number', 'admin haydovchi balansini ko\'radi');
+    }
+    // AI yordamchi (kalitsiz: oddiy javoblar)
+    const ai = await call('POST', '/support/ai', { text: 'Komissiya qancha?' }, D7);
+    ok(ai.s === 200 && /10%/.test(ai.j.reply) && ai.j.messages.length === 2, 'yordamchi komissiya haqida javob berdi');
+    ok((await call('GET', '/support/ai', null, D7)).j.messages.length === 2, 'yordamchi tarixi saqlandi');
+    ok((await call('POST', '/support/ai', { text: '' }, D7)).s === 400, 'bo\'sh savol rad etildi');
   }
 
   console.log(fails ? `\n${fails} ta xato` : '\nHammasi o\'tdi');
