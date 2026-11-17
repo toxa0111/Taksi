@@ -66,6 +66,13 @@ fun DriverScreen(onLogout: () -> Unit) {
     var msg by remember { mutableStateOf("") }
     var demand by remember { mutableStateOf(listOf<JSONObject>()) }
     LaunchedEffect(Unit) { Voice.init(ctx) }
+    var verified by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            try { verified = io { Api.call("GET", "/driver/docs") }.optBoolean("verified", true) } catch (e: Exception) { }
+            delay(30000)
+        }
+    }
 
     ShareLocation(me)
     LaunchedEffect(me != null) {
@@ -227,6 +234,14 @@ fun DriverScreen(onLogout: () -> Unit) {
                         Text(nextStep.text, fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f), maxLines = 2)
                     }
                 }
+            }
+            if (!verified && !navActive) {
+                Text(
+                    "⚠ Hujjatlaringiz tasdiqlanmagan. Kabinet → Hujjatlar bo'limidan yuboring.",
+                    Modifier.align(Alignment.TopCenter).padding(start = 12.dp, end = 12.dp, top = 64.dp).fillMaxWidth()
+                        .background(Color(0xFFFFF1C2), RoundedCornerShape(14.dp)).padding(10.dp),
+                    fontSize = 12.sp, color = Color(0xFF8A6100), fontWeight = FontWeight.SemiBold,
+                )
             }
             FloatingChip(
                 if (online) "🟢 ONLAYN" else "⚪ OFFLAYN",
