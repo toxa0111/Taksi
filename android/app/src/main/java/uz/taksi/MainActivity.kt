@@ -53,6 +53,9 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
+    override fun onStart() { super.onStart(); AppState.foreground = true }
+    override fun onStop() { super.onStop(); AppState.foreground = false }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Kutilmagan xato bo'lsa, matnini saqlaymiz va keyingi ochilishda ko'rsatamiz

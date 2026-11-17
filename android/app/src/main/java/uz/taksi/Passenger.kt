@@ -57,6 +57,8 @@ fun PassengerScreen(onLogout: () -> Unit) {
     var centerKey by remember { mutableStateOf(0) }
 
     var pay by rememberSaveable { mutableStateOf("cash") }
+    var icMode by rememberSaveable { mutableStateOf(false) }
+    var lostFor by remember { mutableStateOf(0) }
     var quote by remember { mutableStateOf<JSONObject?>(null) }
     var quoteKey by remember { mutableStateOf("") }
     var orders by remember { mutableStateOf(listOf<JSONObject>()) }
@@ -115,6 +117,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
     TripLocationService(
         running = active != null && active.optString("status") != "searching",
         text = "Safar davom etmoqda — joylashuv yuborilmoqda",
+        role = "passenger",
     )
 
     // ---- Marshrut ----
@@ -189,6 +192,8 @@ fun PassengerScreen(onLogout: () -> Unit) {
         }
         me?.let { add(Pin(it.first, it.second, "Men", BLUE)) }
     }
+
+    if (lostFor != 0) LostItemDialog(lostFor) { sent -> if (sent) msg = ""; lostFor = 0 }
 
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -321,9 +326,18 @@ fun PassengerScreen(onLogout: () -> Unit) {
                     }
                 }
 
+                Segmented(listOf("city" to "🚕 Shahar", "inter" to "🛣 Shaharlararo"), if (icMode) "inter" else "city") { icMode = it == "inter" }
+                val lostOrder = lastDone?.takeIf { it.optLong("doneAt") > System.currentTimeMillis() - 48L * 3600_000 }
+                if (lostOrder != null && lostOrder.optJSONObject("driver") != null) {
+                    if (lostOrder.has("lost")) Text("🔎 Yo'qolgan narsa haqida haydovchiga xabar yuborildi", fontSize = 12.sp, color = Muted)
+                    else TextButton(onClick = { lostFor = lostOrder.optInt("id") }) { Text("🔎 Narsa qoldirdingizmi?", color = Muted) }
+                }
                 AddressRow(Ok, "Qayerdan", pickupName.ifBlank { "Joylashuv aniqlanmoqda…" }, pickupName.isBlank()) {
                     field = "from"; query = ""; mapPick = false
                 }
+                if (icMode) {
+                    IntercityOrder(pickup, pickupName, pay) { m -> msg = m }
+                } else {
                 AddressRow(Bad, "Qayerga", destName.ifBlank { "Qayerga boramiz?" }, destName.isBlank()) {
                     field = "to"; query = ""; mapPick = false
                 }
@@ -374,6 +388,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                             }
                         }
                     }
+                }
                 }
             }
             ErrorText(msg)

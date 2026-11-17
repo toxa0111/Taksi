@@ -275,7 +275,6 @@ Yuklanmagan§Не загружено§Not uploaded
 Sabab: §Причина: §Reason: 
 📷 Kamera§📷 Камера§📷 Camera
 🖼 Galereya§🖼 Галерея§🖼 Gallery
-Yuklanmoqda…§Загрузка…§Uploading…
 Mashina raqami (masalan 01 A 123 BC)§Номер автомобиля (например 01 A 123 BC)§Car plate (e.g. 01 A 123 BC)
 Raqamni saqlash§Сохранить номер§Save plate
 Saqlandi§Сохранено§Saved
@@ -378,6 +377,68 @@ Tarmoq xatosi§Ошибка сети§Network error
 ~^Safar ≈ (\d+) daq(.*)$§Поездка ≈ \1 мин\2§Trip ≈ \1 min\2
 ~^To'lov: (.*)$§Оплата: \1§Payment: \1
 ~^Android (.*) ga yangilanishni o'rnatishga ruxsat so'raydi\..*$§Android запросит разрешение на установку обновления. Нажмите «Настройки», включите разрешение, вернитесь назад и нажмите «Продолжить».§Android will ask for permission to install the update. Tap “Settings”, enable it, go back and tap “Continue”.
+Ovozli navigatsiya§Голосовая навигация§Voice navigation
+🗣 Yoqilgan§🗣 Включена§🗣 On
+🔇 O'chiq§🔇 Выключена§🔇 Off
+🎁 Bugungi bonuslar§🎁 Бонусы за сегодня§🎁 Today's bonuses
+💰 Balans§💰 Баланс§💰 Balance
+Pul yechish§Вывод средств§Withdraw
+Mavjud: §Доступно: §Available: 
+Summa (so'm)§Сумма (сум)§Amount (UZS)
+Karta raqami yoki izoh§Номер карты или комментарий§Card number or note
+So'rovlar§Запросы§Requests
+To'landi§Выплачено§Paid
+Oxirgi harakatlar§Последние операции§Recent activity
+Narsa qoldirdingizmi?§Забыли вещь?§Left something behind?
+Nima qoldirganingizni yozing. Haydovchiga xabar boradi va u siz bilan bog'lanadi.§Напишите, что забыли. Водитель получит сообщение и свяжется с вами.§Tell us what you left. The driver will be notified and contact you.
+Masalan: qora ryukzak§Например: чёрный рюкзак§E.g. black backpack
+To'lovlar§Платежи§Payments
+Pul yechish so'rovlari§Запросы на вывод§Withdrawal requests
+Kutilayotgan so'rov yo'q§Нет ожидающих запросов§No pending requests
+Bonus va shaharlararo tarif§Бонусы и межгородский тариф§Bonuses and intercity tariff
+Saqlash§Сохранить§Save
+Safar soni§Кол-во поездок§Trips
+Mukofot§Награда§Reward
+1 km narxi§Цена за 1 км§Price per km
+Eng kam narx§Минимальная цена§Minimum price
+Qaysi shaharga?§В какой город?§Which city?
+Necha kishi§Сколько человек§How many people
+Qachon? (masalan: ertaga 08:00)§Когда? (например: завтра 08:00)§When? (e.g. tomorrow 08:00)
+Narx butun yo'l uchun. Haydovchi buyurtmani qabul qilgach siz bilan bog'lanadi.§Цена за всю поездку. Водитель свяжется с вами после принятия заказа.§Price is for the whole trip. The driver will contact you after accepting.
+Shaharlararo buyurtma§Межгородский заказ§Intercity order
+🚕 Shahar§🚕 Город§🚕 City
+🛣 Shaharlararo§🛣 Межгород§🛣 Intercity
+🔎 Yo'qolgan narsa haqida haydovchiga xabar yuborildi§🔎 Водителю отправлено сообщение о забытой вещи§🔎 The driver was notified about your lost item
+Keyingi buyurtma (oldindan band qilish)§Следующий заказ (бронь заранее)§Next order (reserve in advance)
+Keyingisiga band qilish§Забронировать следующим§Reserve as next
+Bandni bekor qilish§Отменить бронь§Cancel reservation
+✅ Band qilindi — safardan keyin avtomatik boshlanadi§✅ Забронировано — начнётся автоматически после поездки§✅ Reserved — starts automatically after this trip
+🔥 Talab yuqori joylar§🔥 Зоны высокого спроса§🔥 High demand areas
+Xaritada to'q sariq belgilar — talab zonalari§Оранжевые метки на карте — зоны спроса§Orange markers on the map are demand zones
+Yangi buyurtma!§Новый заказ!§New order!
+Yaqin atrofda yangi buyurtma bor§Рядом есть новый заказ§There is a new order nearby
+Haydovchi buyurtmangizni qabul qildi§Водитель принял ваш заказ§The driver accepted your order
+Haydovchi yetib keldi§Водитель приехал§The driver has arrived
+Safar boshlandi§Поездка началась§Trip started
+Safar tugadi§Поездка завершена§Trip finished
+Buyurtma bekor qilindi§Заказ отменён§Order cancelled
+Onlayn — yangi buyurtmalar kutilmoqda§Онлайн — ожидание новых заказов§Online — waiting for new orders
+Yo'lovchi narsa qoldirgan: §Пассажир забыл вещь: §Passenger left an item: 
+Telefon: §Телефон: §Phone: 
+Yangiliklar§Новости§Updates
+To'lov§Оплата§Payment
+Kamida 3 ta belgi§Минимум 3 символа§At least 3 characters
+Balans yetarli emas§Недостаточно средств§Insufficient balance
+Karta raqami yoki izohni yozing§Укажите номер карты или комментарий§Enter a card number or note
+~^Bugun (\d+) ta safar tugatdingiz$§Сегодня вы завершили \1 поездок§You completed \1 trips today
+~^(\d+) ta safar$§\1 поездок§\1 trips
+~^(\+[\d ]+ so'm)  ·  yana (\d+) ta$§\1  ·  ещё \2§\1  ·  \2 more
+~^Pul yechish uchun kamida (.+) kerak$§Для вывода нужно минимум \1§Minimum \1 required to withdraw
+~^Kamida (\d+ [\d ]*so'm)$§Минимум \1§At least \1
+~^🔥 Talab: (\d+) ta$§🔥 Спрос: \1§🔥 Demand: \1
+~^📍 (\d+) ta buyurtma$§📍 \1 заказов§📍 \1 orders
+~^🛣 Shaharlararo: (.*) · (\d+) o'rin(.*)$§🛣 Межгород: \1 · \2 мест\3§🛣 Intercity: \1 · \2 seats\3
+~^Mavjud: (.+)  ·  kamida (.+)$§Доступно: \1  ·  минимум \2§Available: \1  ·  minimum \2
 """
 
 private class Rules(

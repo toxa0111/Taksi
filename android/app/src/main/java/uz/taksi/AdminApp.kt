@@ -144,7 +144,7 @@ fun AdminLogin(prefs: SharedPreferences, onDone: (String) -> Unit) {
     }
 }
 
-private val ADMIN_TABS = listOf("📊" to "Umumiy", "🚕" to "Buyurtma", "👥" to "Odamlar", "💬" to "Murojaat", "🪪" to "Hujjat", "⚙" to "Profil")
+private val ADMIN_TABS = listOf("📊" to "Umumiy", "🚕" to "Buyurtma", "👥" to "Odamlar", "💬" to "Murojaat", "🪪" to "Hujjat", "💳" to "To'lov", "⚙" to "Profil")
 
 @Composable
 fun AdminShell(prefs: SharedPreferences, onLogout: () -> Unit) {
@@ -157,6 +157,7 @@ fun AdminShell(prefs: SharedPreferences, onLogout: () -> Unit) {
                 2 -> AdminUsers()
                 3 -> AdminTickets()
                 4 -> AdminDocs()
+                5 -> AdminPayments()
                 else -> AdminProfile(prefs, onLogout)
             }
         }

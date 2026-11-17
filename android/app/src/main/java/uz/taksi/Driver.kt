@@ -64,6 +64,8 @@ fun DriverScreen(onLogout: () -> Unit) {
     var shiftDragging by remember { mutableStateOf(false) }
     var confirmOffline by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf("") }
+    var demand by remember { mutableStateOf(listOf<JSONObject>()) }
+    LaunchedEffect(Unit) { Voice.init(ctx) }
 
     ShareLocation(me)
     LaunchedEffect(me != null) {
@@ -84,6 +86,14 @@ fun DriverScreen(onLogout: () -> Unit) {
             } catch (e: Exception) { }
             delay(3000)
         }
+    }
+
+    LaunchedEffect(online) {
+        while (online) {
+            try { demand = io { Api.call("GET", "/driver/demand").getJSONArray("zones").items() } } catch (e: Exception) { }
+            delay(20000)
+        }
+        demand = emptyList()
     }
 
     fun post(path: String, body: JSONObject = JSONObject()) {
@@ -121,7 +131,11 @@ fun DriverScreen(onLogout: () -> Unit) {
     val dropoff = active?.let { Pair(it.optDouble("toLat"), it.optDouble("toLng")) }
 
     // Navigatorga o'tganingizda ham joylashuvingiz yo'lovchiga ko'rinib turadi
-    TripLocationService(running = active != null, text = "Faol buyurtma — joylashuv yuborilmoqda")
+    TripLocationService(
+        running = active != null || online,
+        text = if (active != null) "Faol buyurtma — joylashuv yuborilmoqda" else "Onlayn — yangi buyurtmalar kutilmoqda",
+        role = "driver",
+    )
 
     // Marshrut: o'zidan yo'lovchigacha, safar boshlangach manzilgacha. Faqat ~110 m siljiganda qayta so'raladi.
     val routeTo: Pair<Double, Double>? = when (st) {
@@ -140,6 +154,17 @@ fun DriverScreen(onLogout: () -> Unit) {
         }
     }
     val nextStep = steps.getOrNull(stepIdx)
+    val nearNext = nextStep != null && me?.let { meters(it, nextStep.lat, nextStep.lng) < 180.0 } == true
+    LaunchedEffect(stepIdx, nearNext, route) {
+        val ns = nextStep
+        if (ns != null && route != null && active != null) {
+            val d = me?.let { meters(it, ns.lat, ns.lng) } ?: ns.meters.toDouble()
+            val dText = if (d >= 1000) String.format("%.1f km", d / 1000.0) else "${(d / 10).toInt() * 10} m"
+            val tx = translate(ns.text, AppSettings.lang)
+            val lead = when (AppSettings.lang) { "ru" -> "Через $dText, "; "en" -> "In $dText, "; else -> "$dText dan keyin, " }
+            Voice.say(if (nearNext) tx else lead + tx)
+        }
+    }
     var follow by remember { mutableStateOf(true) }
     val navActive = active != null && route != null && me != null
     val fitKey: Any = if (active == null) "idle" else "order:$id:${if (st == "started") "trip" else "pickup"}"
@@ -151,6 +176,7 @@ fun DriverScreen(onLogout: () -> Unit) {
             locOf(active, "passengerLoc")?.let { add(Pin(it.first, it.second, "Yo'lovchi (hozir)", ORANGE)) }
         } else {
             available.forEach { add(Pin(it.optDouble("fromLat"), it.optDouble("fromLng"), "Buyurtma #${it.optInt("id")}", GREEN)) }
+            demand.forEach { add(Pin(it.optDouble("lat"), it.optDouble("lng"), "🔥 Talab: ${it.optInt("count")} ta", ORANGE)) }
         }
         me?.let { add(Pin(it.first, it.second, "Men", BLUE)) }
     }
@@ -239,6 +265,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                 }
 
                 Route(active.optString("from"), active.optString("to"))
+                IntercityLine(active)
                 Text(
                     String.format("%.1f km  ·  %s", active.optDouble("km"), payText(active)),
                     fontSize = 13.sp, color = Muted,
@@ -258,6 +285,20 @@ fun DriverScreen(onLogout: () -> Unit) {
 
                 if (st == "accepted" || st == "arrived") {
                     DangerButton("Buyurtmani rad etish") { post("/orders/$id/cancel") }
+                }
+                if (st == "started" && available.isNotEmpty()) {
+                    Text("Keyingi buyurtma (oldindan band qilish)", fontSize = 13.sp, color = Muted)
+                    available.take(3).forEach { o ->
+                        OrderCard(o) {
+                            IntercityLine(o)
+                            if (o.optBoolean("reservedByMe")) {
+                                Pill("✅ Band qilindi — safardan keyin avtomatik boshlanadi", Color(0xFFE1F5E9), Color(0xFF14753F))
+                                DangerButton("Bandni bekor qilish") { post("/orders/${o.optInt("id")}/unreserve") }
+                            } else {
+                                BigButton("Keyingisiga band qilish") { post("/orders/${o.optInt("id")}/reserve") }
+                            }
+                        }
+                    }
                 }
             } else {
                 if (!online) {
@@ -330,8 +371,27 @@ fun DriverScreen(onLogout: () -> Unit) {
                             Text("Yangi buyurtmalar shu yerda avtomatik paydo bo'ladi.", fontSize = 13.sp, color = Muted)
                         }
                     }
+                    if (demand.isNotEmpty()) {
+                        Panel {
+                            Text("🔥 Talab yuqori joylar", fontWeight = FontWeight.Bold)
+                            demand.take(3).forEach { z ->
+                                Row(
+                                    Modifier.fillMaxWidth().clickable { centerTo = Pair(z.optDouble("lat"), z.optDouble("lng")); centerKey++; follow = false },
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text("📍 ${z.optInt("count")} ta buyurtma", modifier = Modifier.weight(1f), fontSize = 14.sp)
+                                    Text(
+                                        me?.let { String.format("%.1f km", meters(it, z.optDouble("lat"), z.optDouble("lng")) / 1000.0) } ?: "",
+                                        fontSize = 12.sp, color = Muted,
+                                    )
+                                }
+                            }
+                            Text("Xaritada to'q sariq belgilar — talab zonalari", fontSize = 11.sp, color = Muted)
+                        }
+                    }
                     available.forEach { o ->
                         OrderCard(o) {
+                            IntercityLine(o)
                             if (o.has("pickupKm")) {
                                 Text(String.format("Yo'lovchigacha: ~%.1f km", o.optDouble("pickupKm")), fontSize = 13.sp, color = Muted)
                             }

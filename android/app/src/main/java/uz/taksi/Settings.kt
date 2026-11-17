@@ -26,6 +26,8 @@ object AppSettings {
         private set
     var fontScale by mutableStateOf(1.0f)
         private set
+    var voice by mutableStateOf("on")         // on / off  (ovozli navigatsiya)
+        private set
 
     private var prefs: SharedPreferences? = null
 
@@ -38,11 +40,13 @@ object AppSettings {
         dark = if (p.contains("dark")) p.getBoolean("dark", false) else systemDark
         sound = p.getString("sound", "on") ?: "on"
         fontScale = p.getFloat("font", 1.0f)
+        voice = p.getString("voice", "on") ?: "on"
     }
 
     fun changeLang(v: String) { lang = v; prefs?.edit()?.putString("lang", v)?.apply() }
     fun changeDark(v: Boolean) { dark = v; prefs?.edit()?.putBoolean("dark", v)?.apply() }
     fun changeSound(v: String) { sound = v; prefs?.edit()?.putString("sound", v)?.apply() }
+    fun changeVoice(v: String) { voice = v; prefs?.edit()?.putString("voice", v)?.apply() }
     fun changeFont(v: Float) { fontScale = v; prefs?.edit()?.putFloat("font", v)?.apply() }
 }
 
@@ -75,6 +79,8 @@ fun AppPrefsPanel() {
                 AppSettings.changeSound(it)
             }
             Text("Yangi buyurtma ovozi va tebranishi", fontSize = 11.sp, color = Muted)
+            Text("Ovozli navigatsiya", fontSize = 13.sp, color = Muted)
+            Segmented(listOf("on" to "🗣 Yoqilgan", "off" to "🔇 O'chiq"), AppSettings.voice) { AppSettings.changeVoice(it) }
             Text("Shrift o'lchami", fontSize = 13.sp, color = Muted)
             Segmented(
                 listOf("0.85" to "Kichik", "1.0" to "O'rta", "1.2" to "Katta"),
@@ -82,4 +88,9 @@ fun AppPrefsPanel() {
             ) { AppSettings.changeFont(it.toFloat()) }
             Text("Matn o'lchami butun ilovada o'zgaradi", fontSize = 11.sp, color = Muted)
         }
+}
+
+/** Ilova ochiq (oldingi planda) yoki yo'qligini bildiradi: fonda bildirishnomalar faqat yopiq paytda chiqadi. */
+object AppState {
+    @Volatile var foreground = false
 }

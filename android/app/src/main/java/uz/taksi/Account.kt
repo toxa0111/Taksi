@@ -133,6 +133,8 @@ fun MoneyTab(role: String) {
                     Text("${s?.optInt("totalCount") ?: 0} ta safar", fontSize = 13.sp, color = Muted)
                     Text("Hozir barcha to'lovlar naqd: pulni yo'lovchidan o'zingiz olasiz.", fontSize = 12.sp, color = Muted)
                 }
+                BonusPanel()
+                BalancePanel()
             } else {
                 Panel(color = Ink) {
                     Text("Jami sarflangan", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
@@ -175,7 +177,12 @@ fun MoneyTab(role: String) {
                         else Text(som(o.optLong("price")), fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
                     }
                     Route(o.optString("from"), o.optString("to"))
+                    IntercityLine(o)
                     if (!cancelled) Text(String.format("%.1f km  ·  %s", o.optDouble("km"), payText(o)), fontSize = 12.sp, color = Muted)
+                    o.optJSONObject("lost")?.let { l ->
+                        Text("🔎 Yo'lovchi narsa qoldirgan: " + l.optString("text"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        if (o.optString("lostPhone").isNotEmpty()) Text("Telefon: " + o.optString("lostPhone"), fontSize = 13.sp, color = Muted)
+                    }
                 }
             }
             Spacer(Modifier.height(8.dp))

@@ -464,7 +464,7 @@ http.createServer(async (req, res) => {
 
     // ---- Shaharlararo shaharlar ro'yxati ----
     if (m === 'GET' && p === '/intercity/cities') {
-      return send(res, 200, { cities: Object.entries(INTERCITY).map(([key, c]) => ({ key, name: c.name, km: c.km, price: intercityPrice(c.km) })) });
+      return send(res, 200, { cities: Object.entries(INTERCITY).map(([key, c]) => ({ key, name: c.name, km: c.km, lat: c.lat, lng: c.lng, price: intercityPrice(c.km) })) });
     }
 
     // ---- Haydovchi hujjatlari: surat, foto nazorat, guvohnoma, tex pasport, mashina raqami ----
