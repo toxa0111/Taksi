@@ -55,6 +55,7 @@ fun AdminApp(prefs: SharedPreferences) {
         Api.token = ""
         role = ""
     }
+    androidx.compose.runtime.SideEffect { Api.onUnauthorized = { android.os.Handler(android.os.Looper.getMainLooper()).post { if (role.isNotEmpty()) logout() } } }
     UpdateDialog(tag = "toxa-admin", appName = "TOXA Admin")
     if (role == "admin") AdminShell(prefs, logout) else AdminLogin(prefs) { role = it }
 }

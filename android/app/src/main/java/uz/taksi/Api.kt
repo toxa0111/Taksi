@@ -18,6 +18,8 @@ object Api {
     /** Emulyatorda 10.0.2.2 — kompyuterning localhost'i. Haqiqiy telefonda server manzilini kiriting. */
     var base = "https://taksi-server.onrender.com"
     var token = ""
+    /** Server "Qaytadan kiring" (401) desa chaqiriladi: ilova o'zi chiqib, kirish ekranini ko'rsatadi. */
+    var onUnauthorized: (() -> Unit)? = null
 
     /** Rasm (yoki boshqa fayl) baytlarini oladi, masalan admin uchun hujjat rasmi. */
     fun bytes(path: String): ByteArray {
@@ -44,6 +46,10 @@ object Api {
         val stream = if (code in 200..299) c.inputStream else c.errorStream
         val text = stream?.bufferedReader()?.use { it.readText() } ?: "{}"
         val json = try { JSONObject(text) } catch (e: Exception) { JSONObject() }
+        if (code == 401 && token.isNotEmpty() && !path.startsWith("/auth")) {
+            onUnauthorized?.invoke()
+            throw Exception("Sessiya tugadi. Qaytadan kiring")
+        }
         if (code !in 200..299) throw Exception(json.optString("error", "Xato $code"))
         return json
     }

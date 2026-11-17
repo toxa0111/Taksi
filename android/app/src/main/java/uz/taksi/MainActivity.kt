@@ -104,6 +104,7 @@ fun App(prefs: SharedPreferences) {
         Api.token = ""
         role = ""
     }
+    androidx.compose.runtime.SideEffect { Api.onUnauthorized = { android.os.Handler(android.os.Looper.getMainLooper()).post { if (role.isNotEmpty()) logout() } } }
     UpdateDialog()
     when (role) {
         "passenger", "driver" -> Shell(role, prefs, logout)

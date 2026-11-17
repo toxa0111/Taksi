@@ -273,6 +273,7 @@ http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x'), p = url.pathname, m = req.method;
     const b = m === 'POST' ? await readBody(req, p === '/driver/docs' ? 4e6 : 1e5) : {};
 
+    if ((m === 'GET' || m === 'HEAD') && (p === '/health' || p === '/')) return send(res, 200, { ok: true, t: Date.now() });
     // ---- Kirish (telefon + kod) ----
     if (m === 'POST' && p === '/auth/request') {
       const phone = String(b.phone || '').trim();
