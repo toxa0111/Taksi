@@ -60,14 +60,10 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
-    private var mapKitReady = false
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (BuildConfig.MAPKIT_API_KEY.isNotBlank()) {
-            MapKitFactory.setApiKey(BuildConfig.MAPKIT_API_KEY)
             MapKitFactory.initialize(this)
-            mapKitReady = true
         }
         val prefs = getSharedPreferences("taksi", Context.MODE_PRIVATE)
         AppPreferences.load(prefs)
