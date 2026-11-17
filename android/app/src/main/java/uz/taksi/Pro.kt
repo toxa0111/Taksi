@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -291,6 +292,9 @@ fun AdminPayments() {
             var r2 by remember(cfg.toString()) { mutableStateOf(bonus.optJSONObject(1)?.optLong("reward")?.toString() ?: "") }
             var pk by remember(cfg.toString()) { mutableStateOf(ic.optInt("perKm").toString()) }
             var mn by remember(cfg.toString()) { mutableStateOf(ic.optInt("minimum").toString()) }
+            val rf = cfg?.optJSONObject("referral")
+            var rt by remember(cfg.toString()) { mutableStateOf(rf?.optInt("trips")?.toString() ?: "3") }
+            var rr by remember(cfg.toString()) { mutableStateOf(rf?.optLong("reward")?.toString() ?: "10000") }
             Text("Bonus va shaharlararo tarif", fontWeight = FontWeight.Bold, fontSize = 17.sp)
             Panel {
                 Text("1-bonus", fontSize = 13.sp, color = Muted)
@@ -308,6 +312,11 @@ fun AdminPayments() {
                     Field(pk, { pk = it.filter(Char::isDigit) }, "1 km narxi", Modifier.weight(1f), KeyboardType.Number)
                     Field(mn, { mn = it.filter(Char::isDigit) }, "Eng kam narx", Modifier.weight(1f), KeyboardType.Number)
                 }
+                Text("Taklif bonusi (do'st necha safar qilsa, qancha beriladi)", fontSize = 13.sp, color = Muted)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Field(rt, { rt = it.filter(Char::isDigit) }, "Safar soni", Modifier.weight(1f), KeyboardType.Number)
+                    Field(rr, { rr = it.filter(Char::isDigit) }, "Mukofot", Modifier.weight(1f), KeyboardType.Number)
+                }
                 BigButton("Saqlash") {
                     scope.launch {
                         try {
@@ -316,7 +325,8 @@ fun AdminPayments() {
                             if (t2.isNotEmpty() && r2.isNotEmpty()) tiers.put(JSONObject().put("trips", t2.toInt()).put("reward", r2.toLong()))
                             io {
                                 Api.call("POST", "/admin/bonus", JSONObject().put("tiers", tiers)
-                                    .put("intercity", JSONObject().put("perKm", pk.toInt()).put("minimum", mn.toInt())))
+                                    .put("intercity", JSONObject().put("perKm", pk.toInt()).put("minimum", mn.toInt()))
+                                    .put("referral", JSONObject().put("trips", (rt.toIntOrNull() ?: 3)).put("reward", (rr.toLongOrNull() ?: 0L))))
                             }
                             msg = "Saqlandi"; tick++
                         } catch (e: Exception) { msg = e.message ?: "Xato" }
@@ -324,6 +334,7 @@ fun AdminPayments() {
                 }
             }
         }
+        AdminPromos()
     }
 }
 
@@ -423,6 +434,207 @@ fun DayCard(count: Int, sum: Long, priority: Int = 0) {
                     Text("$today/$need · Bugun", fontSize = 12.sp, color = Muted)
                 }
                 Pill("+" + som(t.optLong("reward")), Color(0xFFDDE6FF), Color(0xFF2747C9))
+            }
+        }
+    }
+}
+
+// ───────────────────────── Promokod (yo'lovchi) ─────────────────────────
+
+@Composable
+fun PromoBox(price: Long, onApplied: (String) -> Unit) {
+    val scope = rememberCoroutineScope()
+    var code by remember { mutableStateOf("") }
+    var applied by remember { mutableStateOf<JSONObject?>(null) }
+    var err by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    val a = applied
+    if (a != null) {
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xFFE1F5E9)).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("🎟 ${a.optString("code")} qo'llandi", fontWeight = FontWeight.Bold, color = Color(0xFF14753F))
+                Text("Chegirma −" + som(a.optLong("discount")) + "  →  " + som(a.optLong("price")), fontSize = 13.sp, color = Color(0xFF14753F))
+            }
+            TextButton(onClick = { applied = null; code = ""; onApplied("") }) { Text("Bekor", color = Color(0xFF14753F)) }
+        }
+    } else {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Field(code, { code = it.uppercase().filter { c -> c.isLetterOrDigit() }.take(16) }, "Promokod", Modifier.weight(1f))
+            TextButton(enabled = !busy && code.length >= 3, onClick = {
+                busy = true; err = ""
+                scope.launch {
+                    try {
+                        val r = io { Api.call("POST", "/promo/check", JSONObject().put("code", code).put("price", price)) }
+                        applied = r; onApplied(r.optString("code"))
+                    } catch (e: Exception) { err = e.message ?: "Xato" }
+                    busy = false
+                }
+            }) { Text("Qo'llash", fontWeight = FontWeight.Bold) }
+        }
+        if (err.isNotEmpty()) ErrorText(err)
+    }
+}
+
+// ───────────────────────── Taklif kodi (haydovchi) ─────────────────────────
+
+@Composable
+fun ReferralDialog(onClose: () -> Unit) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var d by remember { mutableStateOf<JSONObject?>(null) }
+    LaunchedEffect(Unit) { try { d = io { Api.call("GET", "/driver/referral") } } catch (e: Exception) { } }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("Do'stingizni taklif qiling") },
+        text = {
+            val j = d
+            if (j == null) Text("Yuklanmoqda…", color = Muted)
+            else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Sizning kodingiz", fontSize = 12.sp, color = Muted)
+                Text(j.optString("code"), fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 4.sp)
+                Text("Do'stingiz ro'yxatdan o'tishda shu kodni yozsin. U ${j.optInt("trips")} ta safar qilgach, sizga " + som(j.optLong("reward")) + " bonus tushadi.", fontSize = 13.sp, color = Muted)
+                val inv = j.optJSONArray("invited")?.items() ?: emptyList()
+                if (inv.isNotEmpty()) {
+                    Text("Taklif qilganlaringiz", fontSize = 12.sp, color = Muted)
+                    inv.forEach {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(it.optString("name"), modifier = Modifier.weight(1f))
+                            Text(if (it.optBoolean("rewarded")) "✅ bonus berildi" else "${it.optInt("done")}/${j.optInt("trips")}", fontSize = 12.sp, color = Muted)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val code = d?.optString("code").orEmpty()
+                if (code.isNotEmpty()) {
+                    val it = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain")
+                        .putExtra(android.content.Intent.EXTRA_TEXT, "TOXA taksi haydovchisi bo'ling! Ro'yxatdan o'tishda taklif kodini yozing: $code")
+                    try { ctx.startActivity(android.content.Intent.createChooser(it, "Ulashish").addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { }
+                }
+            }) { Text("Ulashish") }
+        },
+        dismissButton = { TextButton(onClick = onClose) { Text("Orqaga") } },
+    )
+}
+
+// ───────────────────────── Diagnostika (muddatlar) ─────────────────────────
+
+private val DIAG = listOf("insurance" to "🛡 Sug'urta (OSAGO)", "inspection" to "🔧 Texnik ko'rik", "license" to "🪪 Haydovchilik guvohnomasi")
+
+fun daysLeft(date: String): Int? = try {
+    java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), java.time.LocalDate.parse(date)).toInt()
+} catch (e: Exception) { null }
+
+/** Muddati yaqin (14 kun) yoki o'tgan hujjat bo'lsa, ogohlantirish matni. */
+fun diagAlert(items: JSONObject?): String? {
+    if (items == null) return null
+    for ((k, label) in DIAG) {
+        val left = daysLeft(items.optString(k)) ?: continue
+        if (left < 0) return "⚠ " + label.drop(2).trim() + " muddati o'tgan"
+        if (left <= 14) return "⚠ " + label.drop(2).trim() + ": $left kun qoldi"
+    }
+    return null
+}
+
+@Composable
+fun DiagnosticsDialog(onClose: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val vals = remember { androidx.compose.runtime.mutableStateMapOf<String, String>() }
+    var msg by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) {
+        try {
+            val items = io { Api.call("GET", "/driver/diagnostics") }.optJSONObject("items")
+            DIAG.forEach { (k, _) -> vals[k] = items?.optString(k).orEmpty() }
+        } catch (e: Exception) { }
+    }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("Diagnostika") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Muddat tugash sanasini yozing (YYYY-OO-KK). Muddat yaqinlashsa, asosiy oynada eslatma chiqadi.", fontSize = 12.sp, color = Muted)
+                DIAG.forEach { (k, label) ->
+                    Text(label, fontWeight = FontWeight.SemiBold)
+                    Field(vals[k].orEmpty(), { vals[k] = it.filter { c -> c.isDigit() || c == '-' }.take(10) }, "2027-01-31")
+                    val left = daysLeft(vals[k].orEmpty())
+                    if (left != null) {
+                        val (bg, fg, t) = when {
+                            left < 0 -> Triple(Color(0xFFFCE4E4), Color(0xFFA32626), "Muddati o'tgan")
+                            left <= 30 -> Triple(Color(0xFFFFF1C2), Color(0xFF8A6100), "$left kun qoldi")
+                            else -> Triple(Color(0xFFE1F5E9), Color(0xFF14753F), "$left kun qoldi")
+                        }
+                        Pill(t, bg, fg)
+                    }
+                }
+                if (msg.isNotEmpty()) ErrorText(msg)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                scope.launch {
+                    try {
+                        val body = JSONObject()
+                        DIAG.forEach { (k, _) -> body.put(k, vals[k].orEmpty()) }
+                        io { Api.call("POST", "/driver/diagnostics", body) }
+                        onClose()
+                    } catch (e: Exception) { msg = e.message ?: "Xato" }
+                }
+            }) { Text("Saqlash") }
+        },
+        dismissButton = { TextButton(onClick = onClose) { Text("Orqaga") } },
+    )
+}
+
+// ───────────────────────── Admin: promokodlar ─────────────────────────
+
+@Composable
+fun AdminPromos() {
+    val scope = rememberCoroutineScope()
+    var tick by remember { mutableIntStateOf(0) }
+    val data by rememberPoll("/admin/promos", tick)
+    var code by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf("percent") }
+    var value by remember { mutableStateOf("") }
+    var maxUses by remember { mutableStateOf("") }
+    var days by remember { mutableStateOf("") }
+    var msg by remember { mutableStateOf("") }
+    Text("Promokodlar", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+    Panel {
+        Field(code, { code = it.uppercase().filter { c -> c.isLetterOrDigit() }.take(16) }, "Kod (masalan TOXA10)")
+        Segmented(listOf("percent" to "% foiz", "amount" to "So'm"), type) { type = it }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Field(value, { value = it.filter(Char::isDigit) }, if (type == "percent") "Foiz (1-50)" else "Summa", Modifier.weight(1f), KeyboardType.Number)
+            Field(maxUses, { maxUses = it.filter(Char::isDigit) }, "Necha marta", Modifier.weight(1f), KeyboardType.Number)
+            Field(days, { days = it.filter(Char::isDigit) }, "Necha kun", Modifier.weight(1f), KeyboardType.Number)
+        }
+        if (msg.isNotEmpty()) ErrorText(msg)
+        BigButton("Promokod yaratish") {
+            scope.launch {
+                try {
+                    io {
+                        Api.call("POST", "/admin/promos", JSONObject().put("code", code).put("type", type)
+                            .put("value", value.toLongOrNull() ?: 0).put("maxUses", maxUses.toLongOrNull() ?: 0).put("days", days.toLongOrNull() ?: 0))
+                    }
+                    code = ""; value = ""; maxUses = ""; days = ""; msg = ""; tick++
+                } catch (e: Exception) { msg = e.message ?: "Xato" }
+            }
+        }
+    }
+    data?.optJSONArray("promos")?.items()?.forEach { p ->
+        Panel {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(p.optString("code"), fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                    Text((if (p.optString("type") == "percent") "${p.optInt("value")}%" else som(p.optLong("value"))) +
+                        "  ·  ishlatilgan ${p.optInt("used")}" + if (p.optInt("maxUses") > 0) "/${p.optInt("maxUses")}" else "", fontSize = 12.sp, color = Muted)
+                }
+                val on = p.optBoolean("active")
+                TextButton(onClick = {
+                    scope.launch {
+                        try { io { Api.call("POST", "/admin/promos/" + p.optString("code"), JSONObject().put("active", !on)) }; tick++ } catch (e: Exception) { }
+                    }
+                }) { Text(if (on) "O'chirish" else "Yoqish") }
             }
         }
     }

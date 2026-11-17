@@ -183,6 +183,7 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
     var phone by remember { mutableStateOf("+998") }
     var name by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("passenger") }
+    var ref by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
     var devCode by remember { mutableStateOf("") }
     var sent by remember { mutableStateOf(false) }
@@ -222,6 +223,7 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
                 ) { role = it }
                 Field(phone, { phone = it }, "Telefon raqam", keyboard = KeyboardType.Phone)
                 Field(name, { name = it }, "Ismingiz (birinchi marta kirganda)")
+                if (role == "driver") Field(ref, { ref = it.uppercase().filter { c -> c.isLetterOrDigit() }.take(8) }, "Taklif kodi (ixtiyoriy)")
 
                 if (!sent) {
                     BigButton("Kod olish", enabled = !busy) {
@@ -254,6 +256,7 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
                                 val body = JSONObject()
                                     .put("phone", phone.trim()).put("code", code.trim())
                                     .put("name", name.trim()).put("role", role)
+                                if (role == "driver" && ref.isNotBlank()) body.put("ref", ref.trim())
                                 val r = io { Api.call("POST", "/auth/verify", body) }
                                 val u = r.getJSONObject("user")
                                 Api.token = r.getString("token")

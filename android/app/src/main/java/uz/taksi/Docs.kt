@@ -167,6 +167,7 @@ fun DriverDocsPanel() {
     val scope = rememberCoroutineScope()
     var docs by remember { mutableStateOf<JSONObject?>(null) }
     var plate by remember { mutableStateOf("") }
+    var car by remember { mutableStateOf("") }
     var verified by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf("") }
@@ -179,6 +180,7 @@ fun DriverDocsPanel() {
             val j = io { Api.call("GET", "/driver/docs") }
             docs = j.optJSONObject("docs")
             if (plate.isBlank()) plate = j.optString("plate")
+            if (car.isBlank()) car = j.optString("car")
             verified = j.optBoolean("verified")
         } catch (e: Exception) { }
     }
@@ -237,12 +239,13 @@ fun DriverDocsPanel() {
                 if (busy == kind) Text("Yuklanmoqda…", fontSize = 12.sp, color = Muted)
             }
         }
+        Field(car, { car = it.take(30) }, "Mashina markasi (masalan Chevrolet Cobalt)")
         Field(plate, { plate = it.uppercase() }, "Mashina raqami (masalan 01 A 123 BC)")
-        GhostButton("Raqamni saqlash") {
+        GhostButton("Raqam va markani saqlash") {
             scope.launch {
                 msg = ""
                 try {
-                    val j = io { Api.call("POST", "/driver/plate", JSONObject().put("plate", plate)) }
+                    val j = io { Api.call("POST", "/driver/plate", JSONObject().put("plate", plate).put("car", car.trim())) }
                     plate = j.optString("plate")
                     verified = j.optBoolean("verified")
                     msg = "Saqlandi"

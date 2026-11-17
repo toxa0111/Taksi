@@ -67,9 +67,11 @@ fun DriverScreen(onLogout: () -> Unit) {
     var demand by remember { mutableStateOf(listOf<JSONObject>()) }
     LaunchedEffect(Unit) { Voice.init(ctx) }
     var verified by remember { mutableStateOf(true) }
+    var diagWarn by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         while (true) {
             try { verified = io { Api.call("GET", "/driver/docs") }.optBoolean("verified", true) } catch (e: Exception) { }
+            try { diagWarn = diagAlert(io { Api.call("GET", "/driver/diagnostics") }.optJSONObject("items")) } catch (e: Exception) { }
             delay(30000)
         }
     }
@@ -239,9 +241,10 @@ fun DriverScreen(onLogout: () -> Unit) {
                     }
                 }
             }
-            if (!verified && !navActive) {
+            val warnText = if (!verified) "⚠ Hujjatlaringiz tasdiqlanmagan. Kabinet → Hujjatlar bo'limidan yuboring." else diagWarn
+            if (warnText != null && !navActive) {
                 Text(
-                    "⚠ Hujjatlaringiz tasdiqlanmagan. Kabinet → Hujjatlar bo'limidan yuboring.",
+                    warnText,
                     Modifier.align(Alignment.TopCenter).padding(start = 12.dp, end = 12.dp, top = 64.dp).fillMaxWidth()
                         .background(Color(0xFFFFF1C2), RoundedCornerShape(14.dp)).padding(10.dp),
                     fontSize = 12.sp, color = Color(0xFF8A6100), fontWeight = FontWeight.SemiBold,

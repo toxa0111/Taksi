@@ -58,6 +58,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
 
     var pay by rememberSaveable { mutableStateOf("cash") }
     var icMode by rememberSaveable { mutableStateOf(false) }
+    var promo by remember { mutableStateOf("") }
     var lostFor by remember { mutableStateOf(0) }
     var quote by remember { mutableStateOf<JSONObject?>(null) }
     var quoteKey by remember { mutableStateOf("") }
@@ -352,6 +353,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                         val km = q.optDouble("km")
                         val mins = route?.min ?: maxOf(1, Math.round(km * 2.5).toInt())
                         TariffRow(q.optLong("price"), mins, km)
+                        PromoBox(q.optLong("price")) { promo = it }
                         if (CARD_ENABLED) {
                             Segmented(listOf("cash" to "💵 Naqd", "card" to "💳 Karta"), pay) { pay = it }
                         } else {
@@ -369,8 +371,9 @@ fun PassengerScreen(onLogout: () -> Unit) {
                                         .put("toLat", b.first).put("toLng", b.second)
                                         .put("payMethod", pay)
                                     if (routeKm != null) body.put("km", routeKm)
+                                    if (promo.isNotBlank()) body.put("promo", promo)
                                     io { Api.call("POST", "/orders", body) }
-                                    dest = null; destName = ""; msg = ""
+                                    dest = null; destName = ""; msg = ""; promo = ""
                                 } catch (e: Exception) { msg = e.message ?: "Xato" }
                                 busy = false
                             }

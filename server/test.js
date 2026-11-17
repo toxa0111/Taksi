@@ -232,6 +232,57 @@ async function login(phone, name, role) {
     ok(dm.j.zones.length >= 1 && dm.j.zones[0].count >= 1, 'talab xaritasi zonalari qaytdi');
   }
 
+  // ---- Mashina markasi, taklif kodi, promokod, diagnostika ----
+  {
+    const D5 = await login('+998906660001', 'Anvar', 'driver');
+    const pl = await call('POST', '/driver/plate', { plate: '70Q011BB', car: 'Chevrolet Cobalt' }, D5);
+    ok(pl.j.car === 'Chevrolet Cobalt' && (await call('GET', '/driver/docs', null, D5)).j.car === 'Chevrolet Cobalt', 'mashina markasi saqlandi');
+
+    // taklif kodi
+    const rf = await call('GET', '/driver/referral', null, D5);
+    ok(/^[A-Z0-9]{6}$/.test(rf.j.code) && rf.j.invited.length === 0, 'taklif kodi berildi');
+    const a1 = await call('POST', '/auth/request', { phone: '+998906660002' });
+    const v1 = await call('POST', '/auth/verify', { phone: '+998906660002', code: a1.j.devCode, name: 'Do\'st', role: 'driver', ref: rf.j.code });
+    const D6 = v1.j.token;
+    ok((await call('GET', '/driver/referral', null, D5)).j.invited.length === 1, 'taklif qilingan haydovchi ro\'yxatda');
+    const P5 = await login('+998906660003', 'Yo\'lovchi5', 'passenger');
+    await call('POST', '/driver/availability', { online: true }, D6);
+    await call('POST', '/location', { lat: 41.30, lng: 69.27 }, D6);
+    const tr5 = { from: 'A', to: 'B', fromLat: 41.311, fromLng: 69.279, toLat: 41.34, toLng: 69.285, payMethod: 'cash' };
+    for (let i = 0; i < rf.j.trips; i++) {
+      const x = await call('POST', '/orders', tr5, P5);
+      await call('POST', `/orders/${x.j.order.id}/accept`, null, D6);
+      for (const st of ['arrived', 'started', 'done']) await call('POST', `/orders/${x.j.order.id}/status`, { status: st }, D6);
+    }
+    ok((await call('GET', '/driver/balance', null, D5)).j.balance === rf.j.reward, 'taklif bonusi balansga tushdi');
+
+    // diagnostika
+    ok((await call('POST', '/driver/diagnostics', { insurance: '2027-01-15' }, D5)).j.items.insurance === '2027-01-15', 'diagnostika sanasi saqlandi');
+    ok((await call('POST', '/driver/diagnostics', { insurance: 'bugun' }, D5)).s === 400, 'noto\'g\'ri sana rad etildi');
+
+    // promokod
+    if (process.env.ADMIN_PHONE) {
+      const ra = await call('POST', '/auth/request', { phone: process.env.ADMIN_PHONE });
+      const AD = (await call('POST', '/auth/verify', { phone: process.env.ADMIN_PHONE, code: ra.j.devCode, name: 'Admin', admin: true })).j.token;
+      ok((await call('POST', '/admin/promos', { code: 'TOXA10', type: 'percent', value: 10, maxUses: 5 }, AD)).j.ok, 'promokod yaratildi');
+      ok((await call('POST', '/admin/promos', { code: 'TOXA10', type: 'percent', value: 10 }, AD)).s === 400, 'takroriy promokod rad etildi');
+      ok((await call('POST', '/admin/promos', { code: 'BAD', type: 'percent', value: 90 }, AD)).s === 400, 'katta foiz rad etildi');
+      const P6 = await login('+998906660004', 'Yo\'lovchi6', 'passenger');
+      const chk = await call('POST', '/promo/check', { code: 'toxa10', price: 20000 }, P6);
+      ok(chk.j.discount === 2000 && chk.j.price === 18000, 'promokod chegirmasi: ' + JSON.stringify(chk.j));
+      ok((await call('POST', '/promo/check', { code: 'YOQ', price: 20000 }, P6)).s === 400, 'noto\'g\'ri promokod rad etildi');
+      const po = await call('POST', '/orders', { ...tr5, promo: 'TOXA10' }, P6);
+      ok(po.j.order && po.j.order.discount > 0 && po.j.order.price === po.j.order.fullPrice - po.j.order.discount, 'buyurtma chegirma bilan yaratildi');
+      await call('POST', '/driver/availability', { online: true }, D5);
+      await call('POST', '/location', { lat: 41.30, lng: 69.27 }, D5);
+      const before = (await call('GET', '/driver/balance', null, D5)).j.balance;
+      await call('POST', `/orders/${po.j.order.id}/accept`, null, D5);
+      for (const st of ['arrived', 'started', 'done']) await call('POST', `/orders/${po.j.order.id}/status`, { status: st }, D5);
+      ok((await call('GET', '/driver/balance', null, D5)).j.balance === before + po.j.order.discount, 'chegirma haydovchiga qoplandi');
+      ok((await call('POST', '/orders', { ...tr5, promo: 'TOXA10' }, P6)).s === 400, 'promokod ikkinchi marta ishlamaydi');
+    }
+  }
+
   console.log(fails ? `\n${fails} ta xato` : '\nHammasi o\'tdi');
   process.exit(fails ? 1 : 0);
 })();

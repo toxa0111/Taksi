@@ -100,12 +100,16 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
     var info by remember { mutableStateOf("") }
     var installUrl by remember { mutableStateOf<String?>(null) }
     var showPrefs by remember { mutableStateOf(false) }
+    var showRef by remember { mutableStateOf(false) }
+    var showDiag by remember { mutableStateOf(false) }
+    var diag by remember { mutableStateOf<JSONObject?>(null) }
     installUrl?.let { InstallDialog(it, "TOXA") { installUrl = null } }
 
     LaunchedEffect(Unit) {
         try { profile = io { Api.call("GET", "/profile") } } catch (e: Exception) { }
         try { stats = io { Api.call("GET", "/stats") } } catch (e: Exception) { }
         try { docs = io { Api.call("GET", "/driver/docs") } } catch (e: Exception) { }
+        try { diag = io { Api.call("GET", "/driver/diagnostics") }.optJSONObject("items") } catch (e: Exception) { }
         val id = profile?.optString("id").orEmpty()
         if (id.isNotEmpty()) {
             photo = try {
@@ -158,7 +162,7 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
         Text("Mening transportim", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Card).padding(16.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(26.dp)) {
-                Text("Mening avtomobilim", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text(docs?.optString("car").orEmpty().ifBlank { "Mening avtomobilim" }, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 Text(
                     plate.ifBlank { "Raqam kiritilmagan" },
                     modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.White).padding(horizontal = 10.dp, vertical = 4.dp),
@@ -168,7 +172,13 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
             Text("🚗", fontSize = 64.sp, modifier = Modifier.align(Alignment.CenterEnd))
         }
 
-        MenuGroup { DriverDocsEntryRow() }
+        MenuGroup {
+            DriverDocsEntryRow()
+            MenuRow("🩺", "Diagnostika", diagAlert(diag)?.let { "⚠" } ?: "") { showDiag = true }
+            MenuRow("👥", "Do'stingizni taklif qiling") { showRef = true }
+        }
+        if (showRef) ReferralDialog { showRef = false }
+        if (showDiag) DiagnosticsDialog { showDiag = false; scope.launch { try { diag = io { Api.call("GET", "/driver/diagnostics") }.optJSONObject("items") } catch (e: Exception) { } } }
         MenuGroup {
             MenuRow("💬", "Yordam", "") { goSupport() }
             MenuRow("⚙️", "Sozlamalar", "") { showPrefs = !showPrefs }

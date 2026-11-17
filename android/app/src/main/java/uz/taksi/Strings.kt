@@ -460,6 +460,37 @@ Liniyada§На линии§Online
 Liniyada emas§Не на линии§Offline
 Buyurtmalar qidirilmoqda§Идёт поиск заказов§Looking for orders
 Buyurtmalarni qidirish o'chirilgan§Поиск заказов отключён§Order search is off
+Taklif kodi (ixtiyoriy)§Код приглашения (необязательно)§Invite code (optional)
+Mashina markasi (masalan Chevrolet Cobalt)§Марка автомобиля (например Chevrolet Cobalt)§Car make (e.g. Chevrolet Cobalt)
+Raqam va markani saqlash§Сохранить номер и марку§Save plate and make
+Promokod§Промокод§Promo code
+Qo'llash§Применить§Apply
+Do'stingizni taklif qiling§Пригласите друга§Invite a friend
+Sizning kodingiz§Ваш код§Your code
+Taklif qilganlaringiz§Ваши приглашённые§People you invited
+Ulashish§Поделиться§Share
+Diagnostika§Диагностика§Diagnostics
+Muddat tugash sanasini yozing (YYYY-OO-KK). Muddat yaqinlashsa, asosiy oynada eslatma chiqadi.§Укажите дату окончания (ГГГГ-ММ-ДД). Когда срок подойдёт, на главном экране появится напоминание.§Enter the expiry date (YYYY-MM-DD). A reminder appears on the main screen when it is close.
+🛡 Sug'urta (OSAGO)§🛡 Страховка (ОСАГО)§🛡 Insurance (OSAGO)
+🔧 Texnik ko'rik§🔧 Техосмотр§🔧 Technical inspection
+Muddati o'tgan§Срок истёк§Expired
+Promokodlar§Промокоды§Promo codes
+Promokod yaratish§Создать промокод§Create promo code
+Kod (masalan TOXA10)§Код (например TOXA10)§Code (e.g. TOXA10)
+% foiz§% процент§% percent
+So'm§Сум§UZS
+Foiz (1-50)§Процент (1-50)§Percent (1-50)
+Summa§Сумма§Amount
+Necha marta§Сколько раз§How many times
+Necha kun§Сколько дней§How many days
+O'chirish§Отключить§Disable
+Yoqish§Включить§Enable
+Taklif bonusi (do'st necha safar qilsa, qancha beriladi)§Бонус за приглашение (сколько выплачивается, когда друг совершит поездки)§Referral bonus (paid when the friend completes the trips)
+~^🎟 (.+) qo'llandi$§🎟 \1 применён§🎟 \1 applied
+~^Chegirma −(.+)  →  (.+)$§Скидка −\1  →  \2§Discount −\1  →  \2
+~^(\d+) kun qoldi$§Осталось \1 дн.§\1 days left
+~^⚠ (.+) muddati o'tgan$§⚠ Срок истёк: \1§⚠ \1 has expired
+~^⚠ (.+): (\d+) kun qoldi$§⚠ \1: осталось \2 дн.§⚠ \1: \2 days left
 """
 
 private class Rules(
