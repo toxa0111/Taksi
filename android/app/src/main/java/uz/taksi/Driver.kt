@@ -131,10 +131,15 @@ fun DriverScreen(onLogout: () -> Unit) {
         }
     }
 
-    fun post(path: String, body: JSONObject = JSONObject()) {
+    fun post(path: String, body: JSONObject = JSONObject(), onSuccess: () -> Unit = {}) {
         scope.launch {
-            try { io { Api.call("POST", path, body) }; msg = "" }
-            catch (e: Exception) { msg = e.message ?: "Xato" }
+            try {
+                io { Api.call("POST", path, body) }
+                msg = ""
+                onSuccess()
+            } catch (e: Exception) {
+                msg = e.message ?: "Xato"
+            }
         }
     }
 
@@ -359,7 +364,11 @@ fun DriverScreen(onLogout: () -> Unit) {
                     "started" to ("done" to (if (isCash) tr("Yakunlash (naqd oldim)", "Завершить (получил наличные)", "Finish (cash received)") else tr("Yakunlash", "Завершить", "Finish"))),
                 )[st]
                 if (next != null) {
-                    BigButton(next.second) { post("/orders/$id/status", JSONObject().put("status", next.first)) }
+                    BigButton(next.second) {
+                        post("/orders/$id/status", JSONObject().put("status", next.first)) {
+                            if (next.first == "started") sheetExpanded = false
+                        }
+                    }
                 }
 
                 if (st == "accepted" || st == "arrived") {
@@ -445,6 +454,36 @@ fun DriverScreen(onLogout: () -> Unit) {
                 
             }
             ErrorText(msg)
+            }
+            else if (active != null && st == "started" && !mapOnlyMode) {
+                val tripDistance = route?.let {
+                    String.format(java.util.Locale.US, "%.1f km · %d daq", it.km, it.min)
+                } ?: tr("Marshrut hisoblanmoqda…", "Маршрут рассчитывается…", "Calculating route…")
+                Surface(
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .fillMaxWidth()
+                        .clickable { sheetExpanded = true },
+                    shape = RoundedCornerShape(18.dp),
+                    color = Ink,
+                    shadowElevation = 12.dp,
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(tr("MANZILGACHA", "ДО ПУНКТА НАЗНАЧЕНИЯ", "TO DESTINATION"),
+                                fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.65f))
+                            Text(tripDistance, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
+                        }
+                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(som(active.optLong("price")), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Yellow)
+                            Text(payText(active), fontSize = 10.sp, color = Color.White.copy(alpha = 0.65f))
+                        }
+                    }
+                }
             }
             else if (!online && !mapOnlyMode) {
                 Surface(
