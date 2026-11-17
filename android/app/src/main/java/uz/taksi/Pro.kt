@@ -388,7 +388,7 @@ fun IntercityOrder(pickup: Pair<Double, Double>?, pickupName: String, pay: Strin
 
 /** Yandex Pro uslubidagi qisqa kartochka: bugungi buyurtmalar, daromad va keyingi bonus. */
 @Composable
-fun DayCard(count: Int, sum: Long) {
+fun DayCard(count: Int, sum: Long, priority: Int = 0) {
     var next by remember { mutableStateOf<JSONObject?>(null) }
     var today by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
@@ -403,6 +403,10 @@ fun DayCard(count: Int, sum: Long) {
     }
     Panel {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Ustuvorlik", fontSize = 12.sp, color = Muted)
+                Text("+$priority", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+            }
             Column(Modifier.weight(1f)) {
                 Text("$count ta buyurtma", fontSize = 12.sp, color = Muted)
                 Text(som(sum), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)

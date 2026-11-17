@@ -183,7 +183,6 @@ fun DriverScreen(onLogout: () -> Unit) {
             locOf(active, "passengerLoc")?.let { add(Pin(it.first, it.second, "Yo'lovchi (hozir)", ORANGE)) }
         } else {
             available.forEach { add(Pin(it.optDouble("fromLat"), it.optDouble("fromLng"), "Buyurtma #${it.optInt("id")}", GREEN)) }
-            demand.forEach { add(Pin(it.optDouble("lat"), it.optDouble("lng"), "🔥 Talab: ${it.optInt("count")} ta", ORANGE)) }
         }
         me?.let { add(Pin(it.first, it.second, "Men", BLUE)) }
     }
@@ -214,6 +213,11 @@ fun DriverScreen(onLogout: () -> Unit) {
                 fitKey = if (follow && navActive) null else fitKey,
                 centerKey = centerKey,
                 zoom = if (follow && navActive) 17.0f else 15.0f,
+                zones = if (active == null) demand.map {
+                    val f = it.optLong("from")
+                    Zone(it.optDouble("lat"), it.optDouble("lng"), 650f,
+                        if (f > 0) "🔒 " + som(f).replace(" so'm", "") + " so'mdan" else "${it.optInt("count")} ta buyurtma")
+                } else emptyList(),
             )
             if (navActive && nextStep != null) {
                 val dist = me?.let { meters(it, nextStep.lat, nextStep.lng) } ?: 0.0
@@ -243,7 +247,15 @@ fun DriverScreen(onLogout: () -> Unit) {
                     fontSize = 12.sp, color = Color(0xFF8A6100), fontWeight = FontWeight.SemiBold,
                 )
             }
-            FloatingChip(
+            if (!navActive) {
+                Column(Modifier.align(Alignment.TopStart).padding(start = 18.dp, top = 14.dp, end = 80.dp)
+                    .clickable { if (online) confirmOffline = true }) {
+                    Text(if (online) "Liniyada" else "Liniyada emas", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Ink,
+                        modifier = Modifier.background(Color.White.copy(alpha = 0.75f), RoundedCornerShape(8.dp)).padding(horizontal = 6.dp))
+                    Text(if (online) "Buyurtmalar qidirilmoqda" else "Buyurtmalarni qidirish o'chirilgan", fontSize = 13.sp, color = Ink, fontWeight = FontWeight.Medium,
+                        modifier = Modifier.background(Color.White.copy(alpha = 0.75f), RoundedCornerShape(8.dp)).padding(horizontal = 6.dp))
+                }
+            } else FloatingChip(
                 if (online) "🟢 ONLAYN" else "⚪ OFFLAYN",
                 Modifier.align(Alignment.TopStart).padding(12.dp),
             ) {
@@ -317,7 +329,8 @@ fun DriverScreen(onLogout: () -> Unit) {
                 }
             } else {
                 if (!online) {
-                    DayCard(stats?.optInt("todayCount") ?: 0, stats?.optLong("todaySum") ?: 0L)
+                    DayCard(stats?.optInt("todayCount") ?: 0, stats?.optLong("todaySum") ?: 0L,
+                        priorityOf(stats?.optDouble("rating") ?: 0.0, stats?.optInt("ratingCount") ?: 0, stats?.optInt("totalCount") ?: 0))
                     Panel(color = Ink) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {

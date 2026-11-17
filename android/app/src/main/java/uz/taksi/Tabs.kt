@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val TABS = listOf("🚕" to "Safar", "💰" to "Pul", "💬" to "Yordam", "👤" to "Kabinet")
+private val DRIVER_TABS = listOf("🧭" to "Buyurtmalar", "🗓" to "Shaharlararo", "👛" to "Pul", "💬" to "Chatlar", "👤" to "Profil")
 
 /**
  * Asosiy qobiq: safar ekrani doim ostida turadi (tanlangan manzil va faol buyurtma yo'qolmaydi),
@@ -42,7 +43,14 @@ fun Shell(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
             if (role == "driver") DriverScreen(onLogout) else PassengerScreen(onLogout)
             if (tab != 0) {
                 Box(Modifier.fillMaxSize().background(PageBg).pointerInput(Unit) { detectTapGestures { } }) {
-                    when (tab) {
+                    if (role == "driver") {
+                        when (tab) {
+                            1 -> DriverIntercityTab()
+                            2 -> MoneyTab(role)
+                            3 -> SupportTab(role)
+                            else -> DriverProfile(prefs, onLogout) { tab = 3 }
+                        }
+                    } else when (tab) {
                         1 -> MoneyTab(role)
                         2 -> SupportTab(role)
                         else -> CabinetTab(role, prefs, onLogout)
@@ -50,7 +58,7 @@ fun Shell(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
                 }
             }
         }
-        BottomTabs(TABS, tab) { tab = it }
+        BottomTabs(if (role == "driver") DRIVER_TABS else TABS, tab) { tab = it }
     }
 }
 
@@ -69,7 +77,7 @@ fun BottomTabs(tabs: List<Pair<String, String>>, selected: Int, onSelect: (Int) 
                         Modifier.clip(RoundedCornerShape(50))
                             .background(if (sel) Yellow else Color.Transparent)
                             .padding(horizontal = 16.dp, vertical = 4.dp),
-                    ) { Text(icon, fontSize = 18.sp) }
+                    ) { Text(icon, fontSize = 18.sp, color = if (sel) Ink else Muted) }
                     Text(
                         label, fontSize = 11.sp,
                         fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,

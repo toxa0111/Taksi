@@ -278,7 +278,7 @@ fun CabinetTab(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
     }
 }
 
-private fun versionName(ctx: Context): String = try {
+fun versionName(ctx: Context): String = try {
     ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "-"
 } catch (e: Exception) { "-" }
 

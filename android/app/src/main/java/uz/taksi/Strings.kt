@@ -443,6 +443,23 @@ Karta raqami yoki izohni yozing§Укажите номер карты или к�
 ~^(\d+) ta buyurtma$§\1 заказов§\1 orders
 ~^Yana (\d+) ta buyurtma$§Ещё \1 заказов§\1 more orders
 ~^(\d+)/(\d+) · Bugun$§\1/\2 · Сегодня§\1/\2 · Today
+Shaharlararo§Межгород§Intercity
+Chatlar§Чаты§Chats
+Daraja§Уровень§Level
+Ustuvorlik§Приоритет§Priority
+Yangi§Новичок§Newbie
+Tajribali§Опытный§Experienced
+Ekspert§Эксперт§Expert
+Naqd pul§Наличные§Cash
+Mening transportim§Мой транспорт§My vehicle
+Mening avtomobilim§Мой автомобиль§My car
+Raqam kiritilmagan§Номер не указан§No plate added
+Ilova versiyasi§Версия приложения§App version
+Hozircha shaharlararo buyurtma yo'q§Пока нет межгородних заказов§No intercity orders yet
+Liniyada§На линии§Online
+Liniyada emas§Не на линии§Offline
+Buyurtmalar qidirilmoqda§Идёт поиск заказов§Looking for orders
+Buyurtmalarni qidirish o'chirilgan§Поиск заказов отключён§Order search is off
 """
 
 private class Rules(

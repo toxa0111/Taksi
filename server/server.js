@@ -402,6 +402,7 @@ http.createServer(async (req, res) => {
         name: user.name || '',
         phone: user.phone || '',
         role: user.role || '',
+        id: user.id,
       });
     }
 
@@ -422,11 +423,11 @@ http.createServer(async (req, res) => {
       const cells = {};
       for (const o of src) {
         const k = Math.round(o.fromLat * 100) + ':' + Math.round(o.fromLng * 100);   // ~1 km katak
-        const c = cells[k] || (cells[k] = { n: 0, lat: 0, lng: 0, searching: 0 });
-        c.n++; c.lat += o.fromLat; c.lng += o.fromLng; if (o.status === 'searching') c.searching++;
+        const c = cells[k] || (cells[k] = { n: 0, lat: 0, lng: 0, searching: 0, min: Infinity });
+        c.min = Math.min(c.min, Number(o.price) || Infinity); c.n++; c.lat += o.fromLat; c.lng += o.fromLng; if (o.status === 'searching') c.searching++;
       }
       const zones = Object.values(cells).sort((x, y) => y.n - x.n).slice(0, 8)
-        .map(c => ({ lat: c.lat / c.n, lng: c.lng / c.n, count: c.n, searching: c.searching }));
+        .map(c => ({ lat: c.lat / c.n, lng: c.lng / c.n, count: c.n, searching: c.searching, from: Number.isFinite(c.min) ? c.min : 0 }));
       return send(res, 200, { zones, windowMin: win });
     }
 

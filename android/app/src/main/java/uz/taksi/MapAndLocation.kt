@@ -26,12 +26,14 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.yandex.mapkit.geometry.Circle
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.geometry.Polyline
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.InputListener
 import com.yandex.mapkit.map.Map
 import com.yandex.mapkit.map.MapObjectCollection
+import com.yandex.mapkit.map.TextStyle
 import com.yandex.mapkit.mapview.MapView
 import com.yandex.runtime.image.ImageProvider
 import android.location.LocationListener
@@ -40,6 +42,9 @@ import java.lang.ref.WeakReference
 
 /** Xaritadagi nuqta. title — bosilganda chiqadigan yozuv. */
 data class Pin(val lat: Double, val lng: Double, val title: String, val color: Int)
+
+/** Talab zonasi: markaz, radius (metr) va yozuv. */
+data class Zone(val lat: Double, val lng: Double, val radius: Float, val label: String)
 
 val GREEN = 0xFF2E7D32.toInt()
 val RED = 0xFFC62828.toInt()
@@ -53,6 +58,7 @@ private class MapState(
     val route: List<Pair<Double, Double>>?,
     val fitDone: Any?,
     val zoom: Float,
+    val zones: List<Zone>,
 )
 
 private fun pinImage(context: Context, color: Int): ImageProvider {
@@ -79,6 +85,7 @@ fun MapBox(
     centerKey: Int = 0,
     zoom: Float = 15.0f,
     onMapTap: (() -> Unit)? = null,
+    zones: List<Zone> = emptyList(),
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -148,7 +155,7 @@ fun MapBox(
             if (previous == null || previous.center != center || previous.centerKey != centerKey || previous.zoom != zoom) {
                 map.move(CameraPosition(Point(center.first, center.second), zoom, 0.0f, 0.0f))
             }
-            if (previous == null || previous.pins != pins || previous.route != route) {
+            if (previous == null || previous.pins != pins || previous.route != route || previous.zones != zones) {
                 val objects: MapObjectCollection = map.mapObjects
                 objects.clear()
                 route?.takeIf { it.size > 1 }?.let { points ->
@@ -157,6 +164,22 @@ fun MapBox(
                             setStrokeColor(0xFF2962FF.toInt())
                             style = style.apply { strokeWidth = 5f }
                         }
+                }
+                zones.forEach { z ->
+                    objects.addCircle(Circle(Point(z.lat, z.lng), z.radius)).apply {
+                        fillColor = 0x553D5AFE
+                        strokeColor = 0xFF3D5AFE.toInt()
+                        strokeWidth = 1.5f
+                    }
+                    objects.addPlacemark().apply {
+                        geometry = Point(z.lat, z.lng)
+                        setText(z.label, TextStyle().apply {
+                            size = 12f
+                            color = 0xFF1F2A8C.toInt()
+                            outlineColor = 0xFFFFFFFF.toInt()
+                            placement = TextStyle.Placement.CENTER
+                        })
+                    }
                 }
                 pins.forEach { pin ->
                     objects.addPlacemark().apply {
@@ -179,7 +202,7 @@ fun MapBox(
                 val target = Point((minLat + maxLat) / 2.0, (minLon + maxLon) / 2.0)
                 map.move(CameraPosition(target, z, 0.0f, 0.0f))
             }
-            view.tag = MapState(center, centerKey, pins, route, fitDone, zoom)
+            view.tag = MapState(center, centerKey, pins, route, fitDone, zoom, zones)
         },
     )
 }

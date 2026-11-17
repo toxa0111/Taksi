@@ -104,7 +104,10 @@ private fun DocStatus(status: String?) {
 
 /** Kabinetdagi qator: bosilsa, hujjatlar sahifasi to'liq ekranda ochiladi. */
 @Composable
-fun DriverDocsEntry() {
+fun DriverDocsEntryRow() = DriverDocsEntry(row = true)
+
+@Composable
+fun DriverDocsEntry(row: Boolean = false) {
     var open by remember { mutableStateOf(false) }
     var summary by remember { mutableStateOf("") }
     LaunchedEffect(open) {
@@ -121,6 +124,9 @@ fun DriverDocsEntry() {
             else "Yuklangan $up/${DOC_LABELS.size} · Tasdiqlangan $ok/${DOC_LABELS.size}"
         } catch (e: Exception) { }
     }
+    if (row) {
+        MenuRow("🪪", "Hujjatlar va tasdiqlash", summary) { open = true }
+    } else {
     Panel {
         Row(
             Modifier.fillMaxWidth().clickable { open = true }.padding(vertical = 4.dp),
@@ -133,6 +139,7 @@ fun DriverDocsEntry() {
             }
             Text("›", fontSize = 26.sp, color = Muted)
         }
+    }
     }
     if (open) {
         Dialog(onDismissRequest = { open = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
