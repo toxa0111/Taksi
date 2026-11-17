@@ -107,10 +107,13 @@ fun currentVersionCode(ctx: Context): Int = try {
     @Suppress("DEPRECATION") i.versionCode
 } catch (e: Exception) { 0 }
 
-/** GitHub Releases ichidan eng yangi build APK sini topadi (stable va test release'lar). */
+/** Faqat eng yangi barqaror GitHub Release APK sini topadi.
+ * PR/test prerelease buildlar foydalanuvchilarga avtomatik yangilanish sifatida berilmaydi.
+ */
 suspend fun latestRelease(): Pair<Int, String>? = withContext(Dispatchers.IO) {
     try {
-        val c = URL("https://api.github.com/repos/$REPO/releases?per_page=30").openConnection() as HttpURLConnection
+        // /releases/latest GitHub tomonidan prerelease va draftlarni avtomatik chiqarib tashlaydi.
+        val c = URL("https://api.github.com/repos/$REPO/releases/latest").openConnection() as HttpURLConnection
         c.connectTimeout = 20000
         c.readTimeout = 20000
         c.useCaches = false
@@ -120,55 +123,30 @@ suspend fun latestRelease(): Pair<Int, String>? = withContext(Dispatchers.IO) {
         c.setRequestProperty("Cache-Control", "no-cache")
         c.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
         val code = c.responseCode
-        if (code !in 200..299) {
-            android.util.Log.w("TOXA_UPDATE", "GitHub release tekshiruvi HTTP $code; zaxira Atom feed tekshiriladi")
-            throw java.io.IOException("GitHub HTTP $code")
-        }
-        val releases = JSONArray(c.inputStream.bufferedReader().use { it.readText() })
+        if (code !in 200..299) throw java.io.IOException("GitHub HTTP $code")
+        val release = JSONObject(c.inputStream.bufferedReader().use { it.readText() })
         c.disconnect()
-        var bestVersion = -1
-        var bestUrl = ""
-        for (i in 0 until releases.length()) {
-            val release = releases.optJSONObject(i) ?: continue
-            val tag = release.optString("tag_name")
-            if (!tag.startsWith("build-")) continue
-            val version = tag.removePrefix("build-").toIntOrNull() ?: continue
-            val assets = release.optJSONArray("assets") ?: continue
-            for (j in 0 until assets.length()) {
-                val asset = assets.optJSONObject(j) ?: continue
-                val name = asset.optString("name")
-                val downloadUrl = asset.optString("browser_download_url")
-                // Faqat foydalanuvchi ilovasi APK sini tanlaymiz; admin APK yangilanish sifatida olinmasin.
-                if (name.equals("taksi.apk", ignoreCase = true) && downloadUrl.startsWith("https://") && version > bestVersion) {
-                    bestVersion = version
-                    bestUrl = downloadUrl
-                }
+
+        if (release.optBoolean("draft", false) || release.optBoolean("prerelease", false)) return@withContext null
+        val tag = release.optString("tag_name")
+        val version = tag.removePrefix("build-").toIntOrNull() ?: return@withContext null
+        if (!tag.startsWith("build-")) return@withContext null
+
+        val assets = release.optJSONArray("assets") ?: return@withContext null
+        for (j in 0 until assets.length()) {
+            val asset = assets.optJSONObject(j) ?: continue
+            val name = asset.optString("name")
+            val downloadUrl = asset.optString("browser_download_url")
+            if (name.equals("taksi.apk", ignoreCase = true) &&
+                downloadUrl.startsWith("https://")
+            ) {
+                return@withContext version to downloadUrl
             }
         }
-        if (bestVersion > 0 && bestUrl.isNotBlank()) Pair(bestVersion, bestUrl) else null
+        null
     } catch (e: Exception) {
-        android.util.Log.w("TOXA_UPDATE", "GitHub API tekshiruvi bajarilmadi, Atom feed zaxira usuli ishga tushadi", e)
-        try {
-            // GitHub API rate-limit yoki vaqtinchalik xatoda releases Atom feed ishlatiladi.
-            val feed = URL("https://github.com/$REPO/releases.atom").openConnection() as HttpURLConnection
-            feed.connectTimeout = 15000
-            feed.readTimeout = 15000
-            feed.useCaches = false
-            feed.setRequestProperty("User-Agent", "TOXA-Android-App")
-            val xml = feed.inputStream.bufferedReader().use { it.readText() }
-            feed.disconnect()
-            val versions = Regex("""releases/tag/(build-([0-9]+))""")
-                .findAll(xml)
-                .mapNotNull { match ->
-                    val version = match.groupValues[2].toIntOrNull() ?: return@mapNotNull null
-                    version to match.groupValues[1]
-                }
-                .toList()
-            val newest = versions.maxByOrNull { it.first }
-            newest?.let { it.first to "https://github.com/$REPO/releases/download/${it.second}/taksi.apk" }
-        } catch (fallbackError: Exception) {
-            android.util.Log.w("TOXA_UPDATE", "Atom feed orqali ham tekshirib bo'lmadi", fallbackError)
-            null
-        }
+        // API ishlamasa test prerelease Atom feed orqali ham taklif qilinmaydi.
+        android.util.Log.w("TOXA_UPDATE", "Barqaror GitHub release tekshiruvi bajarilmadi", e)
+        null
     }
 }
