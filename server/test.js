@@ -17,7 +17,11 @@ async function login(phone, name, role) {
   ok((await call('POST', '/auth/verify', { phone: '+998901112244', code: '000000', name: 'X' })).s === 400, 'noto\'g\'ri kod rad etildi');
   const P = await login('+998901112233', 'Ali', 'passenger');
   const D = await login('+998907778899', 'Vali', 'driver');
-  ok(P && D, 'ro\'yxatdan o\'tish');
+  ok(P && D, 'ro\\'yxatdan o\\'tish');
+  const pp = await call('GET', '/profile', null, P);
+  const dp = await call('GET', '/profile', null, D);
+  ok(pp.s === 200 && pp.j.name === 'Ali' && pp.j.phone === '+998901112233' && pp.j.role === 'passenger', 'yo\\'lovchi kabinet profili');
+  ok(dp.s === 200 && dp.j.name === 'Vali' && dp.j.phone === '+998907778899' && dp.j.role === 'driver', 'haydovchi kabinet profili');
   ok((await call('GET', '/orders/mine')).s === 401, 'tokensiz 401');
 
   const q = await call('GET', '/estimate?flat=41.311&flng=69.279&tlat=41.340&tlng=69.285', null, P);
@@ -42,6 +46,7 @@ async function login(phone, name, role) {
   const av = await call('GET', '/orders/available', null, D);
   ok(av.j.orders.length === 1 && av.j.orders[0].pickupKm > 0, 'haydovchi buyurtmani va yo\'lovchigacha masofani ko\'rdi: ' + av.j.orders[0].pickupKm + ' km');
   ok((await call('POST', `/orders/${id}/accept`, {}, D)).s === 200, 'haydovchi qabul qildi');
+  ok((await call('POST', '/driver/availability', { online: false }, D)).s === 400, 'faol safarda offlayn bo\\'lish rad etildi');
   ok((await call('POST', `/orders/${id}/accept`, {}, D)).s === 400, 'qayta qabul qilib bo\'lmaydi');
 
   const live = (await call('GET', '/orders/mine', null, P)).j.orders[0];
@@ -78,6 +83,13 @@ async function login(phone, name, role) {
   const o3 = await call('POST', '/orders', card, P);
   await call('POST', `/orders/${o3.j.order.id}/accept`, {}, D);
   ok((await call('POST', `/orders/${o3.j.order.id}/cancel`, {}, D)).j.order.status === 'searching', 'haydovchi rad etdi — qayta qidiruvga o\'tdi');
+
+  const off = await call('POST', '/driver/availability', { online: false }, D);
+  ok(off.s === 200 && off.j.online === false, 'haydovchi offlayn holatga o\\'tdi');
+  const hidden = await call('GET', '/orders/available', null, D);
+  ok(hidden.s === 200 && Array.isArray(hidden.j.orders) && hidden.j.orders.length === 0, 'offlayn haydovchiga buyurtmalar ko\\'rsatilmaydi');
+  const backOnline = await call('POST', '/driver/availability', { online: true }, D);
+  ok(backOnline.s === 200 && backOnline.j.online === true, 'haydovchi qayta onlayn bo\\'ldi');
 
   console.log(fails ? `\n${fails} ta xato` : '\nHammasi o\'tdi');
   process.exit(fails ? 1 : 0);
