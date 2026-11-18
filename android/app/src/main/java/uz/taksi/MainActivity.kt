@@ -1,5 +1,6 @@
 package uz.taksi
 
+import androidx.lifecycle.repeatOnLifecycle
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
