@@ -4,6 +4,8 @@ import android.content.SharedPreferences
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -70,14 +71,18 @@ fun BottomTabs(tabs: List<Pair<String, String>>, selected: Int, onSelect: (Int) 
             tabs.forEachIndexed { i, (icon, label) ->
                 val sel = selected == i
                 Column(
-                    Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable { onSelect(i) }.padding(vertical = 4.dp),
+                    Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).bounceClick(to = 0.9f) { onSelect(i) }.padding(vertical = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
+                    val iconScale by androidx.compose.animation.core.animateFloatAsState(
+                        if (sel) 1.18f else 1f,
+                        androidx.compose.animation.core.spring(dampingRatio = 0.4f, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium), label = "tab",
+                    )
                     Box(
                         Modifier.clip(RoundedCornerShape(50))
-                            .background(if (sel) Yellow else Color.Transparent)
+                            .background(androidx.compose.animation.animateColorAsState(if (sel) Yellow else Color.Transparent, label = "tabbg").value)
                             .padding(horizontal = 16.dp, vertical = 4.dp),
-                    ) { Text(icon, fontSize = 18.sp, color = if (sel) Ink else Muted) }
+                    ) { Text(icon, fontSize = 18.sp, color = if (sel) Ink else Muted, modifier = Modifier.graphicsLayer { scaleX = iconScale; scaleY = iconScale }) }
                     Text(
                         label, fontSize = 11.sp,
                         fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,

@@ -1,5 +1,21 @@
 package uz.taksi
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.material3.ripple
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +46,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -82,26 +99,64 @@ fun TaksiTheme(content: @Composable () -> Unit) {
 
 // ───────────────────────── Tugmalar ─────────────────────────
 
-/** Asosiy (sariq) katta tugma. */
+
+// ───────────────────────── Jonli (animatsiyali) bosish ─────────────────────────
+
+/** Bosilganda yumshoq "cho'kadi" va qo'yib yuborilganda prujinadek qaytadi. */
+@Composable
+fun pressScale(src: MutableInteractionSource, enabled: Boolean = true, to: Float = 0.95f): Float {
+    val pressed by src.collectIsPressedAsState()
+    return animateFloatAsState(
+        if (pressed && enabled) to else 1f,
+        spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessMediumLow), label = "press",
+    ).value
+}
+
+/** Har qanday qator/kartaga: bosilganda kichrayadi, tebranish (haptic) beradi. */
+fun Modifier.bounceClick(enabled: Boolean = true, to: Float = 0.97f, onClick: () -> Unit): Modifier = composed {
+    val src = remember { MutableInteractionSource() }
+    val sc = pressScale(src, enabled, to)
+    val haptic = LocalHapticFeedback.current
+    this.graphicsLayer { scaleX = sc; scaleY = sc }
+        .clickable(interactionSource = src, indication = ripple(), enabled = enabled) {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        }
+}
+
+/** Asosiy (sariq) katta tugma: gradient, yumshoq soya, bosilganda cho'kadi va qaytadi. */
 @Composable
 fun BigButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
-    Button(
-        onClick = onClick, enabled = enabled,
-        modifier = modifier.fillMaxWidth().height(54.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Yellow, contentColor = Ink,
-            disabledContainerColor = Chip, disabledContentColor = Muted,
-        ),
-    ) { Text(text, fontWeight = FontWeight.Bold, fontSize = 16.sp) }
+    val src = remember { MutableInteractionSource() }
+    val pressed by src.collectIsPressedAsState()
+    val sc = pressScale(src, enabled, 0.96f)
+    val elev by animateDpAsState(if (!enabled) 0.dp else if (pressed) 1.dp else 7.dp, label = "elev")
+    val haptic = LocalHapticFeedback.current
+    val shape = RoundedCornerShape(16.dp)
+    val fill = if (enabled) Brush.verticalGradient(listOf(Color(0xFFFFE680), Yellow, Color(0xFFF0B400)))
+    else Brush.verticalGradient(listOf(Chip, Chip))
+    Box(
+        modifier.fillMaxWidth().height(54.dp)
+            .graphicsLayer { scaleX = sc; scaleY = sc }
+            .shadow(elev, shape, ambientColor = Color(0xFFF0B400), spotColor = Color(0xFFB07A00))
+            .clip(shape).background(fill)
+            .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = if (enabled) 0.55f else 0f), Color.Transparent)), shape)
+            .clickable(interactionSource = src, indication = ripple(color = Ink), enabled = enabled) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick()
+            },
+        contentAlignment = Alignment.Center,
+    ) { Text(text, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if (enabled) Ink else Muted) }
 }
 
 /** Qora tugma (ikkinchi darajali asosiy amal). */
 @Composable
 fun DarkButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+    val src = remember { MutableInteractionSource() }
+    val sc = pressScale(src, enabled, 0.96f)
     Button(
-        onClick = onClick, enabled = enabled,
-        modifier = modifier.height(54.dp),
+        onClick = onClick, enabled = enabled, interactionSource = src,
+        modifier = modifier.height(54.dp).graphicsLayer { scaleX = sc; scaleY = sc },
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Ink, contentColor = Color.White,
@@ -113,9 +168,11 @@ fun DarkButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = t
 /** Ramkali tugma. */
 @Composable
 fun GhostButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+    val src = remember { MutableInteractionSource() }
+    val sc = pressScale(src, enabled, 0.96f)
     OutlinedButton(
-        onClick = onClick, enabled = enabled,
-        modifier = modifier.fillMaxWidth().height(50.dp),
+        onClick = onClick, enabled = enabled, interactionSource = src,
+        modifier = modifier.fillMaxWidth().height(50.dp).graphicsLayer { scaleX = sc; scaleY = sc },
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = Fg),
     ) { Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp) }
@@ -124,7 +181,9 @@ fun GhostButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = 
 /** Qizil matnli tugma (bekor qilish kabi). */
 @Composable
 fun DangerButton(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    TextButton(onClick = onClick, modifier = modifier.fillMaxWidth().height(46.dp)) {
+    val src = remember { MutableInteractionSource() }
+    val sc = pressScale(src, true, 0.96f)
+    TextButton(onClick = onClick, interactionSource = src, modifier = modifier.fillMaxWidth().height(46.dp).graphicsLayer { scaleX = sc; scaleY = sc }) {
         Text(text, color = Bad, fontWeight = FontWeight.SemiBold)
     }
 }
@@ -186,8 +245,8 @@ fun Segmented(
             val sel = key == selected
             Box(
                 Modifier.weight(1f).clip(RoundedCornerShape(11.dp))
-                    .background(if (sel) Card else Color.Transparent)
-                    .clickable { onSelect(key) }
+                    .background(animateColorAsState(if (sel) Card else Color.Transparent, label = "seg").value)
+                    .bounceClick(to = 0.95f) { onSelect(key) }
                     .padding(vertical = 11.dp),
                 contentAlignment = Alignment.Center,
             ) {

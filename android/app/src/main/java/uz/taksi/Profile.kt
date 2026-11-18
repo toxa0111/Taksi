@@ -72,7 +72,7 @@ private fun StatTile(value: String, label: String, icon: String, modifier: Modif
 @Composable
 fun MenuRow(icon: String, title: String, value: String = "", onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 13.dp),
+        Modifier.fillMaxWidth().bounceClick(to = 0.98f, onClick = onClick).padding(horizontal = 14.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(42.dp).clip(CircleShape).background(Chip), contentAlignment = Alignment.Center) { Text(icon, fontSize = 20.sp) }

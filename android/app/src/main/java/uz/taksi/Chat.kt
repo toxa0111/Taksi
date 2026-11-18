@@ -60,7 +60,7 @@ private fun Back(onBack: () -> Unit, title: String) {
 @Composable
 private fun ChatRow(icon: String, tint: Color, title: String, sub: String = "", badge: String = "", onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().bounceClick(to = 0.98f, onClick = onClick).padding(horizontal = 6.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(50.dp).clip(CircleShape).background(tint), contentAlignment = Alignment.Center) { Text(icon, fontSize = 24.sp) }
