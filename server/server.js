@@ -279,7 +279,7 @@ function faqReply(u, text) {
 const TOPUP_NAMES = { card: 'Karta orqali', click: 'Click', payme: 'Payme', paynet: 'Paynet', uzum: 'Uzum Bank', cash: 'Naqd (taksi ofisi)' };
 const OFFER_MS = { near: 20000, mid: 45000 };
 // Yangi buyurtma haydovchiga 10 soniya taklif qilinadi. 3 km ichidagi taklifni olmasa, 7 ball ayiriladi.
-const OFFER = { sec: 10, grace: 3, km: 3, penalty: 7 };
+const OFFER = { sec: 10, grace: 3, km: 3, penalty: 7, cancel: 4 };   // cancel: qabul qilgandan keyin bekor qilsa ayiriladigan ball
 const penaltyDelayMs = u => Math.min(12000, Math.floor((u.penalty || 0) / OFFER.penalty) * 3000);   // ball kam haydovchi buyurtmani kechroq ko'radi
 function applyPenalty(u, o) {
   o.pen = o.pen || {};
@@ -1166,7 +1166,13 @@ const server = http.createServer(async (req, res) => {
           o.status = 'cancelled'; save(); return send(res, 200, { order: view(o) });
         }
         if (o.driverId === user.id && ['accepted', 'arrived'].includes(o.status)) {
-          o.driverId = null; o.status = 'searching'; save(); return send(res, 200, { order: view(o) });
+          // Qabul qilib bo'lib bekor qilish: 4 ball ayiriladi; bu buyurtma shu haydovchiga qayta taklif qilinmaydi
+          user.penalty = (user.penalty || 0) + OFFER.cancel;
+          o.declined = o.declined || {}; o.declined[user.id] = 1;
+          o.pen = o.pen || {}; o.pen[user.id] = 1;
+          notify(user, 'Ball ayirildi', `Qabul qilingan buyurtma #${o.id} bekor qilindi: −${OFFER.cancel} ball. Ball kam bo'lsa, yangi buyurtmalar kechroq ko'rinadi.`, 'warning');
+          o.driverId = null; o.status = 'searching'; save();
+          return send(res, 200, { order: view(o), penalty: OFFER.cancel, total: user.penalty });
         }
         return send(res, 400, { error: 'Bekor qilib bo\'lmaydi' });
       }

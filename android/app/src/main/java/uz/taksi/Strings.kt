@@ -18,6 +18,10 @@ import androidx.compose.ui.unit.TextUnit
  */
 private const val TABLE = """
 Yuklanmoqda…§Загрузка…§Loading…
+Buyurtmani bekor qilish (−4 ball)§Отменить заказ (−4 балла)§Cancel order (−4 points)
+Buyurtmani bekor qilasizmi?§Отменить заказ?§Cancel the order?
+Qabul qilingan buyurtmani bekor qilsangiz, 4 ball ayiriladi va yangi buyurtmalar kechroq ko'rinadi.§Если отмените принятый заказ, спишется 4 балла и новые заказы будут появляться позже.§If you cancel an accepted order, 4 points are deducted and new orders appear to you later.
+Ha, bekor qilaman§Да, отменяю§Yes, cancel
 🔔 Yangi buyurtma!§🔔 Новый заказ!§🔔 New order!
 Rad etish (−7 ball)§Отклонить (−7 баллов)§Decline (−7 points)
 3 km ichidagi buyurtmani olmasangiz, 7 ball ayiriladi va yangi buyurtmalar kechroq ko'rinadi.§Если не примете заказ в радиусе 3 км, спишется 7 баллов и новые заказы будут появляться позже.§If you don't take an order within 3 km, 7 points are deducted and new orders appear to you later.

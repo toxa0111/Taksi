@@ -66,6 +66,7 @@ fun DriverScreen(onLogout: () -> Unit) {
     var shiftSlider by remember { mutableStateOf(0f) }
     var shiftDragging by remember { mutableStateOf(false) }
     var confirmOffline by remember { mutableStateOf(false) }
+    var confirmCancel by remember { mutableStateOf(0) }
     var msg by remember { mutableStateOf("") }
     var demand by remember { mutableStateOf(listOf<JSONObject>()) }
     LaunchedEffect(Unit) { Voice.init(ctx) }
@@ -230,6 +231,28 @@ fun DriverScreen(onLogout: () -> Unit) {
         me?.let { add(Pin(it.first, it.second, "Men", BLUE)) }
     }
 
+    if (confirmCancel != 0) {
+        AlertDialog(
+            onDismissRequest = { confirmCancel = 0 },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = Card,
+            title = { Text("Buyurtmani bekor qilasizmi?", fontWeight = FontWeight.Bold) },
+            text = { Text("Qabul qilingan buyurtmani bekor qilsangiz, 4 ball ayiriladi va yangi buyurtmalar kechroq ko'rinadi.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val cid = confirmCancel; confirmCancel = 0
+                    scope.launch {
+                        try {
+                            val r = io { Api.call("POST", "/orders/$cid/cancel") }
+                            msg = if (r.optInt("penalty") > 0) "Bekor qilindi: −" + r.optInt("penalty") + " ball" else ""
+                        } catch (e: Exception) { msg = e.message ?: "Xato" }
+                    }
+                }) { Text("Ha, bekor qilaman", color = Bad, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { confirmCancel = 0 }) { Text("Yo'q", color = Muted) } },
+        )
+    }
+
     if (confirmOffline) {
         AlertDialog(
             onDismissRequest = { confirmOffline = false },
@@ -356,7 +379,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                 }
 
                 if (st == "accepted" || st == "arrived") {
-                    DangerButton("Buyurtmani rad etish") { post("/orders/$id/cancel") }
+                    DangerButton("Buyurtmani bekor qilish (−4 ball)") { confirmCancel = id }
                 }
                 if (st == "started" && available.isNotEmpty()) {
                     Text("Keyingi buyurtma (oldindan band qilish)", fontSize = 13.sp, color = Muted)

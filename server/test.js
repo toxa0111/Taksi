@@ -388,6 +388,13 @@ async function login(phone, name, role) {
     ok(!a3 || !a3.offer, 'muddat tugadi: taklif yopildi');
     ok((await call('GET', '/stats', null, D8)).j.penalty === 14, 'qabul qilinmagan taklif uchun yana 7 ball ayirildi');
     ok((await call('GET', '/notifications', null, D8)).j.notes.some(n => n.title === 'Ball ayirildi'), 'ball haqida ogohlantirish yuborildi');
+    await call('POST', `/orders/${o2}/cancel`, null, P8);
+    const o3 = (await call('POST', '/orders', tr, P8)).j.order.id;
+    ok((await call('POST', `/orders/${o3}/accept`, null, D8)).s === 200, 'haydovchi buyurtmani qabul qildi');
+    const cc = await call('POST', `/orders/${o3}/cancel`, null, D8);
+    ok(cc.j.penalty === 4 && cc.j.total === 18, 'qabul qilib bekor qilsa 4 ball ayiriladi');
+    ok((await call('GET', '/stats', null, D8)).j.penalty === 18, 'statistikada 18 ball');
+    ok((await call('POST', `/orders/${o3}/cancel`, null, P8)).s === 200, 'mijoz bekor qildi (3)');
   }
 
   console.log(fails ? `\n${fails} ta xato` : '\nHammasi o\'tdi');
