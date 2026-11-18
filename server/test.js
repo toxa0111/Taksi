@@ -362,6 +362,34 @@ async function login(phone, name, role) {
     ok(dl.j.cards.length === 1 && dl.j.cards[0].main, 'karta o\'chirildi, qolgani asosiy bo\'ldi');
   }
 
+  // ---- 10 soniyalik taklif va ball tizimi ----
+  {
+    const D8 = await login('+998908880001', 'Taklif', 'driver');
+    const P8 = await login('+998908880002', 'Mijoz8', 'passenger');
+    await call('POST', '/driver/availability', { online: true }, D8);
+    await call('POST', '/location', { lat: 41.312, lng: 69.280 }, D8);
+    const tr = { from: 'A', to: 'B', fromLat: 41.311, fromLng: 69.279, toLat: 41.34, toLng: 69.285, payMethod: 'cash' };
+    const o1 = (await call('POST', '/orders', tr, P8)).j.order.id;
+    const a1 = (await call('GET', '/orders/available', null, D8)).j.orders.find(x => x.id === o1);
+    ok(a1 && a1.offer === true && a1.offerLeftMs > 0 && a1.offerLeftMs <= 10000, 'yaqin buyurtma: 10 soniyalik taklif boshlandi');
+    const dc = await call('POST', `/orders/${o1}/decline`, null, D8);
+    ok(dc.j.penalty === 7 && dc.j.total === 7, 'rad etilsa 7 ball ayiriladi');
+    ok((await call('POST', `/orders/${o1}/decline`, null, D8)).j.penalty === 0, 'bir buyurtma uchun ball ikki marta ayirilmaydi');
+    ok(!(await call('GET', '/orders/available', null, D8)).j.orders.some(x => x.id === o1), 'rad etilgan buyurtma ro\'yxatdan yo\'qoldi');
+    ok((await call('GET', '/stats', null, D8)).j.penalty === 7, 'statistikada ball ko\'rinadi');
+    ok((await call('POST', `/orders/${o1}/cancel`, null, P8)).s === 200, 'mijoz bekor qildi');
+    const o2 = (await call('POST', '/orders', tr, P8)).j.order.id;
+    ok(!(await call('GET', '/orders/available', null, D8)).j.orders.some(x => x.id === o2), 'ball kam: yangi buyurtma biroz kechroq ko\'rinadi');
+    await new Promise(r => setTimeout(r, 3300));
+    const a2 = (await call('GET', '/orders/available', null, D8)).j.orders.find(x => x.id === o2);
+    ok(a2 && a2.offer === true, 'kechikishdan keyin taklif ko\'rindi');
+    await new Promise(r => setTimeout(r, 13500));
+    const a3 = (await call('GET', '/orders/available', null, D8)).j.orders.find(x => x.id === o2);
+    ok(!a3 || !a3.offer, 'muddat tugadi: taklif yopildi');
+    ok((await call('GET', '/stats', null, D8)).j.penalty === 14, 'qabul qilinmagan taklif uchun yana 7 ball ayirildi');
+    ok((await call('GET', '/notifications', null, D8)).j.notes.some(n => n.title === 'Ball ayirildi'), 'ball haqida ogohlantirish yuborildi');
+  }
+
   console.log(fails ? `\n${fails} ta xato` : '\nHammasi o\'tdi');
   process.exit(fails ? 1 : 0);
 })();

@@ -277,7 +277,19 @@ function faqReply(u, text) {
   return 'Savolingizni tushundim, lekin aniq javob bera olmayman. "Qo\'llab-quvvatlash" bo\'limidan operatorga yozing, tez orada javob berishadi.';
 }
 const TOPUP_NAMES = { card: 'Karta orqali', click: 'Click', payme: 'Payme', paynet: 'Paynet', uzum: 'Uzum Bank', cash: 'Naqd (taksi ofisi)' };
-const OFFER_MS = { near: 20000, mid: 45000 };   // yaqin haydovchilarga avval, keyin kengroq, oxirida hammaga
+const OFFER_MS = { near: 20000, mid: 45000 };
+// Yangi buyurtma haydovchiga 10 soniya taklif qilinadi. 3 km ichidagi taklifni olmasa, 7 ball ayiriladi.
+const OFFER = { sec: 10, grace: 3, km: 3, penalty: 7 };
+const penaltyDelayMs = u => Math.min(12000, Math.floor((u.penalty || 0) / OFFER.penalty) * 3000);   // ball kam haydovchi buyurtmani kechroq ko'radi
+function applyPenalty(u, o) {
+  o.pen = o.pen || {};
+  if (o.pen[u.id]) return false;
+  o.pen[u.id] = 1;
+  u.penalty = (u.penalty || 0) + OFFER.penalty;
+  notify(u, 'Ball ayirildi', `Buyurtma #${o.id} (${OFFER.km} km ichida) o'z vaqtida qabul qilinmadi: −${OFFER.penalty} ball. Ball kam bo'lsa, yangi buyurtmalar kechroq ko'rinadi. Har bir tugagan safar 1 ball qaytaradi.`, 'warning');
+  return true;
+}
+   // yaqin haydovchilarga avval, keyin kengroq, oxirida hammaga
 const reserveValid = o => o.reservedBy && Date.now() - (o.reservedAt || 0) < 20 * 60 * 1000;
 
 // ---- Yordamchilar ----
@@ -821,7 +833,7 @@ const server = http.createServer(async (req, res) => {
         day: dayQ, days, commission: comm, commissionPercent: COMM(),
         cash: sumP(os.filter(o => o.payMethod === 'cash')), card: sumP(os.filter(o => o.payMethod === 'card')), bonus,
         total: sumP(os) + bonus + comm,
-        orders: os.slice(0, 50).map(o => ({ id: o.id, t: o.doneAt, from: o.from, to: o.to, price: o.price })),
+        orders: os.slice(0, 50).map(o => ({ id: o.id, t: o.doneAt, from: o.from, to: o.to, price: o.price, pay: o.payMethod })),
       });
     }
 
@@ -1023,19 +1035,41 @@ const server = http.createServer(async (req, res) => {
       if (user.online !== true) return send(res, 200, { orders: [] });
       const me = fresh(user);
       const now = Date.now();
+      const busy = db.orders.some(x => x.driverId === user.id && ['accepted', 'arrived', 'started'].includes(x.status));
+      // 10 soniyalik taklif tugagan va 3 km ichidagi buyurtma olinmagan bo'lsa: ball ayiriladi
+      let pen = false;
+      for (const o of db.orders) {
+        const sn = o.seen && o.seen[user.id];
+        if (o.status === 'searching' && sn && !(o.pen && o.pen[user.id]) && !(o.declined && o.declined[user.id]) &&
+            now > sn.at + (OFFER.sec + OFFER.grace) * 1000 && sn.km <= OFFER.km) pen = applyPenalty(user, o) || pen;
+      }
+      if (pen) save();
       const list = db.orders.filter(o => o.status === 'searching').filter(o => {
         if (reserveValid(o) && o.reservedBy !== user.id) return false;       // boshqa haydovchi band qilgan
         if (o.reservedBy === user.id && reserveValid(o)) return true;
         const age = now - o.createdAt;
+        if (o.declined && o.declined[user.id] && age < OFFER_MS.mid) return false;   // rad etgan: keyinroq (hamma ko'rganda) qaytadi
         if (age >= OFFER_MS.mid) return true;                                 // hammaga ko'rinadi
         if (!me) return age >= OFFER_MS.near;                                 // joylashuvi noma'lum: biroz keyin
         const d = distKm(me.lat, me.lng, o.fromLat, o.fromLng);
+        if (d <= OFFER.km && age < penaltyDelayMs(user)) return false;        // ball kam: biroz kechroq
         return d <= (age < OFFER_MS.near ? 3 : 7);                            // avval 3 km, keyin 7 km
-      }).map(o => ({
-        ...view(o),
-        pickupKm: me ? Math.round(distKm(me.lat, me.lng, o.fromLat, o.fromLng) * 10) / 10 : undefined,
-        reservedByMe: o.reservedBy === user.id && reserveValid(o) ? true : undefined,
-      })).sort((x, y) => (x.pickupKm ?? 1e9) - (y.pickupKm ?? 1e9) || y.id - x.id).slice(0, 20);
+      }).map(o => {
+        const km = me ? distKm(me.lat, me.lng, o.fromLat, o.fromLng) : undefined;
+        const v = {
+          ...view(o),
+          pickupKm: km !== undefined ? Math.round(km * 10) / 10 : undefined,
+          reservedByMe: o.reservedBy === user.id && reserveValid(o) ? true : undefined,
+        };
+        // 3 km ichida, band bo'lmagan haydovchiga: 10 soniyalik taklif boshlanadi
+        if (km !== undefined && km <= OFFER.km && !busy && !(o.pen && o.pen[user.id]) && !(o.declined && o.declined[user.id])) {
+          o.seen = o.seen || {};
+          if (!o.seen[user.id]) { o.seen[user.id] = { at: now, km }; save(); }
+          v.offer = true;
+          v.offerLeftMs = Math.max(0, o.seen[user.id].at + OFFER.sec * 1000 - now);
+        }
+        return v;
+      }).sort((x, y) => (x.pickupKm ?? 1e9) - (y.pickupKm ?? 1e9) || y.id - x.id).slice(0, 20);
       return send(res, 200, { orders: list });
     }
 
@@ -1053,10 +1087,11 @@ const server = http.createServer(async (req, res) => {
         totalCount: done.length, totalSum: sum(done),
         online: user.online === true,
         rating: Number(user.rating) || 0, ratingCount: Number(user.ratingCount) || 0,
+        penalty: user.penalty || 0,
       });
     }
 
-    const mm = p.match(/^\/orders\/(\d+)\/(accept|status|cancel|pay|rate|reserve|unreserve|lost)$/);
+    const mm = p.match(/^\/orders\/(\d+)\/(accept|decline|status|cancel|pay|rate|reserve|unreserve|lost)$/);
     if (m === 'POST' && mm) {
       const o = db.orders.find(x => x.id === +mm[1]);
       if (!o) return send(res, 404, { error: 'Buyurtma topilmadi' });
@@ -1085,6 +1120,16 @@ const server = http.createServer(async (req, res) => {
         o.lost = { text, at: Date.now() }; save();
         return send(res, 200, { order: view(o) });
       }
+      if (act === 'decline') {
+        if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+        if (o.status !== 'searching') return send(res, 200, { ok: true });
+        const sn = o.seen && o.seen[user.id];
+        o.declined = o.declined || {}; o.declined[user.id] = 1;
+        let lost = 0;
+        if (sn && sn.km <= OFFER.km && applyPenalty(user, o)) lost = OFFER.penalty;
+        save();
+        return send(res, 200, { ok: true, penalty: lost, total: user.penalty || 0 });
+      }
       if (act === 'accept') {
         if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
         if (user.online !== true) return send(res, 400, { error: 'Avval ishga chiqing' });
@@ -1108,6 +1153,7 @@ const server = http.createServer(async (req, res) => {
           const fee = Math.round((o.fullPrice || o.price) * COMM() / 100);
           if (fee > 0) { o.commission = fee; ledgerAdd(user, 'commission', -fee, 'Xizmat komissiyasi (#' + o.id + ')', o.id); }
           checkBalance(user);
+          if (user.penalty > 0) user.penalty = Math.max(0, user.penalty - 1);   // har bir tugagan safar 1 ball qaytaradi
           // Oldindan band qilingan keyingi buyurtma avtomatik qabul qilinadi
           const nx = db.orders.find(x => x.status === 'searching' && x.reservedBy === user.id && reserveValid(x));
           if (nx) { nx.driverId = user.id; nx.status = 'accepted'; delete nx.reservedBy; delete nx.reservedAt; }

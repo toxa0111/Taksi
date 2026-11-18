@@ -53,10 +53,12 @@ fun levelOf(trips: Int): String = when {
 }
 
 /** Ustuvorlik: reyting va safarlar soni asosida hisoblanadi (0 dan boshlanadi). */
-fun priorityOf(rating: Double, ratingCount: Int, trips: Int): Int {
+fun priorityOf(rating: Double, ratingCount: Int, trips: Int, penalty: Int = 0): Int {
     val r = if (ratingCount > 0) ((rating - 4.0).coerceAtLeast(0.0) * 40.0) else 0.0
-    return (r + minOf(trips, 200) / 4.0).toInt()
+    return (r + minOf(trips, 200) / 4.0).toInt() - penalty
 }
+
+fun signed(n: Int) = if (n >= 0) "+$n" else n.toString()
 
 @Composable
 private fun StatTile(value: String, label: String, icon: String, modifier: Modifier) {
@@ -151,7 +153,7 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatTile(if (rc > 0) String.format("%.2f", rating) else "—", "Reyting", "⭐", Modifier.weight(1f))
                 StatTile(levelOf(total), "Daraja", "🏅", Modifier.weight(1f))
-                StatTile("+" + priorityOf(rating, rc, total), "Ustuvorlik", "🟡", Modifier.weight(1f))
+                StatTile(signed(priorityOf(rating, rc, total, stats?.optInt("penalty") ?: 0)), "Ustuvorlik", "🟡", Modifier.weight(1f))
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Chip)) {
                 MenuRow("🚕", "Safarlar", "$total ta") { }

@@ -1,5 +1,8 @@
 package uz.taksi
 
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.DisposableEffect
+import android.os.SystemClock
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -143,6 +146,36 @@ fun DriverScreen(onLogout: () -> Unit) {
 
     val active = mine.firstOrNull { it.optString("status") in ACTIVE }
     val st = active?.optString("status") ?: ""
+
+    // ---- 10 soniyalik buyurtma taklifi (3 km ichida olinmasa -7 ball) ----
+    var offerId by remember { mutableStateOf(0) }
+    var offerEnd by remember { mutableStateOf(0L) }
+    var offerOrder by remember { mutableStateOf<JSONObject?>(null) }
+    var offerNow by remember { mutableStateOf(0L) }
+    val dismissed = remember { mutableStateListOf<Int>() }
+    fun closeOffer() { OfferSound.stop(); offerId = 0; offerOrder = null }
+    LaunchedEffect(available, online, active) {
+        if (offerId == 0 && online && active == null) {
+            val c = available.firstOrNull { it.optBoolean("offer") && it.optLong("offerLeftMs") > 800 && it.optInt("id") !in dismissed }
+            if (c != null) {
+                offerId = c.optInt("id"); offerOrder = c
+                offerNow = SystemClock.elapsedRealtime(); offerEnd = offerNow + c.optLong("offerLeftMs")
+                OfferSound.start(ctx)
+            }
+        } else if (offerId != 0 && (active != null || !online || available.none { it.optInt("id") == offerId })) closeOffer()
+    }
+    LaunchedEffect(offerId) {
+        while (offerId != 0) {
+            offerNow = SystemClock.elapsedRealtime()
+            if (offerNow >= offerEnd) {
+                dismissed.add(offerId); closeOffer()
+                msg = "⏱ Vaqt tugadi: buyurtma olinmadi, 7 ball ayiriladi"
+                break
+            }
+            delay(33)
+        }
+    }
+    DisposableEffect(Unit) { onDispose { OfferSound.stop() } }
     val id = active?.optInt("id") ?: 0
     val pickup = active?.let { Pair(it.optDouble("fromLat"), it.optDouble("fromLng")) }
     val dropoff = active?.let { Pair(it.optDouble("toLat"), it.optDouble("toLng")) }
@@ -213,6 +246,7 @@ fun DriverScreen(onLogout: () -> Unit) {
         )
     }
 
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             MapBox(
@@ -341,7 +375,7 @@ fun DriverScreen(onLogout: () -> Unit) {
             } else {
                 if (!online) {
                     DayCard(stats?.optInt("todayCount") ?: 0, stats?.optLong("todaySum") ?: 0L,
-                        priorityOf(stats?.optDouble("rating") ?: 0.0, stats?.optInt("ratingCount") ?: 0, stats?.optInt("totalCount") ?: 0))
+                        priorityOf(stats?.optDouble("rating") ?: 0.0, stats?.optInt("ratingCount") ?: 0, stats?.optInt("totalCount") ?: 0, stats?.optInt("penalty") ?: 0))
                     Panel(color = Ink) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -442,5 +476,22 @@ fun DriverScreen(onLogout: () -> Unit) {
             }
             ErrorText(msg)
         }
+    }
+    offerOrder?.let { oo ->
+        OfferCard(
+            oo, (offerEnd - offerNow).coerceAtLeast(0L),
+            onAccept = { val id = oo.optInt("id"); dismissed.add(id); closeOffer(); post("/orders/$id/accept") },
+            onDecline = {
+                val id = oo.optInt("id"); dismissed.add(id); closeOffer()
+                scope.launch {
+                    try {
+                        val r = io { Api.call("POST", "/orders/$id/decline") }
+                        msg = if (r.optInt("penalty") > 0) "Rad etildi: −" + r.optInt("penalty") + " ball" else ""
+                    } catch (e: Exception) { msg = e.message ?: "Xato" }
+                }
+            },
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+    }
     }
 }

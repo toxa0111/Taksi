@@ -18,6 +18,18 @@ import androidx.compose.ui.unit.TextUnit
  */
 private const val TABLE = """
 Yuklanmoqda…§Загрузка…§Loading…
+🔔 Yangi buyurtma!§🔔 Новый заказ!§🔔 New order!
+Rad etish (−7 ball)§Отклонить (−7 баллов)§Decline (−7 points)
+3 km ichidagi buyurtmani olmasangiz, 7 ball ayiriladi va yangi buyurtmalar kechroq ko'rinadi.§Если не примете заказ в радиусе 3 км, спишется 7 баллов и новые заказы будут появляться позже.§If you don't take an order within 3 km, 7 points are deducted and new orders appear to you later.
+⏱ Vaqt tugadi: buyurtma olinmadi, 7 ball ayiriladi§⏱ Время вышло: заказ не принят, спишется 7 баллов§⏱ Time is up: order not taken, 7 points will be deducted
+Pul qabul qilish§Приём оплаты§Receiving payments
+💵 Naqd pul§💵 Наличные§💵 Cash
+💳 Naqdsiz§💳 Безналичные§💳 Cashless
+Naqd jami§Всего наличными§Cash total
+Naqdsiz jami§Всего безналичными§Cashless total
+Yo'lovchidan naqd olingan pul. Komissiya hisobingizdan yechiladi.§Деньги, полученные наличными от пассажира. Комиссия списывается с вашего счёта.§Cash received from the passenger. The commission is deducted from your balance.
+Karta orqali to'langan safarlar. Karta to'lovi to'lov tizimi ulangach to'liq ishlaydi.§Поездки, оплаченные картой. Оплата картой заработает полностью после подключения платёжной системы.§Trips paid by card. Card payment will work fully once a payment system is connected.
+Bu turdagi to'lov hali yo'q§Такой оплаты пока нет§No payments of this type yet
 To'lov kartalari§Платёжные карты§Payment cards
 Hali karta qo'shilmagan§Карты ещё не добавлены§No cards added yet
 Asosiy karta§Основная карта§Main card

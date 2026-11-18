@@ -94,7 +94,40 @@ private fun OrderRow(o: JSONObject) {
             Text(hm(o.optLong("t")), fontSize = 17.sp, fontWeight = FontWeight.Bold)
             Text(o.optString("to"), fontSize = 13.sp, color = Muted, maxLines = 2)
         }
-        Text(som(o.optLong("price")), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Column(horizontalAlignment = Alignment.End) {
+            Text(som(o.optLong("price")), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            if (o.has("pay")) Text(if (o.optString("pay") == "cash") "💵 Naqd" else "💳 Karta", fontSize = 11.sp, color = Muted)
+        }
+    }
+}
+
+/** Pul qabul qilish: naqd va naqdsiz (karta) to'lovlar alohida. */
+@Composable
+private fun PayKinds(d: JSONObject?) {
+    var kind by remember { mutableStateOf("cash") }
+    val cash = d?.optLong("cash") ?: 0L
+    val card = d?.optLong("card") ?: 0L
+    val list = (d?.optJSONArray("orders")?.items() ?: emptyList()).filter { it.optString("pay") == kind }
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Chip).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("Pul qabul qilish", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+        Segmented(listOf("cash" to "💵 Naqd pul", "card" to "💳 Naqdsiz"), kind) { kind = it }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+            Column(Modifier.weight(1f)) {
+                Text(som(if (kind == "cash") cash else card), fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Bugun · " + list.size + " ta safar", fontSize = 13.sp, color = Muted)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(if (kind == "cash") "Naqd jami" else "Naqdsiz jami", fontSize = 11.sp, color = Muted)
+                Text(som(cash + card), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+        Text(
+            if (kind == "cash") "Yo'lovchidan naqd olingan pul. Komissiya hisobingizdan yechiladi."
+            else "Karta orqali to'langan safarlar. Karta to'lovi to'lov tizimi ulangach to'liq ishlaydi.",
+            fontSize = 12.sp, color = Muted,
+        )
+        if (list.isEmpty()) Text("Bu turdagi to'lov hali yo'q", fontSize = 13.sp, color = Muted)
+        list.take(5).forEach { OrderRow(it) }
     }
 }
 
@@ -153,6 +186,7 @@ fun DriverMoney(goSupport: () -> Unit) {
                 Text("›", fontSize = 24.sp, color = Muted)
             }
             BalanceCard { screen = "balance" }
+            PayKinds(d)
             BonusPanel()
         }
     }
