@@ -113,8 +113,12 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
     installUrl?.let { InstallDialog(it, "TOXA") { installUrl = null } }
     var showPoints by remember { mutableStateOf(false) }
     var showRating by remember { mutableStateOf(false) }
+    var showTrips by remember { mutableStateOf(false) }
+    var showPay by remember { mutableStateOf(false) }
     if (showPoints) { PointsScreen { showPoints = false }; return }
     if (showRating) { RatingScreen { showRating = false }; return }
+    if (showTrips) { TripsScreen { showTrips = false }; return }
+    if (showPay) { BalanceScreen(onBack = { showPay = false }); return }
 
     LaunchedEffect(Unit) {
         try { profile = io { Api.call("GET", "/profile") } } catch (e: Exception) { }
@@ -167,8 +171,8 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Chip)) {
                 MenuRow("🌟", "Reyting va baholar", if (rc > 0) String.format("%.2f", rating) else "—") { showRating = true }
                 MenuRow("⭐", "Ustuvorlik va ballar", signed(prioOf(stats))) { showPoints = true }
-                MenuRow("🚕", "Safarlar", "$total ta") { }
-                MenuRow("💳", "To'lov", "Naqd pul") { }
+                MenuRow("🚕", "Safarlar", "$total ta") { showTrips = true }
+                MenuRow("💳", "To'lov va balans", "") { showPay = true }
             }
         }
 

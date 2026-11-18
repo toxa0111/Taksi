@@ -57,39 +57,40 @@ import androidx.compose.ui.unit.sp
 
 // ───────────────────────── Ranglar ─────────────────────────
 
-val Yellow = Color(0xFFFFC21A)
-val Ink = Color(0xFF16181D)
-val Ok = Color(0xFF1F9D55)
-val Bad = Color(0xFFD64545)
+val Yellow = Color(0xFFFFB81F)      // oltin-amber (brend asosiy rangi)
+val Teal = Color(0xFF14B8A6)        // Registon feruzasi (brend ikkinchi rangi)
+val Ink = Color(0xFF14163A)
+val Ok = Color(0xFF14B8A6)
+val Bad = Color(0xFFE5484D)
 
 // Yorug' / qorong'i rejimga qarab o'zgaradigan ranglar (AppSettings.dark o'zgarsa, ekran qayta chiziladi)
-val PageBg: Color get() = if (AppSettings.dark) Color(0xFF0E1013) else Color(0xFFF4F5F7)
-val Card: Color get() = if (AppSettings.dark) Color(0xFF1C2026) else Color.White
-val Chip: Color get() = if (AppSettings.dark) Color(0xFF2A2F37) else Color(0xFFEDEEF1)
-val Muted: Color get() = if (AppSettings.dark) Color(0xFFA3A9B4) else Color(0xFF6B7280)
-val Hairline: Color get() = if (AppSettings.dark) Color(0xFF30353E) else Color(0xFFE3E5E9)
+val PageBg: Color get() = if (AppSettings.dark) Color(0xFF0B0D24) else Color(0xFFF7F3EA)
+val Card: Color get() = if (AppSettings.dark) Color(0xFF161A3A) else Color(0xFFFFFDF8)
+val Chip: Color get() = if (AppSettings.dark) Color(0xFF222750) else Color(0xFFEEE8DA)
+val Muted: Color get() = if (AppSettings.dark) Color(0xFF9A9FC4) else Color(0xFF6F6C80)
+val Hairline: Color get() = if (AppSettings.dark) Color(0xFF2B3160) else Color(0xFFE6DFCF)
 /** Oddiy matn rangi (Ink — qora; qorong'i rejimda oqish). */
-val Fg: Color get() = if (AppSettings.dark) Color(0xFFF2F3F5) else Ink
+val Fg: Color get() = if (AppSettings.dark) Color(0xFFF3F1FF) else Ink
 /** Yumshoq sariq fon (eslatma kartalari). */
-val Soft: Color get() = if (AppSettings.dark) Color(0xFF3A3220) else Color(0xFFFFF1C2)
+val Soft: Color get() = if (AppSettings.dark) Color(0xFF3A2F14) else Color(0xFFFFEBB8)
 
 private val DarkScheme = darkColorScheme(
     primary = Yellow, onPrimary = Ink,
-    secondary = Yellow, onSecondary = Ink,
-    background = Color(0xFF0E1013), onBackground = Color(0xFFF2F3F5),
-    surface = Color(0xFF1C2026), onSurface = Color(0xFFF2F3F5),
-    surfaceVariant = Color(0xFF2A2F37), onSurfaceVariant = Color(0xFFA3A9B4),
-    outline = Color(0xFF30353E), error = Bad,
+    secondary = Teal, onSecondary = Ink,
+    background = Color(0xFF0B0D24), onBackground = Color(0xFFF3F1FF),
+    surface = Color(0xFF161A3A), onSurface = Color(0xFFF3F1FF),
+    surfaceVariant = Color(0xFF222750), onSurfaceVariant = Color(0xFF9A9FC4),
+    outline = Color(0xFF2B3160), error = Bad,
 )
 
 private val Scheme = lightColorScheme(
     primary = Yellow, onPrimary = Ink,
-    secondary = Ink, onSecondary = Color.White,
+    secondary = Teal, onSecondary = Color.White,
     background = PageBg, onBackground = Ink,
-    surface = Color.White, onSurface = Ink,
-    surfaceVariant = Color(0xFFEDEEF1), onSurfaceVariant = Muted,
+    surface = Color(0xFFFFFDF8), onSurface = Ink,
+    surfaceVariant = Color(0xFFEEE8DA), onSurfaceVariant = Muted,
     outline = Hairline, error = Bad,
-    primaryContainer = Color(0xFFFFF1C2), onPrimaryContainer = Ink,
+    primaryContainer = Color(0xFFFFEBB8), onPrimaryContainer = Ink,
 )
 
 @Composable
