@@ -168,6 +168,7 @@ fun DriverDocsPanel() {
     var docs by remember { mutableStateOf<JSONObject?>(null) }
     var plate by remember { mutableStateOf("") }
     var car by remember { mutableStateOf("") }
+    var year by remember { mutableStateOf("") }
     var verified by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf("") }
@@ -181,6 +182,7 @@ fun DriverDocsPanel() {
             docs = j.optJSONObject("docs")
             if (plate.isBlank()) plate = j.optString("plate")
             if (car.isBlank()) car = j.optString("car")
+            if (year.isBlank() && j.optInt("carYear") > 0) year = j.optInt("carYear").toString()
             verified = j.optBoolean("verified")
         } catch (e: Exception) { }
     }
@@ -240,12 +242,13 @@ fun DriverDocsPanel() {
             }
         }
         Field(car, { car = it.take(30) }, "Mashina markasi (masalan Chevrolet Cobalt)")
+        Field(year, { year = it.filter { c -> c.isDigit() }.take(4) }, "Mashina ishlab chiqarilgan yili (masalan 2020)")
         Field(plate, { plate = it.uppercase() }, "Mashina raqami (masalan 01 A 123 BC)")
-        GhostButton("Raqam va markani saqlash") {
+        GhostButton("Raqam, marka va yilni saqlash") {
             scope.launch {
                 msg = ""
                 try {
-                    val j = io { Api.call("POST", "/driver/plate", JSONObject().put("plate", plate).put("car", car.trim())) }
+                    val j = io { Api.call("POST", "/driver/plate", JSONObject().put("plate", plate).put("car", car.trim()).put("year", year.ifBlank { "0" })) }
                     plate = j.optString("plate")
                     verified = j.optBoolean("verified")
                     msg = "Saqlandi"

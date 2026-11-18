@@ -75,6 +75,28 @@ const docsView = u => {
 };
 const isVerified = u => DOC_KINDS.every(k => u.docs && u.docs[k] && u.docs[k].status === 'approved') && !!u.plate;
 
+// ---- Ustuvorlik ballari (Yandex Pro uslubida): har bir ball sababi alohida ----
+const GOOD_BRANDS = ['kia', 'hyundai', 'toyota', 'byd', 'chery', 'haval', 'volkswagen', 'skoda', 'honda', 'nissan', 'mazda', 'geely', 'lexus', 'mercedes', 'bmw', 'audi', 'ford', 'jetour', 'changan', 'omoda', 'jaecoo', 'exeed', 'zeekr', 'tesla', 'li auto', 'chevrolet tracker', 'chevrolet onix', 'chevrolet monza', 'chevrolet equinox', 'chevrolet trailblazer', 'chevrolet malibu', 'chevrolet captiva'];
+const MIN_CAR_YEAR = 2015;
+function pointsOf(u) {
+  const trips = db.orders.filter(o => o.driverId === u.id && o.status === 'done').length;
+  const rating = Number(u.rating) || 0, rc = Number(u.ratingCount) || 0;
+  const car = String(u.car || '').toLowerCase();
+  const yr = Number(u.carYear) || 0;
+  const items = [
+    { k: 'orders', pts: Math.floor(Math.min(trips, 200) / 4), max: 50, got: true, sub: 'Jami: ' + Math.floor(Math.min(trips, 200) / 4), hint: 'Har 4 ta yakunlangan safar uchun +1 ball (200 safargacha, eng ko\'pi +50). Hozir: ' + trips + ' ta safar.' },
+    { k: 'carYear', pts: 15, max: 15, got: yr >= MIN_CAR_YEAR, hint: 'Mashina ' + MIN_CAR_YEAR + '-yil yoki yangi bo\'lsa +15. Profil → Hujjatlar bo\'limida mashina yilini yozing.' },
+    { k: 'license', pts: 15, max: 15, got: !!(u.docs && u.docs.license && u.docs.license.status === 'approved'), hint: 'Haydovchilik guvohnomasi rasmini yuklang, admin tasdiqlasa +15.' },
+    { k: 'brand', pts: 18, max: 18, got: !!car && GOOD_BRANDS.some(b => car.includes(b)), hint: 'Zamonaviy mashina markasi uchun +18 (masalan Kia, Hyundai, Toyota, BYD, Chevrolet Tracker/Onix). Markani Hujjatlar bo\'limida yozing.' },
+    { k: 'r475', pts: 15, max: 15, got: rc > 0 && rating >= 4.75, hint: 'Reyting 4.75 dan yuqori bo\'lsa +15. Hozir: ' + (rc > 0 ? rating.toFixed(2) : 'baho yo\'q') + '.' },
+    { k: 'r485', pts: 15, max: 15, got: rc > 0 && rating >= 4.85, hint: 'Reyting 4.85 dan yuqori bo\'lsa yana +15. Hozir: ' + (rc > 0 ? rating.toFixed(2) : 'baho yo\'q') + '.' },
+  ];
+  const base = items.reduce((a, i) => a + (i.got ? i.pts : 0), 0);
+  const max = items.reduce((a, i) => a + i.max, 0);
+  const pen = u.penalty || 0;
+  return { items, base, max, priority: base - pen, trips, rating, rc, pen };
+}
+
 let eskizToken = null;
 async function eskizLogin() {
   const fd = new FormData(); fd.append('email', ESKIZ_EMAIL); fd.append('password', ESKIZ_PASSWORD);
@@ -937,7 +959,7 @@ const server = http.createServer(async (req, res) => {
     // ---- Haydovchi hujjatlari: surat, foto nazorat, guvohnoma, tex pasport, mashina raqami ----
     if (m === 'GET' && p === '/driver/docs') {
       if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
-      return send(res, 200, { docs: docsView(user), plate: user.plate || '', car: user.car || '', verified: isVerified(user) });
+      return send(res, 200, { docs: docsView(user), plate: user.plate || '', car: user.car || '', carYear: user.carYear || 0, verified: isVerified(user) });
     }
     if (m === 'POST' && p === '/driver/plate') {
       if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
@@ -945,6 +967,7 @@ const server = http.createServer(async (req, res) => {
       if (plate.length < 5) return send(res, 400, { error: 'Mashina raqamini to\'liq yozing' });
       user.plate = plate;
       if (typeof b.car === 'string') user.car = b.car.trim().slice(0, 30);
+      if (b.year !== undefined) { const y = parseInt(b.year, 10); user.carYear = (y >= 1990 && y <= 2035) ? y : 0; }
       save();
       return send(res, 200, { ok: true, plate, car: user.car || '', verified: isVerified(user) });
     }
@@ -1100,12 +1123,10 @@ const server = http.createServer(async (req, res) => {
 
     if (m === 'GET' && p === '/driver/points') {
       if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
-      const trips = db.orders.filter(o => o.driverId === user.id && o.status === 'done').length;
-      const rating = Number(user.rating) || 0, rc = Number(user.ratingCount) || 0;
-      const base = Math.floor((rc > 0 ? Math.max(0, rating - 4) * 40 : 0) + Math.min(trips, 200) / 4);
-      const pen = user.penalty || 0;
+      const P = pointsOf(user);
+      const trips = P.trips, rating = P.rating, rc = P.rc, base = P.base, pen = P.pen;
       return send(res, 200, {
-        priority: base - pen, base, penalty: pen, trips, rating, ratingCount: rc,
+        priority: base - pen, base, max: P.max, items: P.items, penalty: pen, trips, rating, ratingCount: rc,
         delaySec: Math.round(penaltyDelayMs(user) / 1000),
         rules: { offerSec: OFFER.sec, offerKm: OFFER.km, offerPenalty: OFFER.penalty, cancelPenalty: OFFER.cancel },
         log: user.plog || [],
@@ -1126,6 +1147,7 @@ const server = http.createServer(async (req, res) => {
         online: user.online === true,
         rating: Number(user.rating) || 0, ratingCount: Number(user.ratingCount) || 0,
         penalty: user.penalty || 0,
+        priority: pointsOf(user).priority,
       });
     }
 

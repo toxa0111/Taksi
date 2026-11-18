@@ -396,7 +396,7 @@ async function login(phone, name, role) {
     ok((await call('GET', '/stats', null, D8)).j.penalty === 18, 'statistikada 18 ball');
     ok((await call('POST', `/orders/${o3}/cancel`, null, P8)).s === 200, 'mijoz bekor qildi (3)');
     const pts = await call('GET', '/driver/points', null, D8);
-    ok(pts.j.penalty === 18 && pts.j.priority === pts.j.base - 18 && pts.j.log.length >= 3 && pts.j.log[0].d === -4, 'ball tarixi va ustuvorlik hisoblandi');
+    ok(pts.j.penalty === 18 && pts.j.priority === pts.j.base - 18 && Array.isArray(pts.j.items) && pts.j.items.length === 6 && pts.j.log.length >= 3 && pts.j.log[0].d === -4, 'ball tarixi va ustuvorlik hisoblandi');
   }
 
   console.log(fails ? `\n${fails} ta xato` : '\nHammasi o\'tdi');

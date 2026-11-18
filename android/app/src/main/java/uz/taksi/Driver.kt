@@ -398,7 +398,7 @@ fun DriverScreen(onLogout: () -> Unit) {
             } else {
                 if (!online) {
                     DayCard(stats?.optInt("todayCount") ?: 0, stats?.optLong("todaySum") ?: 0L,
-                        priorityOf(stats?.optDouble("rating") ?: 0.0, stats?.optInt("ratingCount") ?: 0, stats?.optInt("totalCount") ?: 0, stats?.optInt("penalty") ?: 0))
+                        prioOf(stats))
                     Panel(color = Ink) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {

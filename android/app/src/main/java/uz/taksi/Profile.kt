@@ -58,6 +58,11 @@ fun priorityOf(rating: Double, ratingCount: Int, trips: Int, penalty: Int = 0): 
     return (r + minOf(trips, 200) / 4.0).toInt() - penalty
 }
 
+/** Ustuvorlik: serverdan kelgan tayyor qiymat (bo'lmasa eski formula). */
+fun prioOf(st: org.json.JSONObject?): Int =
+    if (st != null && st.has("priority")) st.optInt("priority")
+    else priorityOf(st?.optDouble("rating") ?: 0.0, st?.optInt("ratingCount") ?: 0, st?.optInt("totalCount") ?: 0, st?.optInt("penalty") ?: 0)
+
 fun signed(n: Int) = if (n >= 0) "+$n" else n.toString()
 
 @Composable
@@ -155,10 +160,10 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatTile(if (rc > 0) String.format("%.2f", rating) else "—", "Reyting", "⭐", Modifier.weight(1f))
                 StatTile(levelOf(total), "Daraja", "🏅", Modifier.weight(1f))
-                StatTile(signed(priorityOf(rating, rc, total, stats?.optInt("penalty") ?: 0)), "Ustuvorlik", "🟡", Modifier.weight(1f).clickable { showPoints = true })
+                StatTile(signed(prioOf(stats)), "Ustuvorlik", "🟡", Modifier.weight(1f).clickable { showPoints = true })
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Chip)) {
-                MenuRow("⭐", "Ustuvorlik va ballar", signed(priorityOf(rating, rc, total, stats?.optInt("penalty") ?: 0))) { showPoints = true }
+                MenuRow("⭐", "Ustuvorlik va ballar", signed(prioOf(stats))) { showPoints = true }
                 MenuRow("🚕", "Safarlar", "$total ta") { }
                 MenuRow("💳", "To'lov", "Naqd pul") { }
             }
