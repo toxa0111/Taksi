@@ -98,7 +98,17 @@ fun currentVersionCode(ctx: Context): Int = try {
  * tag == null: foydalanuvchi ilovasi (releases/latest, tag "build-N").
  * tag berilsa (masalan "toxa-admin"): shu tegdagi release, versiya raqami nomining oxiridan olinadi.
  */
-suspend fun latestRelease(tag: String? = null): Pair<Int, String>? = withContext(Dispatchers.IO) {
+suspend fun latestRelease(tag: String? = null): Pair<Int, String>? {
+    // Avval o'z serverimiz (GitHub cheklovlari tegmaydi), bo'lmasa to'g'ridan-to'g'ri GitHub
+    try {
+        val r = withContext(Dispatchers.IO) { Api.call("GET", "/app/release" + if (tag != null) "?tag=$tag" else "") }
+        val v = r.optInt("version"); val u = r.optString("url")
+        if (v > 0 && u.startsWith("https://")) return Pair(v, u)
+    } catch (e: Exception) { }
+    return latestReleaseGithub(tag)
+}
+
+suspend fun latestReleaseGithub(tag: String? = null): Pair<Int, String>? = withContext(Dispatchers.IO) {
     val path = if (tag == null) "releases/latest" else "releases/tags/$tag"
     val endpoint = "https://api.github.com/repos/$REPO/$path"
     val c = (URL(endpoint).openConnection() as HttpURLConnection).apply {

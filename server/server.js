@@ -330,6 +330,25 @@ const server = http.createServer(async (req, res) => {
     const b = m === 'POST' ? await readBody(req, p === '/driver/docs' ? 4e6 : 1e5) : {};
 
     if ((m === 'GET' || m === 'HEAD') && (p === '/health' || p === '/')) return send(res, 200, { ok: true, t: Date.now() });
+    // Ilova yangilanishi: GitHub API cheklovlarini chetlab o'tish uchun server orqali (5 daqiqa keshlanadi)
+    if (m === 'GET' && p === '/app/release') {
+      const tag = String(url.searchParams.get('tag') || '').replace(/[^\w.-]/g, '');
+      const key = tag || 'latest';
+      global.__rel = global.__rel || {};
+      const hit = global.__rel[key];
+      if (hit && Date.now() - hit.t < 300000) return send(res, 200, hit.v);
+      try {
+        const r = await fetch('https://api.github.com/repos/toxa0111/taksi/releases/' + (tag ? 'tags/' + tag : 'latest'), { headers: Object.assign({ 'User-Agent': 'TOXA-Server', Accept: 'application/vnd.github+json' }, process.env.GITHUB_TOKEN ? { Authorization: 'Bearer ' + process.env.GITHUB_TOKEN } : {}) });
+        if (!r.ok) throw new Error('GitHub ' + r.status);
+        const j = await r.json();
+        const version = tag ? parseInt((String(j.name || '').match(/(\d+)\s*$/) || [])[1], 10) : parseInt(String(j.tag_name || '').replace('build-', ''), 10);
+        const asset = (j.assets || []).find(a => tag === 'toxa-admin' ? a.name === 'toxa-admin.apk' : /\.apk$/.test(a.name));
+        if (!version || !asset) throw new Error('Reliz ma\'lumoti to\'liq emas');
+        const v = { version, url: asset.browser_download_url };
+        global.__rel[key] = { t: Date.now(), v };
+        return send(res, 200, v);
+      } catch (e) { if (hit) return send(res, 200, hit.v); return send(res, 502, { error: e.message }); }
+    }
     // ---- Kirish (telefon + kod) ----
     if (m === 'POST' && p === '/auth/request') {
       const phone = String(b.phone || '').trim();
