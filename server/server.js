@@ -29,7 +29,7 @@ try { db = Object.assign(db, JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))); } ca
 const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, ''), SB_KEY = process.env.SUPABASE_KEY || '';
 const SB = !!(SB_URL && SB_KEY);
 const sbReq = (method, q, body, extra) => fetch(SB_URL + '/rest/v1/' + q, {
-  method, headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', ...(extra || {}) },
+  method, headers: { apikey: SB_KEY, ...(SB_KEY.startsWith('eyJ') ? { Authorization: 'Bearer ' + SB_KEY } : {}), 'Content-Type': 'application/json', ...(extra || {}) },
   body: body === undefined ? undefined : JSON.stringify(body),
 });
 const sbPut = async (k, v) => {
