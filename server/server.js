@@ -26,7 +26,7 @@ let db = { users: {}, sessions: {}, codes: {}, orders: [], seq: 1, tickets: [], 
 try { db = Object.assign(db, JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))); } catch {}
 // ---- Doimiy saqlash: Render bepul rejasida fayllar o'chib ketadi, shuning uchun (ixtiyoriy) Supabase'ga ham yoziladi ----
 // Yoqish: SUPABASE_URL va SUPABASE_KEY (service_role) o'rnatiladi. Jadval: kv(k text primary key, v jsonb).
-const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, ''), SB_KEY = process.env.SUPABASE_KEY || '';
+const SB_URL = (process.env.SUPABASE_URL || '').trim().replace(/\/+$/, ''), SB_KEY = (process.env.SUPABASE_KEY || '').trim().replace(/^["']|["']$/g, '');
 const SB = !!(SB_URL && SB_KEY);
 const sbReq = (method, q, body, extra) => fetch(SB_URL + '/rest/v1/' + q, {
   method, headers: { apikey: SB_KEY, ...(SB_KEY.startsWith('eyJ') ? { Authorization: 'Bearer ' + SB_KEY } : {}), 'Content-Type': 'application/json', ...(extra || {}) },
@@ -38,7 +38,7 @@ const sbPut = async (k, v) => {
 };
 const sbGet = async k => {
   const r = await sbReq('GET', 'kv?k=eq.' + encodeURIComponent(k) + '&select=v');
-  if (!r.ok) throw new Error('Supabase ' + r.status);
+  if (!r.ok) throw new Error('Supabase ' + r.status + ' ' + (await r.text()).slice(0, 160) + ' [kalit: ' + SB_KEY.slice(0, 11) + '…, ' + SB_KEY.length + ' belgi]');
   const a = await r.json();
   return a.length ? a[0].v : null;
 };
