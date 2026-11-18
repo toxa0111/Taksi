@@ -24,7 +24,45 @@ let db = { users: {}, sessions: {}, codes: {}, orders: [], seq: 1, tickets: [], 
   news: [], nseq: 1,
   intercity: { perKm: 700, minimum: 50000 } };
 try { db = Object.assign(db, JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))); } catch {}
-const save = () => fs.writeFileSync(DB_FILE, JSON.stringify(db));
+// ---- Doimiy saqlash: Render bepul rejasida fayllar o'chib ketadi, shuning uchun (ixtiyoriy) Supabase'ga ham yoziladi ----
+// Yoqish: SUPABASE_URL va SUPABASE_KEY (service_role) o'rnatiladi. Jadval: kv(k text primary key, v jsonb).
+const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, ''), SB_KEY = process.env.SUPABASE_KEY || '';
+const SB = !!(SB_URL && SB_KEY);
+const sbReq = (method, q, body, extra) => fetch(SB_URL + '/rest/v1/' + q, {
+  method, headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', ...(extra || {}) },
+  body: body === undefined ? undefined : JSON.stringify(body),
+});
+const sbPut = async (k, v) => {
+  const r = await sbReq('POST', 'kv?on_conflict=k', { k, v }, { Prefer: 'resolution=merge-duplicates,return=minimal' });
+  if (!r.ok) throw new Error('Supabase ' + r.status + ' ' + (await r.text()).slice(0, 120));
+};
+const sbGet = async k => {
+  const r = await sbReq('GET', 'kv?k=eq.' + encodeURIComponent(k) + '&select=v');
+  if (!r.ok) throw new Error('Supabase ' + r.status);
+  const a = await r.json();
+  return a.length ? a[0].v : null;
+};
+let sbDirty = false, sbBusy = false, sbReady = !SB;
+const sbFlush = async () => {
+  if (!SB || !sbReady || sbBusy || !sbDirty) return;
+  sbBusy = true; sbDirty = false;
+  try { await sbPut('db', db); }
+  catch (e) { sbDirty = true; console.error('[saqlash xato]', e.message); }
+  sbBusy = false;
+};
+if (SB) setInterval(sbFlush, 2000).unref();
+const save = () => { try { fs.writeFileSync(DB_FILE, JSON.stringify(db)); } catch (e) { } sbDirty = true; };
+const loadRemote = async () => {
+  if (!SB) return true;
+  try {
+    const v = await sbGet('db');
+    if (v) { db = Object.assign(db, v); console.log('[saqlash] baza Supabase\'dan yuklandi'); }
+    else { await sbPut('db', db); console.log('[saqlash] Supabase bo\'sh: boshlang\'ich baza yozildi'); }
+    sbReady = true;
+    return true;
+  } catch (e) { console.error('[saqlash] Supabase\'ga ulanib bo\'lmadi:', e.message); return false; }
+};
+for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, async () => { try { if (SB) { sbDirty = true; sbBusy = false; await sbFlush(); } } catch (e) { } process.exit(0); });
 // Haydovchi hujjatlari rasmlari db.json ichida emas, alohida papkada saqlanadi.
 const DOCS_DIR = process.env.DOCS_DIR || path.join(path.dirname(DB_FILE), 'docs');
 const DOC_KINDS = ['face', 'selfie', 'license', 'techpass', 'carplate'];   // surat, foto nazorat, guvohnoma, tex pasport, mashina raqami
@@ -268,7 +306,7 @@ const view = o => {
 const num = v => (typeof v === 'number' && isFinite(v)) ? v : NaN;
 const PHONE_RE = /^\+998\d{9}$/;
 
-http.createServer(async (req, res) => {
+const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x'), p = url.pathname, m = req.method;
     const b = m === 'POST' ? await readBody(req, p === '/driver/docs' ? 4e6 : 1e5) : {};
@@ -883,6 +921,7 @@ http.createServer(async (req, res) => {
       if (!(buf[0] === 0xFF && buf[1] === 0xD8)) return send(res, 400, { error: 'Faqat JPEG rasm qabul qilinadi' });
       fs.mkdirSync(DOCS_DIR, { recursive: true });
       fs.writeFileSync(docFile(user.id, kind), buf);
+      if (SB) { try { await sbPut('doc:' + user.id + '_' + kind, { b64: buf.toString('base64') }); } catch (e) { console.error('[hujjat saqlash]', e.message); } }
       user.docs = user.docs || {};
       user.docs[kind] = { status: 'pending', at: Date.now(), note: '' };
       save();
@@ -893,7 +932,12 @@ http.createServer(async (req, res) => {
       if (user.role !== 'admin' && user.id !== dm[1]) return send(res, 403, { error: 'Ruxsat yo\'q' });
       if (!DOC_KINDS.includes(dm[2])) return send(res, 404, { error: 'Topilmadi' });
       let img;
-      try { img = fs.readFileSync(docFile(dm[1].replace(/[^\w-]/g, ''), dm[2])); } catch { return send(res, 404, { error: 'Topilmadi' }); }
+      const duid = dm[1].replace(/[^\w-]/g, '');
+      try { img = fs.readFileSync(docFile(duid, dm[2])); }
+      catch {
+        if (SB) { try { const v = await sbGet('doc:' + duid + '_' + dm[2]); if (v && v.b64) { img = Buffer.from(v.b64, 'base64'); fs.mkdirSync(DOCS_DIR, { recursive: true }); fs.writeFileSync(docFile(duid, dm[2]), img); } } catch (e) { } }
+        if (!img) return send(res, 404, { error: 'Topilmadi' });
+      }
       res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=60' });
       return res.end(img);
     }
@@ -1116,4 +1160,11 @@ http.createServer(async (req, res) => {
     console.error(e);
     send(res, 500, { error: 'Server xatosi' });
   }
-}).listen(PORT, () => console.log(`Taksi serveri: http://0.0.0.0:${PORT}`));
+});
+(async () => {
+  let ok = await loadRemote();
+  for (let i = 0; !ok && i < 4; i++) { await new Promise(r => setTimeout(r, 3000)); ok = await loadRemote(); }
+  if (!ok) setInterval(async () => { if (!sbReady && await loadRemote()) for (const u of Object.values(db.users)) if (u.role === 'driver') giveWelcome(u); }, 15000).unref();
+  for (const u of Object.values(db.users)) if (u.role === 'driver') giveWelcome(u);   // idempotent
+  server.listen(PORT, () => console.log(`Taksi serveri: http://0.0.0.0:${PORT}`));
+})();
