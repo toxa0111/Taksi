@@ -89,9 +89,11 @@ async function login(phone, name, role) {
   ok((await call('POST', `/orders/${o4.j.order.id}/rate`, { rating: 5 }, P)).s === 400, 'tugamagan safarni baholab bo\'lmaydi');
   await call('POST', `/orders/${o4.j.order.id}/status`, { status: 'done' }, D);
   ok((await call('POST', `/orders/${o4.j.order.id}/rate`, { rating: 9 }, P)).s === 400, 'noto\'g\'ri baho rad etildi');
-  ok((await call('POST', `/orders/${o4.j.order.id}/rate`, { rating: 4 }, P)).j.order.rating === 4, 'haydovchi baholandi');
+  ok((await call('POST', `/orders/${o4.j.order.id}/rate`, { rating: 4, tags: ['care', 'xato', 'rude'] }, P)).j.order.rating === 4, 'haydovchi baholandi');
   ok((await call('POST', `/orders/${o4.j.order.id}/rate`, { rating: 5 }, P)).s === 400, 'ikkinchi marta baholab bo\'lmaydi');
   ok((await call('GET', '/stats', null, D)).j.rating === 4, 'haydovchi reytingi yangilandi');
+  const rs = await call('GET', '/driver/ratings', null, D);
+  ok(rs.j.stars[4] === 1 && rs.j.tags.care === 1 && !rs.j.tags.rude && !rs.j.tags.xato && rs.j.considered === 1 && rs.j.rating === 4, 'baholar sabablari (teglar) hisoblandi');
 
   // ---- Qo'llab-quvvatlash ----
   ok((await call('POST', '/support', { text: 'a' }, P)).s === 400, 'juda qisqa murojaat rad etildi');

@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package uz.taksi
 
 import androidx.compose.foundation.clickable
@@ -26,7 +28,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.background
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import org.json.JSONArray
 import org.json.JSONObject
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 
 /** Pair<Double, Double>? ni ekran aylanganda ham saqlab turish uchun. */
 private val PairSaver = listSaver<Pair<Double, Double>?, Double>(
@@ -106,6 +115,8 @@ fun PassengerScreen(onLogout: () -> Unit) {
 
     val active = orders.firstOrNull { it.optString("status") in ACTIVE }
     var skippedRate by remember { mutableStateOf(0) }
+    var rStar by remember { mutableStateOf(0) }
+    var rTags by remember { mutableStateOf(setOf<String>()) }
     val lastDone = orders.firstOrNull { it.optString("status") == "done" }
     val needRate = lastDone?.takeIf {
         !it.has("rating") && it.optJSONObject("driver") != null && it.optInt("id") != skippedRate
@@ -312,14 +323,31 @@ fun PassengerScreen(onLogout: () -> Unit) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                         (1..5).forEach { star ->
                             Text(
-                                "⭐", fontSize = 34.sp,
-                                modifier = Modifier.clickable {
-                                    scope.launch {
-                                        try { io { Api.call("POST", "/orders/${needRate.optInt("id")}/rate", JSONObject().put("rating", star)) } }
-                                        catch (e: Exception) { msg = e.message ?: "Xato" }
-                                    }
-                                }.padding(6.dp),
+                                if (star <= rStar) "⭐" else "☆", fontSize = 34.sp,
+                                modifier = Modifier.clickable { rStar = star; rTags = emptySet() }.padding(6.dp),
                             )
+                        }
+                    }
+                    if (rStar > 0) {
+                        Text(if (rStar >= 4) "Nima yoqdi?" else "Nima yoqmadi?", fontSize = 13.sp, color = Muted)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            (if (rStar >= 4) TAGS_POS else TAGS_NEG).forEach { (k, label) ->
+                                val on = k in rTags
+                                Text(
+                                    label, fontSize = 13.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (on) Ink else Muted,
+                                    modifier = Modifier.clip(RoundedCornerShape(50)).background(if (on) Yellow else Chip)
+                                        .clickable { rTags = if (on) rTags - k else rTags + k }.padding(horizontal = 12.dp, vertical = 8.dp),
+                                )
+                            }
+                        }
+                        BigButton("Baholash") {
+                            scope.launch {
+                                try {
+                                    io { Api.call("POST", "/orders/${needRate.optInt("id")}/rate", JSONObject().put("rating", rStar).put("tags", JSONArray(rTags.toList()))) }
+                                    rStar = 0; rTags = emptySet()
+                                } catch (e: Exception) { msg = e.message ?: "Xato" }
+                            }
                         }
                     }
                     TextButton(onClick = { skippedRate = needRate.optInt("id") }, modifier = Modifier.fillMaxWidth()) {

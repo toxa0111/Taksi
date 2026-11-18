@@ -75,6 +75,17 @@ const docsView = u => {
 };
 const isVerified = u => DOC_KINDS.every(k => u.docs && u.docs[k] && u.docs[k].status === 'approved') && !!u.plate;
 
+// ---- Baholash tizimi: reyting oxirgi 150 ta baho o'rtachasi, sabablar (teglar) bilan ----
+const RATE_WINDOW = 150;
+const TAGS_POS = ['care', 'polite', 'style', 'music', 'clean', 'chat'];
+const TAGS_NEG = ['rude', 'dirty', 'unsafe', 'late', 'route', 'loud'];
+const ratedOrders = did => db.orders.filter(o => o.driverId === did && o.rating).sort((a, b) => (b.ratedAt || b.doneAt || 0) - (a.ratedAt || a.doneAt || 0));
+function recomputeRating(d) {
+  const l = ratedOrders(d.id).slice(0, RATE_WINDOW);
+  d.ratingCount = l.length;
+  d.rating = l.length ? Math.round(l.reduce((s, o) => s + o.rating, 0) / l.length * 100) / 100 : 0;
+}
+
 // ---- Ustuvorlik ballari (Yandex Pro uslubida): har bir ball sababi alohida ----
 const GOOD_BRANDS = ['kia', 'hyundai', 'toyota', 'byd', 'chery', 'haval', 'volkswagen', 'skoda', 'honda', 'nissan', 'mazda', 'geely', 'lexus', 'mercedes', 'bmw', 'audi', 'ford', 'jetour', 'changan', 'omoda', 'jaecoo', 'exeed', 'zeekr', 'tesla', 'li auto', 'chevrolet tracker', 'chevrolet onix', 'chevrolet monza', 'chevrolet equinox', 'chevrolet trailblazer', 'chevrolet malibu', 'chevrolet captiva'];
 const MIN_CAR_YEAR = 2015;
@@ -1132,6 +1143,21 @@ const server = http.createServer(async (req, res) => {
         log: user.plog || [],
       });
     }
+    if (m === 'GET' && p === '/driver/ratings') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      recomputeRating(user);
+      const all = ratedOrders(user.id).slice(0, RATE_WINDOW);
+      const day = url.searchParams.get('scope') === 'day';
+      const list = day ? all.filter(o => (o.ratedAt || o.doneAt || 0) > Date.now() - 86400000) : all;
+      const stars = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, tags = {};
+      list.forEach(o => { stars[o.rating]++; (o.ratingTags || []).forEach(k => { tags[k] = (tags[k] || 0) + 1; }); });
+      const ts = all.map(o => o.ratedAt || o.doneAt || 0);
+      return send(res, 200, {
+        rating: user.rating || 0, window: RATE_WINDOW, considered: all.length, count: list.length,
+        fromT: ts.length ? Math.min(...ts) : 0, toT: ts.length ? Math.max(...ts) : 0,
+        stars, tags, seq: all.map(o => o.rating).reverse(), updated: Date.now(),
+      });
+    }
     // Haydovchi statistikasi
     if (m === 'GET' && p === '/stats') {
       if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
@@ -1244,12 +1270,10 @@ const server = http.createServer(async (req, res) => {
         const r = Math.round(num(b.rating));
         if (!(r >= 1 && r <= 5)) return send(res, 400, { error: 'Baho 1 dan 5 gacha bo\'lsin' });
         const d = db.users[o.driverId];
-        o.rating = r;
-        if (d) {
-          const n = Number(d.ratingCount) || 0;
-          d.rating = Math.round((((Number(d.rating) || 0) * n + r) / (n + 1)) * 100) / 100;
-          d.ratingCount = n + 1;
-        }
+        o.rating = r; o.ratedAt = Date.now();
+        const allowed = r >= 4 ? TAGS_POS : TAGS_NEG;
+        o.ratingTags = Array.isArray(b.tags) ? [...new Set(b.tags.filter(k => allowed.includes(k)))].slice(0, 6) : [];
+        if (d) recomputeRating(d);
         save();
         return send(res, 200, { order: view(o) });
       }

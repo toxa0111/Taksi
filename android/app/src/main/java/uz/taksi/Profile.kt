@@ -112,7 +112,9 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
     var diag by remember { mutableStateOf<JSONObject?>(null) }
     installUrl?.let { InstallDialog(it, "TOXA") { installUrl = null } }
     var showPoints by remember { mutableStateOf(false) }
+    var showRating by remember { mutableStateOf(false) }
     if (showPoints) { PointsScreen { showPoints = false }; return }
+    if (showRating) { RatingScreen { showRating = false }; return }
 
     LaunchedEffect(Unit) {
         try { profile = io { Api.call("GET", "/profile") } } catch (e: Exception) { }
@@ -158,11 +160,12 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
                 if (verified) Pill("✅ Tasdiqlangan", Color(0xFFE1F5E9), Color(0xFF14753F))
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatTile(if (rc > 0) String.format("%.2f", rating) else "—", "Reyting", "⭐", Modifier.weight(1f))
+                StatTile(if (rc > 0) String.format("%.2f", rating) else "—", "Reyting", "⭐", Modifier.weight(1f).clickable { showRating = true })
                 StatTile(levelOf(total), "Daraja", "🏅", Modifier.weight(1f))
                 StatTile(signed(prioOf(stats)), "Ustuvorlik", "🟡", Modifier.weight(1f).clickable { showPoints = true })
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Chip)) {
+                MenuRow("🌟", "Reyting va baholar", if (rc > 0) String.format("%.2f", rating) else "—") { showRating = true }
                 MenuRow("⭐", "Ustuvorlik va ballar", signed(prioOf(stats))) { showPoints = true }
                 MenuRow("🚕", "Safarlar", "$total ta") { }
                 MenuRow("💳", "To'lov", "Naqd pul") { }
