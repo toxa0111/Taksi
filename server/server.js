@@ -281,11 +281,17 @@ const OFFER_MS = { near: 20000, mid: 45000 };
 // Yangi buyurtma haydovchiga 10 soniya taklif qilinadi. 3 km ichidagi taklifni olmasa, 7 ball ayiriladi.
 const OFFER = { sec: 10, grace: 3, km: 3, penalty: 7, cancel: 4 };   // cancel: qabul qilgandan keyin bekor qilsa ayiriladigan ball
 const penaltyDelayMs = u => Math.min(12000, Math.floor((u.penalty || 0) / OFFER.penalty) * 3000);   // ball kam haydovchi buyurtmani kechroq ko'radi
+function plog(u, d, why) {
+  u.plog = u.plog || [];
+  u.plog.unshift({ t: Date.now(), d, why });
+  u.plog = u.plog.slice(0, 40);
+}
 function applyPenalty(u, o) {
   o.pen = o.pen || {};
   if (o.pen[u.id]) return false;
   o.pen[u.id] = 1;
   u.penalty = (u.penalty || 0) + OFFER.penalty;
+  plog(u, -OFFER.penalty, `Buyurtma #${o.id}: 3 km ichida o'z vaqtida qabul qilinmadi`);
   notify(u, 'Ball ayirildi', `Buyurtma #${o.id} (${OFFER.km} km ichida) o'z vaqtida qabul qilinmadi: −${OFFER.penalty} ball. Ball kam bo'lsa, yangi buyurtmalar kechroq ko'rinadi. Har bir tugagan safar 1 ball qaytaradi.`, 'warning');
   return true;
 }
@@ -1073,6 +1079,19 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { orders: list });
     }
 
+    if (m === 'GET' && p === '/driver/points') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      const trips = db.orders.filter(o => o.driverId === user.id && o.status === 'done').length;
+      const rating = Number(user.rating) || 0, rc = Number(user.ratingCount) || 0;
+      const base = Math.floor((rc > 0 ? Math.max(0, rating - 4) * 40 : 0) + Math.min(trips, 200) / 4);
+      const pen = user.penalty || 0;
+      return send(res, 200, {
+        priority: base - pen, base, penalty: pen, trips, rating, ratingCount: rc,
+        delaySec: Math.round(penaltyDelayMs(user) / 1000),
+        rules: { offerSec: OFFER.sec, offerKm: OFFER.km, offerPenalty: OFFER.penalty, cancelPenalty: OFFER.cancel },
+        log: user.plog || [],
+      });
+    }
     // Haydovchi statistikasi
     if (m === 'GET' && p === '/stats') {
       if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
@@ -1153,7 +1172,7 @@ const server = http.createServer(async (req, res) => {
           const fee = Math.round((o.fullPrice || o.price) * COMM() / 100);
           if (fee > 0) { o.commission = fee; ledgerAdd(user, 'commission', -fee, 'Xizmat komissiyasi (#' + o.id + ')', o.id); }
           checkBalance(user);
-          if (user.penalty > 0) user.penalty = Math.max(0, user.penalty - 1);   // har bir tugagan safar 1 ball qaytaradi
+          if (user.penalty > 0) { user.penalty -= 1; plog(user, 1, `Safar #${o.id} yakunlandi: jarimadan 1 ball qaytdi`); }   // har bir tugagan safar 1 ball qaytaradi
           // Oldindan band qilingan keyingi buyurtma avtomatik qabul qilinadi
           const nx = db.orders.find(x => x.status === 'searching' && x.reservedBy === user.id && reserveValid(x));
           if (nx) { nx.driverId = user.id; nx.status = 'accepted'; delete nx.reservedBy; delete nx.reservedAt; }
@@ -1168,6 +1187,7 @@ const server = http.createServer(async (req, res) => {
         if (o.driverId === user.id && ['accepted', 'arrived'].includes(o.status)) {
           // Qabul qilib bo'lib bekor qilish: 4 ball ayiriladi; bu buyurtma shu haydovchiga qayta taklif qilinmaydi
           user.penalty = (user.penalty || 0) + OFFER.cancel;
+          plog(user, -OFFER.cancel, `Buyurtma #${o.id}: qabul qilib bo'lib bekor qilindi`);
           o.declined = o.declined || {}; o.declined[user.id] = 1;
           o.pen = o.pen || {}; o.pen[user.id] = 1;
           notify(user, 'Ball ayirildi', `Qabul qilingan buyurtma #${o.id} bekor qilindi: −${OFFER.cancel} ball. Ball kam bo'lsa, yangi buyurtmalar kechroq ko'rinadi.`, 'warning');

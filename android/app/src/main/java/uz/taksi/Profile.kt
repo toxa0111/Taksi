@@ -106,6 +106,8 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
     var showDiag by remember { mutableStateOf(false) }
     var diag by remember { mutableStateOf<JSONObject?>(null) }
     installUrl?.let { InstallDialog(it, "TOXA") { installUrl = null } }
+    var showPoints by remember { mutableStateOf(false) }
+    if (showPoints) { PointsScreen { showPoints = false }; return }
 
     LaunchedEffect(Unit) {
         try { profile = io { Api.call("GET", "/profile") } } catch (e: Exception) { }
@@ -153,9 +155,10 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatTile(if (rc > 0) String.format("%.2f", rating) else "—", "Reyting", "⭐", Modifier.weight(1f))
                 StatTile(levelOf(total), "Daraja", "🏅", Modifier.weight(1f))
-                StatTile(signed(priorityOf(rating, rc, total, stats?.optInt("penalty") ?: 0)), "Ustuvorlik", "🟡", Modifier.weight(1f))
+                StatTile(signed(priorityOf(rating, rc, total, stats?.optInt("penalty") ?: 0)), "Ustuvorlik", "🟡", Modifier.weight(1f).clickable { showPoints = true })
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Chip)) {
+                MenuRow("⭐", "Ustuvorlik va ballar", signed(priorityOf(rating, rc, total, stats?.optInt("penalty") ?: 0))) { showPoints = true }
                 MenuRow("🚕", "Safarlar", "$total ta") { }
                 MenuRow("💳", "To'lov", "Naqd pul") { }
             }

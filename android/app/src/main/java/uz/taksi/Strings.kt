@@ -18,6 +18,22 @@ import androidx.compose.ui.unit.TextUnit
  */
 private const val TABLE = """
 Yuklanmoqda…§Загрузка…§Loading…
+Ustuvorlik va ballar§Приоритет и баллы§Priority and points
+ball§баллы§points
+Ball qanday ortadi§Как растут баллы§How points increase
+Ball qanday kamayadi§Как уменьшаются баллы§How points decrease
+Ustuvorlik nimaga ta'sir qiladi§На что влияет приоритет§What priority affects
+Ball tarixi§История баллов§Points history
+Hali o'zgarish bo'lmagan§Изменений пока нет§No changes yet
+Har 4 ta safar§Каждые 4 поездки§Every 4 trips
+200 safargacha hisoblanadi (eng ko'pi +50 ball).§Считается до 200 поездок (максимум +50 баллов).§Counted up to 200 trips (max +50 points).
+Reyting 4.0 dan yuqori§Рейтинг выше 4.0§Rating above 4.0
+Har 0.1 reyting uchun +4 ball.§+4 балла за каждые 0.1 рейтинга.§+4 points for every 0.1 of rating.
+Yakunlangan safar§Завершённая поездка§Completed trip
+Har bir tugagan safar jarimadan 1 ball qaytaradi.§Каждая завершённая поездка возвращает 1 балл штрафа.§Each completed trip returns 1 penalty point.
+Buyurtmani olmaslik§Пропуск заказа§Missing an order
+Qabul qilib bekor qilish§Отмена после принятия§Cancel after accepting
+Qabul qilingan buyurtmani bekor qilsangiz.§Если вы отменяете принятый заказ.§If you cancel an accepted order.
 Buyurtmani bekor qilish (−4 ball)§Отменить заказ (−4 балла)§Cancel order (−4 points)
 Buyurtmani bekor qilasizmi?§Отменить заказ?§Cancel the order?
 Qabul qilingan buyurtmani bekor qilsangiz, 4 ball ayiriladi va yangi buyurtmalar kechroq ko'rinadi.§Если отмените принятый заказ, спишется 4 балла и новые заказы будут появляться позже.§If you cancel an accepted order, 4 points are deducted and new orders appear to you later.
