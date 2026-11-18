@@ -294,17 +294,25 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
 fun UpdateDialog(tag: String? = null, appName: String = "TOXA") {
     val ctx = LocalContext.current
     var update by remember { mutableStateOf<Pair<Int, String>?>(null) }
+    var skipped by remember { mutableStateOf(0) }
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    // Ilova ochilganda, har safar oldingi planga qaytganda va ochiq tursa har 30 daqiqada tekshiriladi
     LaunchedEffect(Unit) {
-        // Yangilanishni tekshirishda xato (internet yo'q, GitHub javob bermadi) ilovani yopib qo'ymasligi kerak
-        val r = try { latestRelease(tag) } catch (e: Exception) { null }
-        if (r != null && r.first > currentVersionCode(ctx)) update = r
+        lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            while (true) {
+                // Yangilanishni tekshirishda xato (internet yo'q, GitHub javob bermadi) ilovani yopib qo'ymasligi kerak
+                val r = try { latestRelease(tag) } catch (e: Exception) { null }
+                if (r != null && r.first > currentVersionCode(ctx) && r.first != skipped) update = r
+                kotlinx.coroutines.delay(30 * 60 * 1000L)
+            }
+        }
     }
     var installUrl by remember { mutableStateOf<String?>(null) }
     installUrl?.let { InstallDialog(it, appName) { installUrl = null; update = null } }
     val u = update ?: return
     if (installUrl != null) return
     AlertDialog(
-        onDismissRequest = { update = null },
+        onDismissRequest = { skipped = u.first; update = null },
         shape = RoundedCornerShape(24.dp),
         containerColor = Card,
         title = { Text("Yangi versiya bor", fontWeight = FontWeight.Bold) },
@@ -312,6 +320,6 @@ fun UpdateDialog(tag: String? = null, appName: String = "TOXA") {
         confirmButton = {
             BigButton("Yangilash", Modifier.width(150.dp)) { installUrl = u.second }
         },
-        dismissButton = { TextButton(onClick = { update = null }) { Text("Keyinroq", color = Muted) } },
+        dismissButton = { TextButton(onClick = { skipped = u.first; update = null }) { Text("Keyinroq", color = Muted) } },
     )
 }
