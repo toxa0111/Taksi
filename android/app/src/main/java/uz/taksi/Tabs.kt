@@ -86,8 +86,8 @@ fun BottomTabs(tabs: List<Pair<String, String>>, selected: Int, onSelect: (Int) 
                     Box(
                         Modifier.clip(RoundedCornerShape(50))
                             .then(if (sel) Modifier.background(GoldBrush) else Modifier)
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                    ) { Text(icon, fontSize = 18.sp, color = if (sel) Ink else Muted, modifier = Modifier.graphicsLayer { scaleX = iconScale; scaleY = iconScale }) }
+                            .padding(horizontal = 18.dp, vertical = 5.dp),
+                    ) { SilverIcon(icon, 30.dp, Modifier.graphicsLayer { scaleX = iconScale; scaleY = iconScale }, tint = if (sel) OnBrand else null) }
                     Text(
                         label, fontSize = 11.sp,
                         fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,

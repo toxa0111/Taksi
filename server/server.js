@@ -75,6 +75,10 @@ const docsView = u => {
 };
 const isVerified = u => DOC_KINDS.every(k => u.docs && u.docs[k] && u.docs[k].status === 'approved') && !!u.plate;
 
+// ---- Haydovchi to'lov usuli: naqd va naqdsiz / faqat naqd / faqat naqdsiz ----
+const PAYMODE_MAX = 3;
+const payOk = (u, o) => { const m = u.payMode || 'both'; return m === 'both' || m === (o.payMethod === 'card' ? 'card' : 'cash'); };
+
 // ---- Baholash tizimi: reyting oxirgi 150 ta baho o'rtachasi, sabablar (teglar) bilan ----
 const RATE_WINDOW = 150;
 const TAGS_POS = ['care', 'polite', 'style', 'music', 'clean', 'chat'];
@@ -937,6 +941,21 @@ const server = http.createServer(async (req, res) => {
     }
 
     // ---- Balans va pul yechish ----
+    if (m === 'GET' && p === '/driver/paymode') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      const n = (user.payModeLog || []).filter(t => t > Date.now() - 86400000).length;
+      return send(res, 200, { mode: user.payMode || 'both', changes: n, max: PAYMODE_MAX });
+    }
+    if (m === 'POST' && p === '/driver/paymode') {
+      if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
+      if (!['both', 'cash', 'card'].includes(b.mode)) return send(res, 400, { error: 'To\'lov usuli noto\'g\'ri' });
+      if ((user.payMode || 'both') !== b.mode) {
+        user.payModeLog = (user.payModeLog || []).filter(t => t > Date.now() - 86400000);
+        if (user.payModeLog.length >= PAYMODE_MAX) return send(res, 429, { error: 'To\'lov usulini 24 soat ichida ' + PAYMODE_MAX + ' martagacha o\'zgartirish mumkin' });
+        user.payModeLog.push(Date.now()); user.payMode = b.mode; save();
+      }
+      return send(res, 200, { mode: user.payMode || 'both', changes: (user.payModeLog || []).length, max: PAYMODE_MAX });
+    }
     if (m === 'GET' && p === '/driver/balance') {
       if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
       return send(res, 200, {
@@ -1103,7 +1122,7 @@ const server = http.createServer(async (req, res) => {
             now > sn.at + (OFFER.sec + OFFER.grace) * 1000 && sn.km <= OFFER.km) pen = applyPenalty(user, o) || pen;
       }
       if (pen) save();
-      const list = db.orders.filter(o => o.status === 'searching').filter(o => {
+      const list = db.orders.filter(o => o.status === 'searching' && payOk(user, o)).filter(o => {
         if (reserveValid(o) && o.reservedBy !== user.id) return false;       // boshqa haydovchi band qilgan
         if (o.reservedBy === user.id && reserveValid(o)) return true;
         const age = now - o.createdAt;
@@ -1191,6 +1210,7 @@ const server = http.createServer(async (req, res) => {
         }
         if (user.online !== true) return send(res, 400, { error: 'Avval ishga chiqing' });
         if (o.status !== 'searching') return send(res, 400, { error: 'Buyurtma allaqachon olingan' });
+        if (!payOk(user, o)) return send(res, 400, { error: 'Siz tanlagan to\'lov usuli bu buyurtmaga mos emas' });
         if (reserveValid(o) && o.reservedBy !== user.id) return send(res, 400, { error: 'Buyurtmani boshqa haydovchi band qilgan' });
         if (!db.orders.some(x => x.driverId === user.id && x.status === 'started')) return send(res, 400, { error: 'Keyingi buyurtmani faqat safar davomida band qilish mumkin' });
         if (db.orders.some(x => x.id !== o.id && x.reservedBy === user.id && x.status === 'searching' && reserveValid(x))) return send(res, 400, { error: 'Sizda band qilingan buyurtma bor' });

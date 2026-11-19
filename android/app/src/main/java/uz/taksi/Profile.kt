@@ -75,7 +75,6 @@ private fun StatTile(value: String, label: String, icon: String, modifier: Modif
             Text(value, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
             Text(label, fontSize = 13.sp, color = Muted)
         }
-        Text(icon, fontSize = 40.sp, modifier = Modifier.align(Alignment.BottomEnd))
     }
 }
 
@@ -85,7 +84,7 @@ fun MenuRow(icon: String, title: String, value: String = "", onClick: () -> Unit
         Modifier.fillMaxWidth().bounceClick(to = 0.98f, onClick = onClick).padding(horizontal = 14.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(42.dp).clip(CircleShape).background(Chip).border(1.2.dp, GoldBrush, CircleShape), contentAlignment = Alignment.Center) { Text(icon, fontSize = 20.sp) }
+        Box(Modifier.size(48.dp).clip(CircleShape).background(Chip).border(1.2.dp, SilverBrush, CircleShape), contentAlignment = Alignment.Center) { SilverIcon(icon, 28.dp) }
         Spacer(Modifier.width(14.dp))
         Text(title, fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
         if (value.isNotEmpty()) Text(value, fontSize = 13.sp, color = Muted, modifier = Modifier.padding(end = 6.dp))
@@ -193,8 +192,6 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
                 StatTile(signed(prioOf(stats)), "Ustuvorlik", "🟡", Modifier.weight(1f).clickable { showPoints = true })
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Chip)) {
-                MenuRow("🌟", "Reyting va baholar", if (rc > 0) String.format("%.2f", rating) else "—") { showRating = true }
-                MenuRow("⭐", "Ustuvorlik va ballar", signed(prioOf(stats))) { showPoints = true }
                 MenuRow("🚕", "Safarlar", "$total ta") { showTrips = true }
                 MenuRow("💳", "To'lov va balans", "") { showPay = true }
             }

@@ -94,6 +94,13 @@ async function login(phone, name, role) {
   ok((await call('GET', '/stats', null, D)).j.rating === 4, 'haydovchi reytingi yangilandi');
   const rs = await call('GET', '/driver/ratings', null, D);
   ok(rs.j.stars[4] === 1 && rs.j.tags.care === 1 && !rs.j.tags.rude && !rs.j.tags.xato && rs.j.considered === 1 && rs.j.rating === 4, 'baholar sabablari (teglar) hisoblandi');
+  const pm0 = await call('GET', '/driver/paymode', null, D);
+  ok(pm0.j.mode === 'both' && pm0.j.max === 3, 'to\'lov usuli sukut bo\'yicha ikkalasi');
+  ok((await call('POST', '/driver/paymode', { mode: 'xato' }, D)).s === 400, 'noto\'g\'ri to\'lov usuli rad etildi');
+  ok((await call('POST', '/driver/paymode', { mode: 'card' }, D)).j.mode === 'card', 'faqat naqdsiz tanlandi');
+  ok((await call('POST', '/driver/paymode', { mode: 'cash' }, D)).j.mode === 'cash', 'faqat naqd tanlandi');
+  ok((await call('POST', '/driver/paymode', { mode: 'both' }, D)).j.mode === 'both', 'ikkalasi tanlandi');
+  ok((await call('POST', '/driver/paymode', { mode: 'cash' }, D)).s === 429, '24 soatda 3 martadan ko\'p o\'zgartirib bo\'lmaydi');
 
   // ---- Qo'llab-quvvatlash ----
   ok((await call('POST', '/support', { text: 'a' }, P)).s === 400, 'juda qisqa murojaat rad etildi');

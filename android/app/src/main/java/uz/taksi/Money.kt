@@ -21,6 +21,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -298,6 +300,7 @@ fun BalanceScreen(onBack: () -> Unit, onTopUp: () -> Unit = {}) {
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         BackRow(onBack)
+        PayModePanel()
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Balans", fontSize = 18.sp)
             Text(som(balance), fontSize = 40.sp, fontWeight = FontWeight.ExtraBold)
@@ -399,4 +402,58 @@ private fun WithdrawDialog(balance: Long, min: Long, onClose: (sent: Boolean) ->
         },
         dismissButton = { TextButton(onClick = { onClose(false) }) { Text("Orqaga") } },
     )
+}
+
+
+/** Haydovchi qaysi to'lov usulidagi buyurtmalarni qabul qilishini tanlaydi. */
+@Composable
+fun PayModePanel() {
+    val scope = rememberCoroutineScope()
+    var mode by remember { mutableStateOf("both") }
+    var changes by remember { mutableIntStateOf(0) }
+    var max by remember { mutableIntStateOf(3) }
+    var err by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) {
+        try {
+            val d = io { Api.call("GET", "/driver/paymode") }
+            mode = d.optString("mode", "both"); changes = d.optInt("changes"); max = d.optInt("max", 3)
+        } catch (e: Exception) { }
+    }
+    val opts = listOf(
+        Triple("both", "Naqd va naqdsiz", "Ikkala usuldagi buyurtmalarni qabul qilasiz"),
+        Triple("cash", "Naqd pul", "Faqat naqd to'lanadigan buyurtmalar"),
+        Triple("card", "Naqdsiz pul", "Faqat karta bilan to'lanadigan buyurtmalar"),
+    )
+    Panel {
+        Text("To'lov usullari", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+        opts.forEach { (k, title, sub) ->
+            val on = k == mode
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).bounceClick(to = 0.98f) {
+                    if (k != mode) scope.launch {
+                        try {
+                            val d = io { Api.call("POST", "/driver/paymode", JSONObject().put("mode", k)) }
+                            mode = d.optString("mode", k); changes = d.optInt("changes"); err = ""
+                        } catch (e: Exception) { err = e.message ?: "Xato" }
+                    }
+                }.padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text(sub, fontSize = 12.sp, color = Muted)
+                }
+                Box(
+                    Modifier.size(26.dp).clip(CircleShape).background(if (on) Brush.linearGradient(listOf(GoldHi, Gold, GoldLo)) else Brush.linearGradient(listOf(Chip, Chip)))
+                        .border(1.2.dp, if (on) GoldBrush else SilverBrush, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) { if (on) Text("✓", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = OnBrand) }
+            }
+        }
+        Row(Modifier.fillMaxWidth()) {
+            Text("24 soat ichidagi o'zgarishlar", fontSize = 13.sp, color = Muted, modifier = Modifier.weight(1f))
+            Text("$changes/$max", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        }
+        if (err.isNotEmpty()) Text(err, fontSize = 13.sp, color = Bad)
+    }
 }
