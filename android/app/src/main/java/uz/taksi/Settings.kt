@@ -37,7 +37,7 @@ object AppSettings {
         lang = p.getString("lang", "uz") ?: "uz"
         // Birinchi ochilishda telefonning qorong'i rejimiga mos keladi
         val systemDark = (ctx.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-        dark = if (p.contains("dark")) p.getBoolean("dark", false) else systemDark
+        dark = p.getBoolean("dark", true)   // brend: sukut bo'yicha qora fon
         sound = p.getString("sound", "on") ?: "on"
         fontScale = p.getFloat("font", 1.0f)
         voice = p.getString("voice", "on") ?: "on"

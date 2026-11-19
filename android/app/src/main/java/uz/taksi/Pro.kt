@@ -412,10 +412,15 @@ fun DayCard(count: Int, sum: Long, priority: Int = 0) {
             delay(15000)
         }
     }
+    var showPts by remember { mutableStateOf(false) }
+    if (showPts) androidx.compose.ui.window.Dialog(
+        onDismissRequest = { showPts = false },
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+    ) { androidx.compose.material3.Surface(Modifier.fillMaxSize(), color = PageBg, contentColor = Fg) { PointsScreen { showPts = false } } }
     Panel {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Ustuvorlik", fontSize = 12.sp, color = Muted)
+            Column(Modifier.weight(1f).clickable { showPts = true }) {
+                Text("Ustuvorlik ›", fontSize = 12.sp, color = Muted)
                 Text(signed(priority), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
             }
             Column(Modifier.weight(1f)) {

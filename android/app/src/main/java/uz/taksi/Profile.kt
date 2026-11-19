@@ -23,6 +23,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -92,7 +93,7 @@ fun MenuRow(icon: String, title: String, value: String = "", onClick: () -> Unit
 
 @Composable
 private fun MenuGroup(content: @Composable () -> Unit) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Card)) { content() }
+    Column(Modifier.fillMaxWidth().glass(RoundedCornerShape(24.dp))) { content() }
 }
 
 /** Haydovchi kabineti (Yandex Pro uslubida). */
@@ -114,7 +115,28 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
     var showPoints by remember { mutableStateOf(false) }
     var showRating by remember { mutableStateOf(false) }
     var showTrips by remember { mutableStateOf(false) }
+    var showLevels by remember { mutableStateOf(false) }
     var showPay by remember { mutableStateOf(false) }
+    if (showLevels) {
+        val tr = stats?.optInt("totalCount") ?: 0
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showLevels = false },
+            confirmButton = { TextButton(onClick = { showLevels = false }) { Text("Yopish") } },
+            title = { Text("Darajalar", fontWeight = FontWeight.ExtraBold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    listOf("Yangi" to "0 dan", "Tajribali" to "50 ta safardan", "Ekspert" to "200 ta safardan", "Master" to "500 ta safardan").forEach { (n, r) ->
+                        val cur = n == levelOf(tr)
+                        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (cur) Gold else Chip).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(n, fontWeight = FontWeight.Bold, color = if (cur) OnBrand else Fg, modifier = Modifier.weight(1f))
+                            Text(r, fontSize = 13.sp, color = if (cur) OnBrand else Muted)
+                        }
+                    }
+                    Text("Hozir: $tr ta safar", fontSize = 13.sp, color = Muted)
+                }
+            },
+        )
+    }
     if (showPoints) { PointsScreen { showPoints = false }; return }
     if (showRating) { RatingScreen { showRating = false }; return }
     if (showTrips) { TripsScreen { showTrips = false }; return }
@@ -165,7 +187,7 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatTile(if (rc > 0) String.format("%.2f", rating) else "—", "Reyting", "⭐", Modifier.weight(1f).clickable { showRating = true })
-                StatTile(levelOf(total), "Daraja", "🏅", Modifier.weight(1f))
+                StatTile(levelOf(total), "Daraja", "🏅", Modifier.weight(1f).clickable { showLevels = true })
                 StatTile(signed(prioOf(stats)), "Ustuvorlik", "🟡", Modifier.weight(1f).clickable { showPoints = true })
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Chip)) {

@@ -49,6 +49,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,43 +59,57 @@ import androidx.compose.ui.unit.sp
 
 // ───────────────────────── Ranglar ─────────────────────────
 
-/** Brend asosiy rangi: yorug' rejimda qora, qorong'i rejimda oq (Uber kabi toza va kontrastli). */
-val Yellow: Color get() = if (AppSettings.dark) Color.White else Color.Black
-/** Brend rangi ustidagi matn. */
-val OnBrand: Color get() = if (AppSettings.dark) Color.Black else Color.White
-val Teal = Color(0xFF06C167)        // yashil urg'u: "onlayn", muvaffaqiyat, olib ketish nuqtasi
-val Ink = Color(0xFF000000)
-val Ok = Color(0xFF06C167)
-val Bad = Color(0xFFE11900)
+// Brend: qora fon, tillo (asosiy amallar), kumush (ikkinchi darajali amallar), oyna (shisha) kartalar
+val GoldHi = Color(0xFFF6E27A)
+val Gold = Color(0xFFD4AF37)
+val GoldLo = Color(0xFFA67C00)
+val SilverHi = Color(0xFFF4F4F6)
+val Silver = Color(0xFFC0C0C8)
+val SilverLo = Color(0xFF8E8E98)
+val Yellow: Color get() = Gold                 // asosiy rang (eski nom saqlandi)
+val OnBrand = Color(0xFF1A1300)                // tillo ustidagi matn
+val Teal = Silver
+val Ink = Color(0xFF111111)
+val Ok = Color(0xFF3DD68C)
+val Bad = Color(0xFFFF5A52)
 
 // Yorug' / qorong'i rejimga qarab o'zgaradigan ranglar (AppSettings.dark o'zgarsa, ekran qayta chiziladi)
-val PageBg: Color get() = if (AppSettings.dark) Color(0xFF000000) else Color(0xFFFFFFFF)
-val Card: Color get() = if (AppSettings.dark) Color(0xFF1B1B1B) else Color(0xFFF3F3F3)
-val Chip: Color get() = if (AppSettings.dark) Color(0xFF2B2B2B) else Color(0xFFE6E6E6)
-val Muted: Color get() = if (AppSettings.dark) Color(0xFFA6A6A6) else Color(0xFF6B6B6B)
-val Hairline: Color get() = if (AppSettings.dark) Color(0xFF333333) else Color(0xFFE2E2E2)
+val PageBg: Color get() = if (AppSettings.dark) Color(0xFF050505) else Color(0xFFFAF8F3)
+val Card: Color get() = if (AppSettings.dark) Color(0xFF131316) else Color(0xFFFFFFFF)
+val Chip: Color get() = if (AppSettings.dark) Color(0xFF1E1E23) else Color(0xFFEFEBE0)
+val Muted: Color get() = if (AppSettings.dark) Color(0xFF9D9DA8) else Color(0xFF6E6A60)
+val Hairline: Color get() = if (AppSettings.dark) Color(0xFF2B2B31) else Color(0xFFE5DFD0)
 /** Oddiy matn rangi. */
-val Fg: Color get() = if (AppSettings.dark) Color.White else Color.Black
-/** Yumshoq fon (eslatma kartalari). */
-val Soft: Color get() = if (AppSettings.dark) Color(0xFF262626) else Color(0xFFEFEFEF)
+val Fg: Color get() = if (AppSettings.dark) Color(0xFFF5F5F7) else Ink
+/** Yumshoq tillo fon (eslatma kartalari). */
+val Soft: Color get() = if (AppSettings.dark) Color(0xFF2A2412) else Color(0xFFFBF1D3)
+
+/** Oyna uslubi: yarim shaffof porloq sirt va nozik tillo-kumush hoshiya. */
+fun Modifier.glass(shape: Shape = RoundedCornerShape(22.dp)): Modifier = composed {
+    val dark = AppSettings.dark
+    this.clip(shape)
+        .background(if (dark) Color(0xFF0C0C0F) else Color.White)
+        .background(Brush.linearGradient(if (dark) listOf(Color(0x2EFFFFFF), Color(0x0AFFFFFF)) else listOf(Color(0x14D4AF37), Color(0x00FFFFFF))))
+        .border(1.dp, Brush.linearGradient(if (dark) listOf(Gold.copy(alpha = 0.55f), Color.White.copy(alpha = 0.07f), Silver.copy(alpha = 0.28f)) else listOf(Gold.copy(alpha = 0.45f), Hairline, Hairline)), shape)
+}
 
 private val DarkScheme = darkColorScheme(
-    primary = Color.White, onPrimary = Color.Black,
-    secondary = Teal, onSecondary = Color.Black,
-    background = Color.Black, onBackground = Color.White,
-    surface = Color(0xFF1B1B1B), onSurface = Color.White,
-    surfaceVariant = Color(0xFF2B2B2B), onSurfaceVariant = Color(0xFFA6A6A6),
-    outline = Color(0xFF333333), error = Bad,
+    primary = Gold, onPrimary = OnBrand,
+    secondary = Silver, onSecondary = Color.Black,
+    background = Color(0xFF050505), onBackground = Color(0xFFF5F5F7),
+    surface = Color(0xFF131316), onSurface = Color(0xFFF5F5F7),
+    surfaceVariant = Color(0xFF1E1E23), onSurfaceVariant = Color(0xFF9D9DA8),
+    outline = Color(0xFF2B2B31), error = Bad,
 )
 
 private val Scheme = lightColorScheme(
-    primary = Color.Black, onPrimary = Color.White,
-    secondary = Teal, onSecondary = Color.White,
-    background = Color.White, onBackground = Color.Black,
-    surface = Color(0xFFF3F3F3), onSurface = Color.Black,
-    surfaceVariant = Color(0xFFE6E6E6), onSurfaceVariant = Color(0xFF6B6B6B),
-    outline = Color(0xFFE2E2E2), error = Bad,
-    primaryContainer = Color(0xFFEFEFEF), onPrimaryContainer = Color.Black,
+    primary = Gold, onPrimary = OnBrand,
+    secondary = Color(0xFF5A5A62), onSecondary = Color.White,
+    background = Color(0xFFFAF8F3), onBackground = Ink,
+    surface = Color.White, onSurface = Ink,
+    surfaceVariant = Color(0xFFEFEBE0), onSurfaceVariant = Color(0xFF6E6A60),
+    outline = Color(0xFFE5DFD0), error = Bad,
+    primaryContainer = Color(0xFFFBF1D3), onPrimaryContainer = Ink,
 )
 
 @Composable
@@ -134,17 +150,17 @@ fun BigButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = tr
     val src = remember { MutableInteractionSource() }
     val pressed by src.collectIsPressedAsState()
     val sc = pressScale(src, enabled, 0.96f)
-    val elev by animateDpAsState(0.dp, label = "elev")
+    val elev by animateDpAsState(if (!enabled) 0.dp else if (pressed) 1.dp else 8.dp, label = "elev")
     val haptic = LocalHapticFeedback.current
-    val shape = RoundedCornerShape(12.dp)
-    val fill = if (enabled) Brush.verticalGradient(listOf(Yellow, Yellow))
+    val shape = RoundedCornerShape(16.dp)
+    val fill = if (enabled) Brush.verticalGradient(listOf(GoldHi, Gold, GoldLo))
     else Brush.verticalGradient(listOf(Chip, Chip))
     Box(
         modifier.fillMaxWidth().height(54.dp)
             .graphicsLayer { scaleX = sc; scaleY = sc }
-            .shadow(elev, shape, ambientColor = Color.Transparent, spotColor = Color.Transparent)
+            .shadow(elev, shape, ambientColor = Gold, spotColor = Color(0xFF8A6500))
             .clip(shape).background(fill)
-            .border(1.dp, Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent)), shape)
+            .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = if (enabled) 0.55f else 0f), Color.Transparent)), shape)
             .clickable(interactionSource = src, indication = ripple(color = OnBrand), enabled = enabled) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onClick()
@@ -163,7 +179,7 @@ fun DarkButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = t
         modifier = modifier.height(54.dp).graphicsLayer { scaleX = sc; scaleY = sc },
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Yellow, contentColor = OnBrand,
+            containerColor = Silver, contentColor = Color.Black,
             disabledContainerColor = Chip, disabledContentColor = Muted,
         ),
     ) { Text(text, fontWeight = FontWeight.Bold, fontSize = 15.sp) }
@@ -178,7 +194,8 @@ fun GhostButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = 
         onClick = onClick, enabled = enabled, interactionSource = src,
         modifier = modifier.fillMaxWidth().height(50.dp).graphicsLayer { scaleX = sc; scaleY = sc },
         shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = Fg),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = if (AppSettings.dark) Color(0x14FFFFFF) else Color.Transparent, contentColor = if (AppSettings.dark) SilverHi else Color(0xFF3A3A40)),
+        border = BorderStroke(1.2.dp, Brush.verticalGradient(listOf(SilverHi, SilverLo))),
     ) { Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp) }
 }
 
@@ -223,7 +240,9 @@ fun Panel(
     color: Color = Card,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Card(
+    if (color == Card) {
+        Column(modifier.fillMaxWidth().glass().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
+    } else Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = color),
@@ -249,7 +268,7 @@ fun Segmented(
             val sel = key == selected
             Box(
                 Modifier.weight(1f).clip(RoundedCornerShape(11.dp))
-                    .background(animateColorAsState(if (sel) Card else Color.Transparent, label = "seg").value)
+                    .background(animateColorAsState(if (sel) Gold else Color.Transparent, label = "seg").value)
                     .bounceClick(to = 0.95f) { onSelect(key) }
                     .padding(vertical = 11.dp),
                 contentAlignment = Alignment.Center,
@@ -257,7 +276,7 @@ fun Segmented(
                 Text(
                     label, fontSize = 14.sp,
                     fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
-                    color = if (sel) Fg else Muted,
+                    color = if (sel) OnBrand else Muted,
                 )
             }
         }
