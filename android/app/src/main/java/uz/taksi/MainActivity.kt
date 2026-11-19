@@ -192,7 +192,7 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
     var msg by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxSize().background(PageBg).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().appBackground().verticalScroll(rememberScrollState())) {
         LangBar()
         // Sariq sarlavha
         Box(

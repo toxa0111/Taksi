@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,11 +42,11 @@ private val DRIVER_TABS = listOf("🧭" to "Buyurtmalar", "🗓" to "Shaharlarar
 fun Shell(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
     var tab by remember { mutableStateOf(0) }
     BackHandler(enabled = tab != 0) { tab = 0 }
-    Column(Modifier.fillMaxSize().background(PageBg)) {
+    Column(Modifier.fillMaxSize().appBackground()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (role == "driver") DriverScreen(onLogout) else PassengerScreen(onLogout)
             if (tab != 0) {
-                Box(Modifier.fillMaxSize().background(PageBg).pointerInput(Unit) { detectTapGestures { } }) {
+                Box(Modifier.fillMaxSize().appBackground().pointerInput(Unit) { detectTapGestures { } }) {
                     if (role == "driver") {
                         when (tab) {
                             1 -> DriverIntercityTab()
@@ -67,6 +70,8 @@ fun Shell(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
 @Composable
 fun BottomTabs(tabs: List<Pair<String, String>>, selected: Int, onSelect: (Int) -> Unit) {
     Surface(color = Card, shadowElevation = 12.dp) {
+        Column {
+        Box(Modifier.fillMaxWidth().height(1.5.dp).background(Brush.horizontalGradient(listOf(Color.Transparent, Gold, GoldHi, Gold, Color.Transparent))))
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
             tabs.forEachIndexed { i, (icon, label) ->
                 val sel = selected == i
@@ -80,7 +85,7 @@ fun BottomTabs(tabs: List<Pair<String, String>>, selected: Int, onSelect: (Int) 
                     )
                     Box(
                         Modifier.clip(RoundedCornerShape(50))
-                            .background(androidx.compose.animation.animateColorAsState(if (sel) Yellow else Color.Transparent, label = "tabbg").value)
+                            .then(if (sel) Modifier.background(GoldBrush) else Modifier)
                             .padding(horizontal = 16.dp, vertical = 4.dp),
                     ) { Text(icon, fontSize = 18.sp, color = if (sel) Ink else Muted, modifier = Modifier.graphicsLayer { scaleX = iconScale; scaleY = iconScale }) }
                     Text(
@@ -90,6 +95,7 @@ fun BottomTabs(tabs: List<Pair<String, String>>, selected: Int, onSelect: (Int) 
                     )
                 }
             }
+        }
         }
     }
 }

@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -68,7 +70,7 @@ fun signed(n: Int) = if (n >= 0) "+$n" else n.toString()
 
 @Composable
 private fun StatTile(value: String, label: String, icon: String, modifier: Modifier) {
-    Box(modifier.clip(RoundedCornerShape(20.dp)).background(Chip).height(118.dp).padding(14.dp)) {
+    Box(modifier.glass(RoundedCornerShape(20.dp)).height(118.dp).padding(14.dp)) {
         Column {
             Text(value, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
             Text(label, fontSize = 13.sp, color = Muted)
@@ -83,7 +85,7 @@ fun MenuRow(icon: String, title: String, value: String = "", onClick: () -> Unit
         Modifier.fillMaxWidth().bounceClick(to = 0.98f, onClick = onClick).padding(horizontal = 14.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(42.dp).clip(CircleShape).background(Chip), contentAlignment = Alignment.Center) { Text(icon, fontSize = 20.sp) }
+        Box(Modifier.size(42.dp).clip(CircleShape).background(Chip).border(1.2.dp, GoldBrush, CircleShape), contentAlignment = Alignment.Center) { Text(icon, fontSize = 20.sp) }
         Spacer(Modifier.width(14.dp))
         Text(title, fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
         if (value.isNotEmpty()) Text(value, fontSize = 13.sp, color = Muted, modifier = Modifier.padding(end = 6.dp))

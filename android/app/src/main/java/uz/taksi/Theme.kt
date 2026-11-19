@@ -87,13 +87,25 @@ val Fg: Color get() = if (AppSettings.dark) Color(0xFFF5F5F7) else Ink
 /** Yumshoq tillo fon (eslatma kartalari). */
 val Soft: Color get() = if (AppSettings.dark) Color(0xFF332C18) else Color(0xFFFBF1D3)
 
+/** Ilova foni: ochiq grafit gradient va yuqoridan tillo yog'du. */
+fun Modifier.appBackground(): Modifier = composed {
+    if (AppSettings.dark) this
+        .background(Brush.verticalGradient(listOf(Color(0xFF2A2A31), Color(0xFF18181D), Color(0xFF131317))))
+        .background(Brush.radialGradient(listOf(Gold.copy(alpha = 0.20f), Color.Transparent), center = androidx.compose.ui.geometry.Offset(160f, 0f), radius = 1100f))
+    else this.background(PageBg)
+}
+
+/** Matn uchun jilolangan tillo / kumush gradientlar. */
+val GoldTextBrush: Brush get() = Brush.horizontalGradient(listOf(Color(0xFFF6E7B0), Color(0xFFD9B75A), Color(0xFFB8913A)))
+val SilverTextBrush: Brush get() = Brush.horizontalGradient(listOf(Color(0xFFF2F3F6), Color(0xFFC9CAD1), Color(0xFFA9AAB3)))
+
 /** Oyna uslubi: yarim shaffof porloq sirt va nozik tillo-kumush hoshiya. */
 fun Modifier.glass(shape: Shape = RoundedCornerShape(22.dp)): Modifier = composed {
     val dark = AppSettings.dark
     this.clip(shape)
         .background(if (dark) Color(0xFF1D1D22) else Color.White)
-        .background(Brush.linearGradient(if (dark) listOf(Color(0x26FFFFFF), Color(0x08FFFFFF)) else listOf(Color(0x14D4AF37), Color(0x00FFFFFF))))
-        .border(1.dp, Brush.linearGradient(if (dark) listOf(Gold.copy(alpha = 0.55f), Color.White.copy(alpha = 0.07f), Silver.copy(alpha = 0.28f)) else listOf(Gold.copy(alpha = 0.45f), Hairline, Hairline)), shape)
+        .background(Brush.linearGradient(if (dark) listOf(Color(0x30FFFFFF), Color(0x0AFFFFFF)) else listOf(Color(0x14D4AF37), Color(0x00FFFFFF))))
+        .border(1.4.dp, Brush.linearGradient(if (dark) listOf(Gold.copy(alpha = 0.9f), Color.White.copy(alpha = 0.10f), Silver.copy(alpha = 0.55f)) else listOf(Gold.copy(alpha = 0.45f), Hairline, Hairline)), shape)
 }
 
 private val DarkScheme = darkColorScheme(
@@ -264,7 +276,7 @@ fun Segmented(
     onSelect: (String) -> Unit,
 ) {
     Row(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Chip).padding(4.dp),
+        modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Chip).border(1.dp, SilverBrush, RoundedCornerShape(14.dp)).padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         options.forEach { (key, label) ->

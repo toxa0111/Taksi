@@ -71,7 +71,7 @@ fun AdminLogin(prefs: SharedPreferences, onDone: (String) -> Unit) {
     var msg by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxSize().background(PageBg).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().appBackground().verticalScroll(rememberScrollState())) {
         LangBar()
         Box(
             Modifier.fillMaxWidth()
@@ -150,7 +150,7 @@ private val ADMIN_TABS = listOf("📊" to "Umumiy", "🚕" to "Buyurtma", "👥"
 @Composable
 fun AdminShell(prefs: SharedPreferences, onLogout: () -> Unit) {
     var tab by remember { mutableStateOf(0) }
-    Column(Modifier.fillMaxSize().background(PageBg)) {
+    Column(Modifier.fillMaxSize().appBackground()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (tab) {
                 0 -> AdminOverview()

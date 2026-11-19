@@ -675,9 +675,18 @@ fun Text(
     maxLines: Int = Int.MAX_VALUE,
     style: TextStyle = LocalTextStyle.current,
 ) {
+    // Qorong'i rejimda: katta qalin sarlavha va raqamlar tillo, ikkinchi darajali matn kumush gradientda
+    val dark = AppSettings.dark
+    val gold = dark && ((color == Color.Unspecified && fontWeight == FontWeight.ExtraBold && fontSize != TextUnit.Unspecified && fontSize.value >= 20f) || color == Gold)
+    val silver = dark && !gold && color == Muted
+    val st = when {
+        gold -> style.copy(brush = GoldTextBrush)
+        silver -> style.copy(brush = SilverTextBrush)
+        else -> style
+    }
     androidx.compose.material3.Text(
-        text = tr(text), modifier = modifier, color = color, fontSize = fontSize, fontStyle = fontStyle,
+        text = tr(text), modifier = modifier, color = if (gold || silver) Color.Unspecified else color, fontSize = fontSize, fontStyle = fontStyle,
         fontWeight = fontWeight, letterSpacing = letterSpacing, textAlign = textAlign, lineHeight = lineHeight,
-        overflow = overflow, softWrap = softWrap, maxLines = maxLines, style = style,
+        overflow = overflow, softWrap = softWrap, maxLines = maxLines, style = st,
     )
 }
