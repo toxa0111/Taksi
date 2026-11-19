@@ -514,7 +514,7 @@ fun ReferralDialog(onClose: () -> Unit) {
                 val code = d?.optString("code").orEmpty()
                 if (code.isNotEmpty()) {
                     val it = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain")
-                        .putExtra(android.content.Intent.EXTRA_TEXT, "TOXA taksi haydovchisi bo'ling! Ro'yxatdan o'tishda taklif kodini yozing: $code")
+                        .putExtra(android.content.Intent.EXTRA_TEXT, "X taksi haydovchisi bo'ling! Ro'yxatdan o'tishda taklif kodini yozing: $code")
                     try { ctx.startActivity(android.content.Intent.createChooser(it, "Ulashish").addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { }
                 }
             }) { Text("Ulashish") }
@@ -606,7 +606,7 @@ fun AdminPromos() {
     var msg by remember { mutableStateOf("") }
     Text("Promokodlar", fontWeight = FontWeight.Bold, fontSize = 17.sp)
     Panel {
-        Field(code, { code = it.uppercase().filter { c -> c.isLetterOrDigit() }.take(16) }, "Kod (masalan TOXA10)")
+        Field(code, { code = it.uppercase().filter { c -> c.isLetterOrDigit() }.take(16) }, "Kod (masalan X10)")
         Segmented(listOf("percent" to "% foiz", "amount" to "So'm"), type) { type = it }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Field(value, { value = it.filter(Char::isDigit) }, if (type == "percent") "Foiz (1-50)" else "Summa", Modifier.weight(1f), KeyboardType.Number)

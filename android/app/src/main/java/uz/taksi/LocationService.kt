@@ -27,7 +27,7 @@ import org.json.JSONObject
 
 /**
  * Faol safar paytida (ilova fonda bo'lsa ham, masalan Yandex Navigator ochiq) joylashuvni
- * serverga yuborib turadi. Doimiy bildirishnoma ko'rsatadi; ustiga bosilsa TOXA ochiladi.
+ * serverga yuborib turadi. Doimiy bildirishnoma ko'rsatadi; ustiga bosilsa X ochiladi.
  */
 class LocationService : Service() {
     private var lm: LocationManager? = null
@@ -91,7 +91,7 @@ class LocationService : Service() {
         )
         val n = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_stat_toxa)
-            .setContentTitle("TOXA")
+            .setContentTitle("X")
             .setContentText(translate(text, AppSettings.lang))
             .setContentIntent(open)
             .setOngoing(true)
@@ -135,7 +135,7 @@ class LocationService : Service() {
                                     "cancelled" -> "Buyurtma bekor qilindi"
                                     else -> ""
                                 }
-                                if (msg.isNotEmpty()) notifyAlert("TOXA", msg)
+                                if (msg.isNotEmpty()) notifyAlert("X", msg)
                             }
                             seen[id] = st
                         }

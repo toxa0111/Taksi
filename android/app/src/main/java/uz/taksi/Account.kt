@@ -199,7 +199,7 @@ fun CabinetTab(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
     val orders by rememberMyOrders()
     var info by remember { mutableStateOf("") }
     var installUrl by remember { mutableStateOf<String?>(null) }
-    installUrl?.let { InstallDialog(it, "TOXA") { installUrl = null } }
+    installUrl?.let { InstallDialog(it, "X") { installUrl = null } }
     val isDriver = role == "driver"
     var showCards by remember { mutableStateOf(false) }
     if (showCards) { CardsScreen { showCards = false }; return }

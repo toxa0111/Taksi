@@ -135,7 +135,7 @@ fun DriverChats() {
 
     val stories = listOf(
         Story("💳", "Hisobni qanday to'ldiraman?",
-            "Chatlar → TOXA ofisi → «Hisobni to'ldirish» ni bosing. Karta, Click, Payme, Paynet, Uzum yoki taksi ofisida naqd pul bilan to'ldirish mumkin. To'lovdan keyin hisob tasdiqlanishi bilan to'ladi.", Color(0xFFFFE9A8)),
+            "Chatlar → X ofisi → «Hisobni to'ldirish» ni bosing. Karta, Click, Payme, Paynet, Uzum yoki taksi ofisida naqd pul bilan to'ldirish mumkin. To'lovdan keyin hisob tasdiqlanishi bilan to'ladi.", Color(0xFFFFE9A8)),
         Story("🚖", "Nega buyurtmalar yo'q?",
             "Liniyada ekaningizni, hujjatlaringiz tasdiqlanganini va hisobingizda " + som(warn) + " dan ko'p mablag' borligini tekshiring. Xaritadagi qizil zonalarda buyurtmalar ko'proq bo'ladi.", Color(0xFFCDE8FF)),
         Story("💰", "Komissiya haqida",
@@ -162,14 +162,14 @@ fun DriverChats() {
 
         ChatRow("🙋", Color(0xFFBFE9C9), "Yordam xizmati", "Claude yordamchi · 24/7") { scr = "ai" }
         ChatRow(
-            "🏢", Color(0xFFFFD98A), "TOXA ofisi",
+            "🏢", Color(0xFFFFD98A), "X ofisi",
             if (low) "Balansni to'ldiring! (" + som(balance) + ")" else "Hisobni to'ldirish · " + som(balance),
             badge = if (low) "❗" else "",
         ) { scr = "topup" }
         ChatRow("⚠", Color(0xFFFFC9C9), "Ogohlantirishlar",
             notes.firstOrNull { it.optString("kind") != "news" }?.optString("title") ?: "Yangi ogohlantirish yo'q",
             badge = notes.firstOrNull()?.let { dt(it.optLong("t")) } ?: "") { scr = "notes" }
-        ChatRow("📰", Color(0xFFC9D8FF), "TOXA yangiliklari", news.firstOrNull()?.optString("title") ?: "", badge = news.firstOrNull()?.let { dt(it.optLong("t")) } ?: "") { scr = "news" }
+        ChatRow("📰", Color(0xFFC9D8FF), "X yangiliklari", news.firstOrNull()?.optString("title") ?: "", badge = news.firstOrNull()?.let { dt(it.optLong("t")) } ?: "") { scr = "news" }
         ChatRow("🎯", Color(0xFFFFE08A), "Bonuslar", "Maqsadli bonus va taklif kodi") { scr = "bonus" }
         ChatRow("🎧", Color(0xFFD9C9FF), "Qo'llab-quvvatlash", "Operator bilan yozishma") { scr = "tickets" }
         ChatRow("🧾", Color(0xFFBFE9E9), "Hisob balansidagi o'zgarishlar", "Komissiya, to'ldirish, bonus") { scr = "ledger" }
@@ -195,7 +195,7 @@ private fun NotesScreen(onBack: () -> Unit, title: String, notes: List<JSONObjec
 }
 
 @Composable
-private fun NewsScreen(onBack: () -> Unit, news: List<JSONObject>) = NotesScreen(onBack, "TOXA yangiliklari", news)
+private fun NewsScreen(onBack: () -> Unit, news: List<JSONObject>) = NotesScreen(onBack, "X yangiliklari", news)
 
 /** Claude yordamchi (haydovchi va yo'lovchi uchun). */
 @Composable
@@ -222,7 +222,7 @@ fun AiChat(onBack: () -> Unit, onOperator: () -> Unit) {
         Column(Modifier.weight(1f).verticalScroll(scroll), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Chip).padding(12.dp)) {
                 Text(
-                    "Salom! Men TOXA yordamchisiman (Claude). Komissiya, hisobni to'ldirish, buyurtmalar, bonuslar va ilovadan foydalanish bo'yicha savol bering." +
+                    "Salom! Men X yordamchisiman (Claude). Komissiya, hisobni to'ldirish, buyurtmalar, bonuslar va ilovadan foydalanish bo'yicha savol bering." +
                         if (enabled) "" else " Hozircha tayyor javoblar rejimida ishlayman.",
                     fontSize = 14.sp,
                 )

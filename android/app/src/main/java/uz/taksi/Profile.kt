@@ -113,7 +113,7 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
     var showRef by remember { mutableStateOf(false) }
     var showDiag by remember { mutableStateOf(false) }
     var diag by remember { mutableStateOf<JSONObject?>(null) }
-    installUrl?.let { InstallDialog(it, "TOXA") { installUrl = null } }
+    installUrl?.let { InstallDialog(it, "X") { installUrl = null } }
     var showPoints by remember { mutableStateOf(false) }
     var showRating by remember { mutableStateOf(false) }
     var showTrips by remember { mutableStateOf(false) }

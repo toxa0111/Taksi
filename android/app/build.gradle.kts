@@ -39,13 +39,13 @@ android {
         create("user") {
             dimension = "target"
             buildConfigField("boolean", "IS_ADMIN", "false")
-            manifestPlaceholders["appLabel"] = "TOXA"
+            manifestPlaceholders["appLabel"] = "X"
         }
         create("admin") {
             dimension = "target"
             applicationIdSuffix = ".admin"
             buildConfigField("boolean", "IS_ADMIN", "true")
-            manifestPlaceholders["appLabel"] = "TOXA Admin"
+            manifestPlaceholders["appLabel"] = "X Admin"
         }
     }
 

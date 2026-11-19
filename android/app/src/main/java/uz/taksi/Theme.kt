@@ -61,16 +61,22 @@ import androidx.compose.ui.unit.sp
 
 // Brend: qora fon, tillo (asosiy amallar), kumush (ikkinchi darajali amallar), oyna (shisha) kartalar
 val GoldHi = Color(0xFFF1DFA6)
-val Gold = Color(0xFFD1AA4F)
+val Gold = Color(0xFFD9AE4B)
 val GoldLo = Color(0xFF8E6C25)
 val SilverHi = Color(0xFFF2F3F6)
 val Silver = Color(0xFFC9CAD1)
 val SilverLo = Color(0xFF8F9099)
 /** Jilolangan metall: yuqorida yorug' qirra, o'rtada chiziq, pastda chuqur tus. */
-val GoldBrush: Brush get() = Brush.verticalGradient(0f to GoldHi, 0.48f to Color(0xFFD9B75A), 0.52f to Color(0xFFBF9A40), 1f to GoldLo)
-val SilverBrush: Brush get() = Brush.verticalGradient(0f to Color(0xFFFFFFFF), 0.48f to Color(0xFFD3D4DA), 0.52f to Color(0xFFABACB4), 1f to SilverLo)
+val GoldBrush: Brush get() = Brush.linearGradient(
+    0f to Color(0xFFFFF4C9), 0.14f to Color(0xFFF2D06B), 0.30f to Color(0xFFC8923A), 0.46f to Color(0xFFB07722),
+    0.60f to Color(0xFFE3B94F), 0.74f to Color(0xFFFFEDA8), 0.88f to Color(0xFFB4802A), 1f to Color(0xFF8A5A12),
+)
+val SilverBrush: Brush get() = Brush.linearGradient(
+    0f to Color(0xFFFFFFFF), 0.14f to Color(0xFFE4E6EB), 0.30f to Color(0xFFA7AAB3), 0.46f to Color(0xFF666A74),
+    0.60f to Color(0xFFD2D5DB), 0.74f to Color(0xFFFFFFFF), 0.88f to Color(0xFF9396A0), 1f to Color(0xFF585B65),
+)
 val Yellow: Color get() = Gold                 // asosiy rang (eski nom saqlandi)
-val OnBrand = Color(0xFF2A1D00)                // tillo ustidagi matn
+val OnBrand = Color(0xFF1C1200)                // tillo ustidagi matn
 val Teal = Silver
 val Ink = Color(0xFF111111)
 val Ok = Color(0xFF3DD68C)
@@ -96,8 +102,10 @@ fun Modifier.appBackground(): Modifier = composed {
 }
 
 /** Matn uchun jilolangan tillo / kumush gradientlar. */
-val GoldTextBrush: Brush get() = Brush.horizontalGradient(listOf(Color(0xFFF6E7B0), Color(0xFFD9B75A), Color(0xFFB8913A)))
-val SilverTextBrush: Brush get() = Brush.horizontalGradient(listOf(Color(0xFFF2F3F6), Color(0xFFC9CAD1), Color(0xFFA9AAB3)))
+val GoldTextBrush: Brush get() = Brush.horizontalGradient(
+    0f to Color(0xFFFFF1BE), 0.25f to Color(0xFFF0C95E), 0.5f to Color(0xFFC48E2E), 0.72f to Color(0xFFF7DC82), 1f to Color(0xFFD7A744))
+val SilverTextBrush: Brush get() = Brush.horizontalGradient(
+    0f to Color(0xFFFFFFFF), 0.3f to Color(0xFFD9DBE0), 0.55f to Color(0xFF9FA2AB), 0.78f to Color(0xFFE7E8EC), 1f to Color(0xFFB6B8C0))
 
 /** Oyna uslubi: yarim shaffof porloq sirt va nozik tillo-kumush hoshiya. */
 fun Modifier.glass(shape: Shape = RoundedCornerShape(22.dp)): Modifier = composed {

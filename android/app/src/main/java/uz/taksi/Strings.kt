@@ -60,9 +60,9 @@ Qo'shish§Добавить§Add
 Karta raqami noto'g'ri§Неверный номер карты§Invalid card number
 Xavfsizlik: ilova faqat kartaning birinchi 6 va oxirgi 4 raqamini saqlaydi. To'liq raqam, muddat va CVV hech qayerda saqlanmaydi. Karta orqali avtomatik to'lov to'lov tizimi (Click/Payme) ulangach ishga tushadi, hozircha to'lov naqd.§Безопасность: приложение хранит только первые 6 и последние 4 цифры карты. Полный номер, срок и CVV нигде не хранятся. Автоплатёж картой заработает после подключения платёжной системы (Click/Payme), пока оплата наличными.§Security: the app stores only the first 6 and last 4 digits of the card. The full number, expiry and CVV are never stored. Automatic card payment will start once a payment system (Click/Payme) is connected; for now payment is cash.
 Xabarlar§Сообщения§Messages
-TOXA ofisi§Офис TOXA§TOXA office
+X ofisi§Офис X§X office
 Ogohlantirishlar§Предупреждения§Warnings
-TOXA yangiliklari§Новости TOXA§TOXA news
+X yangiliklari§Новости X§X news
 Bonuslar§Бонусы§Bonuses
 Qo'llab-quvvatlash§Поддержка§Support
 Hisob balansidagi o'zgarishlar§Изменения баланса счёта§Account balance changes
@@ -159,7 +159,7 @@ Buyurtmani rad qilsam nima bo'ladi?§Что будет, если отклони�
 Yo'lovchiga yetib kelguncha rad etishingiz mumkin: buyurtma boshqa haydovchilarga qayta ko'rsatiladi.§Отклонить можно до прибытия к пассажиру: заказ снова покажут другим водителям.§You can decline until you reach the passenger: the order is shown to other drivers again.
 Xarita yoki joylashuv ishlamayapti§Карта или геолокация не работает§Map or location not working
 Telefonda GPS ni yoqing va ilovaga joylashuv ruxsatini bering (Kabinet → Joylashuv ruxsatlari). Internet aloqasini ham tekshiring.§Включите GPS на телефоне и дайте приложению доступ к геолокации (Кабинет → Разрешения геолокации). Проверьте и интернет.§Turn on GPS and grant the app location permission (Cabinet → Location permissions). Check your internet connection too.
-TOXA Admin§TOXA Admin§TOXA Admin
+X Admin§X Admin§X Admin
 Boshqaruv paneli§Панель управления§Control panel
 Tasdiqlash kodi§Код подтверждения§Verification code
 Admin kirishi§Вход для администратора§Admin sign-in
@@ -568,7 +568,7 @@ Muddat tugash sanasini yozing (YYYY-OO-KK). Muddat yaqinlashsa, asosiy oynada es
 Muddati o'tgan§Срок истёк§Expired
 Promokodlar§Промокоды§Promo codes
 Promokod yaratish§Создать промокод§Create promo code
-Kod (masalan TOXA10)§Код (например TOXA10)§Code (e.g. TOXA10)
+Kod (masalan X10)§Код (например X10)§Code (e.g. X10)
 % foiz§% процент§% percent
 So'm§Сум§UZS
 Foiz (1-50)§Процент (1-50)§Percent (1-50)
