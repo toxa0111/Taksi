@@ -129,6 +129,17 @@ private val Scheme = lightColorScheme(
 
 @Composable
 fun TaksiTheme(content: @Composable () -> Unit) {
+    val view = androidx.compose.ui.platform.LocalView.current
+    val dk = AppSettings.dark
+    androidx.compose.runtime.SideEffect {
+        val w = (view.context as? android.app.Activity)?.window ?: return@SideEffect
+        val bg = if (dk) 0xFF1E1E24.toInt() else 0xFFFAF8F3.toInt()
+        w.statusBarColor = bg
+        w.navigationBarColor = if (dk) 0xFF212126.toInt() else 0xFFFFFFFF.toInt()
+        val c = androidx.core.view.WindowCompat.getInsetsController(w, view)
+        c.isAppearanceLightStatusBars = !dk
+        c.isAppearanceLightNavigationBars = !dk
+    }
     MaterialTheme(colorScheme = if (AppSettings.dark) DarkScheme else Scheme, content = content)
 }
 

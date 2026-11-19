@@ -79,8 +79,6 @@ class MainActivity : ComponentActivity() {
         Api.token = prefs.getString("token", "") ?: ""
         Api.base = prefs.getString("base", Api.base) ?: Api.base
         // Holat paneli sariq, belgilari qora
-                window.statusBarColor = 0xFFFFC21A.toInt()
-        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = true
         AppSettings.load(this)
         setContent {
             val d = androidx.compose.ui.platform.LocalDensity.current
