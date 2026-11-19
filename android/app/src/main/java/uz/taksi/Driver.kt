@@ -461,31 +461,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                         "Yangi buyurtmalar",
                         if (available.isEmpty()) "Kutilmoqda" else "${available.size} ta mavjud",
                     )
-                    if (available.isEmpty()) {
-                        Panel {
-                            Text("⏳", fontSize = 28.sp)
-                            Text("Hozircha buyurtma yo'q", fontWeight = FontWeight.Bold)
-                            Text("Yangi buyurtmalar shu yerda avtomatik paydo bo'ladi.", fontSize = 13.sp, color = Muted)
-                        }
-                    }
-                    if (demand.isNotEmpty()) {
-                        Panel {
-                            Text("🔥 Talab yuqori joylar", fontWeight = FontWeight.Bold)
-                            demand.take(3).forEach { z ->
-                                Row(
-                                    Modifier.fillMaxWidth().clickable { centerTo = Pair(z.optDouble("lat"), z.optDouble("lng")); centerKey++; follow = false },
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text("📍 ${z.optInt("count")} ta buyurtma", modifier = Modifier.weight(1f), fontSize = 14.sp)
-                                    Text(
-                                        me?.let { String.format("%.1f km", meters(it, z.optDouble("lat"), z.optDouble("lng")) / 1000.0) } ?: "",
-                                        fontSize = 12.sp, color = Muted,
-                                    )
-                                }
-                            }
-                            Text("Xaritada to'q sariq belgilar — talab zonalari", fontSize = 11.sp, color = Muted)
-                        }
-                    }
+                    ProgressCard(stats)
                     available.forEach { o ->
                         OrderCard(o) {
                             IntercityLine(o)

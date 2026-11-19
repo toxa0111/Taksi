@@ -17,6 +17,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -641,6 +643,56 @@ fun AdminPromos() {
                     }
                 }) { Text(if (on) "O'chirish" else "Yoqish") }
             }
+        }
+    }
+}
+
+
+/** Haydovchi uchun: reyting, bugungi buyurtmalar va keyingi bonusgacha qolgan buyurtmalar. */
+@Composable
+fun ProgressCard(stats: JSONObject?) {
+    var bonus by remember { mutableStateOf<JSONObject?>(null) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            try { bonus = io { Api.call("GET", "/driver/bonus") } } catch (e: Exception) { }
+            delay(15000)
+        }
+    }
+    val rating = stats?.optDouble("rating") ?: 0.0
+    val rc = stats?.optInt("ratingCount") ?: 0
+    val today = bonus?.optInt("today") ?: (stats?.optInt("todayCount") ?: 0)
+    val tiers = bonus?.optJSONArray("tiers")?.items() ?: emptyList()
+    val next = tiers.firstOrNull { !it.optBoolean("done") }
+    Panel {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.weight(1f)) {
+                Text(if (rc > 0) String.format("★ %.2f", rating) else "★ —", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Reyting", fontSize = 12.sp, color = Muted)
+            }
+            Column(Modifier.weight(1f)) {
+                Text("$today ta", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Bugungi buyurtma", fontSize = 12.sp, color = Muted)
+            }
+            Column(Modifier.weight(1f)) {
+                Text("${stats?.optInt("totalCount") ?: 0} ta", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Jami safar", fontSize = 12.sp, color = Muted)
+            }
+        }
+        if (next != null) {
+            val need = next.optInt("trips")
+            val left = maxOf(0, need - today)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🎁 Yana $left ta buyurtma — bonus", fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                    Text("+" + som(next.optLong("reward")), fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Gold)
+                }
+                Box(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(50)).background(Chip)) {
+                    Box(Modifier.fillMaxWidth((today.toFloat() / need).coerceIn(0.02f, 1f)).height(10.dp).clip(RoundedCornerShape(50)).background(GoldBrush))
+                }
+                Text("$today/$need · bugun", fontSize = 12.sp, color = Muted)
+            }
+        } else if (tiers.isNotEmpty()) {
+            Text("🎉 Bugungi barcha bonuslar olindi", fontWeight = FontWeight.Bold, fontSize = 15.sp)
         }
     }
 }
