@@ -147,7 +147,7 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
             Box(Modifier.size(76.dp).clip(CircleShape).background(Yellow), contentAlignment = Alignment.Center) {
                 val ph = photo
                 if (ph != null) Image(ph, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                else Text(name.take(1).uppercase().ifBlank { "👤" }, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                else Text(name.take(1).uppercase().ifBlank { "👤" }, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = OnBrand)
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {

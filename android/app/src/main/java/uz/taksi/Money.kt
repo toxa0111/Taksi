@@ -313,7 +313,7 @@ fun BalanceScreen(onBack: () -> Unit, onTopUp: () -> Unit = {}) {
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(36.dp, Alignment.CenterHorizontally)) {
             Column(Modifier.clickable(onClick = onTopUp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(64.dp).clip(CircleShape).background(Yellow), contentAlignment = Alignment.Center) { Text("+", fontSize = 32.sp, color = Ink) }
+                Box(Modifier.size(64.dp).clip(CircleShape).background(Yellow), contentAlignment = Alignment.Center) { Text("+", fontSize = 32.sp, color = OnBrand) }
                 Text("To'ldirish", fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp))
             }
             Column(Modifier.clickable(enabled = wdAble >= min) { dialog = true }, horizontalAlignment = Alignment.CenterHorizontally) {

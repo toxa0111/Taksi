@@ -57,40 +57,41 @@ import androidx.compose.ui.unit.sp
 
 // ───────────────────────── Ranglar ─────────────────────────
 
-val Yellow = Color(0xFFFFB81F)      // oltin-amber (brend asosiy rangi)
+val Yellow = Color(0xFFE8452C)      // atlas qizili (brend asosiy rangi)
+val OnBrand = Color(0xFFFFF4E0)     // krem: brend rangi ustidagi matn
 val Teal = Color(0xFF14B8A6)        // Registon feruzasi (brend ikkinchi rangi)
-val Ink = Color(0xFF14163A)
+val Ink = Color(0xFF3A1A10)
 val Ok = Color(0xFF14B8A6)
-val Bad = Color(0xFFE5484D)
+val Bad = Color(0xFFB42318)
 
 // Yorug' / qorong'i rejimga qarab o'zgaradigan ranglar (AppSettings.dark o'zgarsa, ekran qayta chiziladi)
-val PageBg: Color get() = if (AppSettings.dark) Color(0xFF0B0D24) else Color(0xFFF7F3EA)
-val Card: Color get() = if (AppSettings.dark) Color(0xFF161A3A) else Color(0xFFFFFDF8)
-val Chip: Color get() = if (AppSettings.dark) Color(0xFF222750) else Color(0xFFEEE8DA)
-val Muted: Color get() = if (AppSettings.dark) Color(0xFF9A9FC4) else Color(0xFF6F6C80)
-val Hairline: Color get() = if (AppSettings.dark) Color(0xFF2B3160) else Color(0xFFE6DFCF)
+val PageBg: Color get() = if (AppSettings.dark) Color(0xFF1A0E0B) else Color(0xFFFBF1E1)
+val Card: Color get() = if (AppSettings.dark) Color(0xFF2A1812) else Color(0xFFFFFBF4)
+val Chip: Color get() = if (AppSettings.dark) Color(0xFF3A241B) else Color(0xFFF3E3CB)
+val Muted: Color get() = if (AppSettings.dark) Color(0xFFB9998B) else Color(0xFF8A6F63)
+val Hairline: Color get() = if (AppSettings.dark) Color(0xFF4A3025) else Color(0xFFEBD9BC)
 /** Oddiy matn rangi (Ink — qora; qorong'i rejimda oqish). */
-val Fg: Color get() = if (AppSettings.dark) Color(0xFFF3F1FF) else Ink
+val Fg: Color get() = if (AppSettings.dark) Color(0xFFFFF1E0) else Ink
 /** Yumshoq sariq fon (eslatma kartalari). */
-val Soft: Color get() = if (AppSettings.dark) Color(0xFF3A2F14) else Color(0xFFFFEBB8)
+val Soft: Color get() = if (AppSettings.dark) Color(0xFF4A2218) else Color(0xFFFFE0D4)
 
 private val DarkScheme = darkColorScheme(
-    primary = Yellow, onPrimary = Ink,
+    primary = Yellow, onPrimary = OnBrand,
     secondary = Teal, onSecondary = Ink,
-    background = Color(0xFF0B0D24), onBackground = Color(0xFFF3F1FF),
-    surface = Color(0xFF161A3A), onSurface = Color(0xFFF3F1FF),
-    surfaceVariant = Color(0xFF222750), onSurfaceVariant = Color(0xFF9A9FC4),
-    outline = Color(0xFF2B3160), error = Bad,
+    background = Color(0xFF1A0E0B), onBackground = Color(0xFFFFF1E0),
+    surface = Color(0xFF2A1812), onSurface = Color(0xFFFFF1E0),
+    surfaceVariant = Color(0xFF3A241B), onSurfaceVariant = Color(0xFFB9998B),
+    outline = Color(0xFF4A3025), error = Bad,
 )
 
 private val Scheme = lightColorScheme(
-    primary = Yellow, onPrimary = Ink,
+    primary = Yellow, onPrimary = OnBrand,
     secondary = Teal, onSecondary = Color.White,
     background = PageBg, onBackground = Ink,
-    surface = Color(0xFFFFFDF8), onSurface = Ink,
-    surfaceVariant = Color(0xFFEEE8DA), onSurfaceVariant = Muted,
+    surface = Color(0xFFFFFBF4), onSurface = Ink,
+    surfaceVariant = Color(0xFFF3E3CB), onSurfaceVariant = Muted,
     outline = Hairline, error = Bad,
-    primaryContainer = Color(0xFFFFEBB8), onPrimaryContainer = Ink,
+    primaryContainer = Color(0xFFFFE0D4), onPrimaryContainer = Ink,
 )
 
 @Composable
@@ -134,20 +135,20 @@ fun BigButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = tr
     val elev by animateDpAsState(if (!enabled) 0.dp else if (pressed) 1.dp else 7.dp, label = "elev")
     val haptic = LocalHapticFeedback.current
     val shape = RoundedCornerShape(16.dp)
-    val fill = if (enabled) Brush.verticalGradient(listOf(Color(0xFFFFE680), Yellow, Color(0xFFF0B400)))
+    val fill = if (enabled) Brush.verticalGradient(listOf(Color(0xFFFF7A5C), Yellow, Color(0xFFC93A22)))
     else Brush.verticalGradient(listOf(Chip, Chip))
     Box(
         modifier.fillMaxWidth().height(54.dp)
             .graphicsLayer { scaleX = sc; scaleY = sc }
-            .shadow(elev, shape, ambientColor = Color(0xFFF0B400), spotColor = Color(0xFFB07A00))
+            .shadow(elev, shape, ambientColor = Color(0xFFE8452C), spotColor = Color(0xFF8A2410))
             .clip(shape).background(fill)
             .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = if (enabled) 0.55f else 0f), Color.Transparent)), shape)
-            .clickable(interactionSource = src, indication = ripple(color = Ink), enabled = enabled) {
+            .clickable(interactionSource = src, indication = ripple(color = OnBrand), enabled = enabled) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onClick()
             },
         contentAlignment = Alignment.Center,
-    ) { Text(text, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if (enabled) Ink else Muted) }
+    ) { Text(text, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if (enabled) OnBrand else Muted) }
 }
 
 /** Qora tugma (ikkinchi darajali asosiy amal). */
@@ -319,7 +320,7 @@ fun TopBar(title: String, subtitle: String, onLogout: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(42.dp).clip(CircleShape).background(Yellow), contentAlignment = Alignment.Center) {
-            Text("T", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+            Text("T", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = OnBrand)
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {

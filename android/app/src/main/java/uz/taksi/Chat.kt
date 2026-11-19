@@ -233,7 +233,7 @@ fun AiChat(onBack: () -> Unit, onOperator: () -> Unit) {
                     Box(
                         Modifier.widthIn(max = 290.dp).clip(RoundedCornerShape(16.dp))
                             .background(if (mine) Yellow else Card).padding(horizontal = 14.dp, vertical = 10.dp),
-                    ) { Text(m.optString("text"), fontSize = 15.sp, color = if (mine) Ink else Fg) }
+                    ) { Text(m.optString("text"), fontSize = 15.sp, color = if (mine) OnBrand else Fg) }
                 }
             }
             if (busy) Text("Yozmoqda…", fontSize = 13.sp, color = Muted)
@@ -336,7 +336,7 @@ fun TopUpScreen(onBack: () -> Unit) {
                     Box(
                         Modifier.clip(RoundedCornerShape(50)).background(if (amount == v.toString()) Yellow else Chip)
                             .clickable { amount = v.toString() }.padding(horizontal = 16.dp, vertical = 10.dp),
-                    ) { Text(som(v.toLong()), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (amount == v.toString()) Ink else Fg) }
+                    ) { Text(som(v.toLong()), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (amount == v.toString()) OnBrand else Fg) }
                 }
             }
             Field(amount, { amount = it.filter(Char::isDigit).take(8) }, "Boshqa summa (so'm)", keyboard = KeyboardType.Number)

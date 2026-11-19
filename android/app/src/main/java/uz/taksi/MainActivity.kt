@@ -208,8 +208,8 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
                     modifier = Modifier.size(72.dp).clip(RoundedCornerShape(18.dp)),
                 )
                 Spacer(Modifier.height(16.dp))
-                Text("TOXA", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = Ink, letterSpacing = 4.sp)
-                Text("Shahar ichida tez va qulay safar", fontSize = 15.sp, color = Ink.copy(alpha = 0.75f))
+                Text("TOXA", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = OnBrand, letterSpacing = 4.sp)
+                Text("Shahar ichida tez va qulay safar", fontSize = 15.sp, color = OnBrand.copy(alpha = 0.85f))
             }
         }
 

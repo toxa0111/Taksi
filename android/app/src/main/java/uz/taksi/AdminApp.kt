@@ -86,8 +86,8 @@ fun AdminLogin(prefs: SharedPreferences, onDone: (String) -> Unit) {
                     modifier = Modifier.size(72.dp).clip(RoundedCornerShape(18.dp)),
                 )
                 Spacer(Modifier.height(16.dp))
-                Text("TOXA ADMIN", fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = Ink, letterSpacing = 3.sp)
-                Text("Boshqaruv paneli", fontSize = 15.sp, color = Ink.copy(alpha = 0.75f))
+                Text("TOXA ADMIN", fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = OnBrand, letterSpacing = 3.sp)
+                Text("Boshqaruv paneli", fontSize = 15.sp, color = OnBrand.copy(alpha = 0.85f))
             }
         }
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {

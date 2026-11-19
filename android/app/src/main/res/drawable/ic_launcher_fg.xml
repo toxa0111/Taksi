@@ -1,16 +1,5 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <!-- Oltin "T": tepasi Registon peshtoqi kabi, tagida feruza yo'l nuri -->
-    <path android:pathData="M31,33 Q31,31 33,31 H75 Q77,31 77,33 V44 Q77,46 75,46 H61 V73 Q61,75 59,75 H49 Q47,75 47,73 V46 H33 Q31,46 31,44 Z">
-        <aapt:attr name="android:fillColor">
-            <gradient android:type="linear" android:startX="31" android:startY="31" android:endX="77" android:endY="75">
-                <item android:offset="0" android:color="#FFFFE08A" />
-                <item android:offset="0.5" android:color="#FFFFB81F" />
-                <item android:offset="1" android:color="#FFF08A00" />
-            </gradient>
-        </aapt:attr>
-    </path>
-    <path android:fillColor="#FF14B8A6" android:pathData="M54,79 L59,84 L54,89 L49,84 Z" />
-    <path android:fillColor="#FF14B8A6" android:pathData="M31,50 H37 V52 H31 Z M71,50 H77 V52 H71 Z" />
+    <path android:fillColor="#FFFFF4E0" android:pathData="M31,33 Q31,31 33,31 H75 Q77,31 77,33 V44 Q77,46 75,46 H61 V73 Q61,75 59,75 H49 Q47,75 47,73 V46 H33 Q31,46 31,44 Z" />
+    <path android:strokeColor="#FFFFF4E0" android:strokeWidth="2.4" android:strokeLineJoin="round" android:strokeLineCap="round" android:pathData="M30,84 L38,77 L46,84 L54,77 L62,84 L70,77 L78,84" />
 </vector>

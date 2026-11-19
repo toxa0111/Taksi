@@ -448,7 +448,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                                     .background(Yellow, CircleShape),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Text("➜", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Ink)
+                                Text("➜", fontSize = 25.sp, fontWeight = FontWeight.Black, color = OnBrand)
                             }
                         }
                     }

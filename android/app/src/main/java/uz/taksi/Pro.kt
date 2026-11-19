@@ -368,7 +368,7 @@ fun IntercityOrder(pickup: Pair<Double, Double>?, pickupName: String, pay: Strin
                 .clickable { sel = c.optString("key") }.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(c.optString("name"), fontWeight = FontWeight.SemiBold, color = if (on) Ink else Fg, modifier = Modifier.weight(1f))
+            Text(c.optString("name"), fontWeight = FontWeight.SemiBold, color = if (on) OnBrand else Fg, modifier = Modifier.weight(1f))
             Text("${c.optInt("km")} km  ·  " + som(c.optLong("price")), fontSize = 13.sp, color = if (on) Ink else Muted)
         }
     }

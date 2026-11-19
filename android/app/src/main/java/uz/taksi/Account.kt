@@ -223,7 +223,7 @@ fun CabinetTab(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
         Panel {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(64.dp).clip(CircleShape).background(Yellow), contentAlignment = Alignment.Center) {
-                    Text(name.take(1).uppercase().ifBlank { "👤" }, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(name.take(1).uppercase().ifBlank { "👤" }, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = OnBrand)
                 }
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {

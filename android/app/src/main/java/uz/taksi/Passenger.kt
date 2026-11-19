@@ -335,7 +335,7 @@ fun PassengerScreen(onLogout: () -> Unit) {
                                 val on = k in rTags
                                 Text(
                                     label, fontSize = 13.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (on) Ink else Muted,
+                                    color = if (on) OnBrand else Muted,
                                     modifier = Modifier.clip(RoundedCornerShape(50)).background(if (on) Yellow else Chip)
                                         .clickable { rTags = if (on) rTags - k else rTags + k }.padding(horizontal = 12.dp, vertical = 8.dp),
                                 )
