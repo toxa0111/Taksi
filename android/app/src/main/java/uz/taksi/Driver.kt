@@ -431,6 +431,7 @@ fun DriverScreen(onLogout: () -> Unit) {
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 70.dp),
                                 fontSize = 12.sp, fontWeight = FontWeight.ExtraBold,
                                 color = OnBrand, letterSpacing = 0.3.sp,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                             )
                             Box(
                                 Modifier.offset(x = (maxWidth - 76.dp) * shiftSlider)
