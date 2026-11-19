@@ -47,21 +47,44 @@ object OfferSound {
     private val handler = Handler(Looper.getMainLooper())
     private var vib: Vibrator? = null
 
-    // Quvnoq arpeggio: C5 E5 G5 C6 G5 E5 G5 C6
-    private val notes = doubleArrayOf(523.25, 659.25, 783.99, 1046.5, 783.99, 659.25, 783.99, 1046.5)
-
-    private fun melody(rate: Int): ShortArray {
-        val per = (rate * 0.2).toInt()
-        val out = ShortArray(per * notes.size)
-        notes.forEachIndexed { n, f ->
+    private fun melody(rate: Int, r: Ringtone2): ShortArray {
+        val per = (rate * r.noteSec).toInt()
+        val out = ShortArray(per * r.notes.size)
+        r.notes.forEachIndexed { n, f ->
+            if (f <= 0.0) return@forEachIndexed
             for (i in 0 until per) {
                 val t = i.toDouble() / rate
-                val env = exp(-5.0 * t) * (if (i < 200) i / 200.0 else 1.0)
-                val v = (sin(2 * PI * f * t) + 0.35 * sin(4 * PI * f * t)) * env * 0.38
+                val env = exp(-r.decay * t) * (if (i < 200) i / 200.0 else 1.0)
+                val v = (sin(2 * PI * f * t) + r.harm * sin(4 * PI * f * t) + r.harm2 * sin(6 * PI * f * t)) * env * 0.38
                 out[n * per + i] = (v * Short.MAX_VALUE).toInt().toShort()
             }
         }
         return out
+    }
+
+    private fun playMelody(r: Ringtone2, loop: Boolean) {
+        try {
+            val rate = 22050
+            val pcm = melody(rate, r)
+            val t = AudioTrack.Builder()
+                .setAudioAttributes(AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+                .setAudioFormat(AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(rate).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
+                .setBufferSizeInBytes(pcm.size * 2)
+                .setTransferMode(AudioTrack.MODE_STATIC).build()
+            t.write(pcm, 0, pcm.size)
+            if (loop) t.setLoopPoints(0, pcm.size, -1)
+            t.play()
+            track = t
+        } catch (e: Exception) { }
+    }
+
+    /** Sozlamalarda ringtonni bir marta eshittirish. */
+    fun preview(ctx: Context, id: String) {
+        stop()
+        val r = RINGTONES.firstOrNull { it.id == id } ?: RINGTONES.first()
+        playMelody(r, false)
     }
 
     fun start(ctx: Context) {
@@ -72,27 +95,13 @@ object OfferSound {
             if (Build.VERSION.SDK_INT >= 26) vib?.vibrate(VibrationEffect.createWaveform(pat, -1)) else vib?.vibrate(pat, -1)
         } catch (e: Exception) { }
         if (AppSettings.sound != "on") return
+        val chosen = RINGTONES.firstOrNull { it.id == AppSettings.ringtone }
+        if (chosen != null) { playMelody(chosen, true); return }
         try {
             tone = RingtoneManager.getRingtone(ctx, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
             tone?.play()
         } catch (e: Exception) { }
-        handler.postDelayed({
-            try {
-                val rate = 22050
-                val pcm = melody(rate)
-                val t = AudioTrack.Builder()
-                    .setAudioAttributes(AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-                    .setAudioFormat(AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(rate).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
-                    .setBufferSizeInBytes(pcm.size * 2)
-                    .setTransferMode(AudioTrack.MODE_STATIC).build()
-                t.write(pcm, 0, pcm.size)
-                t.setLoopPoints(0, pcm.size, -1)
-                t.play()
-                track = t
-            } catch (e: Exception) { }
-        }, 900)
+        handler.postDelayed({ playMelody(RINGTONES.first(), true) }, 900)
     }
 
     fun stop() {

@@ -1127,6 +1127,9 @@ const server = http.createServer(async (req, res) => {
         if (o.reservedBy === user.id && reserveValid(o)) return true;
         const age = now - o.createdAt;
         if (o.declined && o.declined[user.id] && age < OFFER_MS.mid) return false;   // rad etgan: keyinroq (hamma ko'rganda) qaytadi
+        const sn = o.seen && o.seen[user.id];
+        const missed = (o.pen && o.pen[user.id]) || (sn && sn.km <= OFFER.km && now > sn.at + OFFER.sec * 1000);
+        if (missed && age < OFFER_MS.mid) return false;                        // 10 soniyada olmagan: tugma qolmaydi, keyinroq hammaga ko'rinadi
         if (age >= OFFER_MS.mid) return true;                                 // hammaga ko'rinadi
         if (!me) return age >= OFFER_MS.near;                                 // joylashuvi noma'lum: biroz keyin
         const d = distKm(me.lat, me.lng, o.fromLat, o.fromLng);

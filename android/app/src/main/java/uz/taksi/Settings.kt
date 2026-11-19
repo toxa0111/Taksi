@@ -3,7 +3,14 @@ package uz.taksi
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Configuration
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -28,6 +35,8 @@ object AppSettings {
         private set
     var voice by mutableStateOf("on")         // on / off  (ovozli navigatsiya)
         private set
+    var ringtone by mutableStateOf("default") // yangi buyurtma ringtoni (Ringtones.kt)
+        private set
 
     private var prefs: SharedPreferences? = null
 
@@ -41,12 +50,14 @@ object AppSettings {
         sound = p.getString("sound", "on") ?: "on"
         fontScale = p.getFloat("font", 1.0f)
         voice = p.getString("voice", "on") ?: "on"
+        ringtone = p.getString("ringtone", "default") ?: "default"
     }
 
     fun changeLang(v: String) { lang = v; prefs?.edit()?.putString("lang", v)?.apply() }
     fun changeDark(v: Boolean) { dark = v; prefs?.edit()?.putBoolean("dark2", v)?.apply() }
     fun changeSound(v: String) { sound = v; prefs?.edit()?.putString("sound", v)?.apply() }
     fun changeVoice(v: String) { voice = v; prefs?.edit()?.putString("voice", v)?.apply() }
+    fun changeRingtone(v: String) { ringtone = v; prefs?.edit()?.putString("ringtone", v)?.apply() }
     fun changeFont(v: Float) { fontScale = v; prefs?.edit()?.putFloat("font", v)?.apply() }
 }
 
@@ -88,6 +99,28 @@ fun AppPrefsPanel() {
             ) { AppSettings.changeFont(it.toFloat()) }
             Text("Matn o'lchami butun ilovada o'zgaradi", fontSize = 11.sp, color = Muted)
         }
+    RingtonePanel()
+}
+
+/** Sozlamalar alohida ekrani (Profildan ochiladi). */
+@Composable
+fun SettingsScreen(onBack: () -> Unit) {
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { OfferSound.stop() } }
+    androidx.compose.foundation.layout.Column(
+        Modifier.fillMaxSize().appBackground().statusBarsPadding()
+            .verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            androidx.compose.foundation.layout.Box(
+                Modifier.size(44.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable(onClick = onBack),
+                contentAlignment = androidx.compose.ui.Alignment.Center,
+            ) { Text("←", fontSize = 26.sp) }
+            Text("Sozlamalar", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 6.dp))
+        }
+        AppPrefsPanel()
+        androidx.compose.foundation.layout.Spacer(Modifier.height(24.dp))
+    }
 }
 
 /** Ilova ochiq (oldingi planda) yoki yo'qligini bildiradi: fonda bildirishnomalar faqat yopiq paytda chiqadi. */

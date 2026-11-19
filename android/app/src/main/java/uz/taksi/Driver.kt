@@ -450,10 +450,10 @@ fun DriverScreen(onLogout: () -> Unit) {
                 if (online) {
                     BigLine(
                         "Yangi buyurtmalar",
-                        if (available.isEmpty()) "Kutilmoqda" else "${available.size} ta mavjud",
+                        if (available.none { !it.optBoolean("offer") }) "Kutilmoqda" else "${available.count { !it.optBoolean("offer") }} ta mavjud",
                     )
                     ProgressCard(stats)
-                    available.forEach { o ->
+                    available.filter { !it.optBoolean("offer") }.forEach { o ->
                         OrderCard(o) {
                             IntercityLine(o)
                             if (o.has("pickupKm")) {

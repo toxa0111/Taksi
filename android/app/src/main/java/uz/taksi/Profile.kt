@@ -219,9 +219,12 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
         if (showDiag) DiagnosticsDialog { showDiag = false; scope.launch { try { diag = io { Api.call("GET", "/driver/diagnostics") }.optJSONObject("items") } catch (e: Exception) { } } }
         MenuGroup {
             MenuRow("💬", "Yordam", "") { goSupport() }
-            MenuRow("⚙️", "Sozlamalar", "") { showPrefs = !showPrefs }
+            MenuRow("⚙️", "Sozlamalar", "") { showPrefs = true }
         }
-        if (showPrefs) AppPrefsPanel()
+        if (showPrefs) androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showPrefs = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+        ) { androidx.compose.material3.Surface(Modifier.fillMaxSize(), color = PageBg, contentColor = Fg) { SettingsScreen { showPrefs = false } } }
         MenuGroup {
             MenuRow("🔄", "Yangilanishni tekshirish", info) {
                 scope.launch {
