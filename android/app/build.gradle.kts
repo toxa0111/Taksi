@@ -17,6 +17,8 @@ android {
         // Yandex MapKit kaliti kodga yozilmaydi: GitHub Actions Secret'dan olinadi
         val mapkitApiKey = System.getenv("YANDEX_MAPKIT_API_KEY")?.trim().orEmpty()
         buildConfigField("String", "MAPKIT_API_KEY", "\"${mapkitApiKey}\"")
+        // Hajmni kamaytirish: x86 emulyator kutubxonalari olib tashlandi (haqiqiy telefonlar arm)
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
 
     signingConfigs {
