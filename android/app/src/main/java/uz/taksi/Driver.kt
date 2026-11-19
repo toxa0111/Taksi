@@ -400,19 +400,11 @@ fun DriverScreen(onLogout: () -> Unit) {
                     DayCard(stats?.optInt("todayCount") ?: 0, stats?.optLong("todaySum") ?: 0L,
                         prioOf(stats))
                     Panel(color = Ink) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Text("HAYDOVCHI HOLATI", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.62f), letterSpacing = 1.sp)
-                                Text(if (online) "Ishdasiz" else "Hozir ishda emassiz", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = if (online) Color(0xFF7BE0A2) else Color.White)
-                            }
-                            Pill(if (online) "ONLAYN" else "OFFLAYN", if (online) Color(0xFF173D2C) else Color(0xFF30343C), if (online) Color(0xFF7BE0A2) else Color.White.copy(alpha = 0.75f))
-                        }
-                        Text(if (online) "Ishdan chiqish uchun chapga suring" else "Ishga chiqish uchun o\u0027ngga suring", fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
                         // Yandex Pro uslubidagi keng, qalin surish yo'lagi
                         BoxWithConstraints(
                             Modifier.fillMaxWidth().padding(top = 4.dp)
-                                .height(64.dp)
-                                .background(Color(0xFF252A32), RoundedCornerShape(32.dp))
+                                .height(76.dp)
+                                .background(GoldBrush, RoundedCornerShape(38.dp))
                                 .pointerInput(online) {
                                     var dragValue = shiftSlider
                                     detectHorizontalDragGestures(
@@ -434,21 +426,19 @@ fun DriverScreen(onLogout: () -> Unit) {
                                 },
                             contentAlignment = Alignment.CenterStart,
                         ) {
-                            Box(Modifier.fillMaxWidth(shiftSlider.coerceAtLeast(0.16f)).height(64.dp)
-                                .background(if (online) Color(0xFF237A4B) else Color(0xFF4A505B), RoundedCornerShape(32.dp)))
                             Text(
                                 if (online) "◀  ISHDAN CHIQISH UCHUN SURING" else "ISHGA CHIQISH UCHUN SURING  ▶",
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 60.dp),
-                                fontSize = 11.sp, fontWeight = FontWeight.ExtraBold,
-                                color = Color.White, letterSpacing = 0.3.sp,
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 70.dp),
+                                fontSize = 12.sp, fontWeight = FontWeight.ExtraBold,
+                                color = OnBrand, letterSpacing = 0.3.sp,
                             )
                             Box(
-                                Modifier.offset(x = (maxWidth - 58.dp) * shiftSlider)
-                                    .size(58.dp).padding(5.dp)
-                                    .background(Yellow, CircleShape),
+                                Modifier.offset(x = (maxWidth - 76.dp) * shiftSlider)
+                                    .size(76.dp).padding(6.dp)
+                                    .background(SilverBrush, CircleShape),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Text("➜", fontSize = 25.sp, fontWeight = FontWeight.Black, color = OnBrand)
+                                Text("➜", fontSize = 30.sp, fontWeight = FontWeight.Black, color = OnBrand)
                             }
                         }
                     }
