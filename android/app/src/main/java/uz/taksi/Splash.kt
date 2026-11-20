@@ -103,7 +103,7 @@ private fun SplashLayer(onEnd: () -> Unit) {
                     },
             )
             Text(
-                "TOSHKENT TAKSI", fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 6.sp,
+                "O'ZBEKISTON TAKSI", fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 4.sp,
                 color = Color(0xFFD9AE4B), modifier = Modifier.alpha(tag.value),
             )
         }

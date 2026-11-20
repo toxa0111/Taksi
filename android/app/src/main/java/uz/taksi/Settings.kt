@@ -35,6 +35,8 @@ object AppSettings {
         private set
     var voice by mutableStateOf("on")         // on / off  (ovozli navigatsiya)
         private set
+    var ringtoneUri by mutableStateOf("")       // telefondan tanlangan musiqa (ringtone == "custom")
+        private set
     var ringtone by mutableStateOf("neon") // yangi buyurtma ringtoni (Ringtones.kt)
         private set
 
@@ -51,12 +53,14 @@ object AppSettings {
         fontScale = p.getFloat("font", 1.0f)
         voice = p.getString("voice", "on") ?: "on"
         ringtone = p.getString("ringtone", "neon") ?: "neon"
+        ringtoneUri = p.getString("ringtoneUri", "") ?: ""
     }
 
     fun changeLang(v: String) { lang = v; prefs?.edit()?.putString("lang", v)?.apply() }
     fun changeDark(v: Boolean) { dark = v; prefs?.edit()?.putBoolean("dark2", v)?.apply() }
     fun changeSound(v: String) { sound = v; prefs?.edit()?.putString("sound", v)?.apply() }
     fun changeVoice(v: String) { voice = v; prefs?.edit()?.putString("voice", v)?.apply() }
+    fun changeRingtoneUri(v: String) { ringtoneUri = v; prefs?.edit()?.putString("ringtoneUri", v)?.apply() }
     fun changeRingtone(v: String) { ringtone = v; prefs?.edit()?.putString("ringtone", v)?.apply() }
     fun changeFont(v: Float) { fontScale = v; prefs?.edit()?.putFloat("font", v)?.apply() }
 }

@@ -46,17 +46,20 @@ object OfferSound {
 
     private var player: android.media.MediaPlayer? = null
 
-    private fun playMelody(ctx: Context, r: Ringtone2, loop: Boolean) {
+    private fun playMelody(ctx: Context, r: Ringtone2?, loop: Boolean) {
         try {
-            val id = ctx.resources.getIdentifier("rt_" + r.id, "raw", ctx.packageName)
-            if (id == 0) return
-            val afd = ctx.resources.openRawResourceFd(id) ?: return
             val mp = android.media.MediaPlayer()
             mp.setAudioAttributes(AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-            mp.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-            afd.close()
+            if (r == null) mp.setDataSource(ctx, android.net.Uri.parse(AppSettings.ringtoneUri))
+            else {
+                val id = ctx.resources.getIdentifier("rt_" + r.id, "raw", ctx.packageName)
+                if (id == 0) return
+                val afd = ctx.resources.openRawResourceFd(id) ?: return
+                mp.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                afd.close()
+            }
             mp.isLooping = loop
             mp.prepare()
             mp.start()
@@ -68,6 +71,7 @@ object OfferSound {
     fun preview(ctx: Context, id: String) {
         stop()
         val r = RINGTONES.firstOrNull { it.id == id }
+        if (id == "custom" && AppSettings.ringtoneUri.isNotBlank()) { playMelody(ctx, null, false); return }
         if (r == null) {
             try { tone = RingtoneManager.getRingtone(ctx, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)); tone?.play() } catch (e: Exception) { }
             return
@@ -83,6 +87,7 @@ object OfferSound {
             if (Build.VERSION.SDK_INT >= 26) vib?.vibrate(VibrationEffect.createWaveform(pat, -1)) else vib?.vibrate(pat, -1)
         } catch (e: Exception) { }
         if (AppSettings.sound != "on") return
+        if (AppSettings.ringtone == "custom" && AppSettings.ringtoneUri.isNotBlank()) { playMelody(ctx, null, true); return }
         if (AppSettings.ringtone != "default") {
             playMelody(ctx, RINGTONES.firstOrNull { it.id == AppSettings.ringtone } ?: RINGTONES.first(), true)
             return
