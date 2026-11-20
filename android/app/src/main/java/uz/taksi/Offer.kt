@@ -52,7 +52,7 @@ object OfferSound {
             mp.setAudioAttributes(AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-            if (r == null) mp.setDataSource(ctx, android.net.Uri.parse(AppSettings.ringtoneUri))
+            if (r == null) mp.setDataSource(AppSettings.ringtoneUri)
             else {
                 val id = ctx.resources.getIdentifier("rt_" + r.id, "raw", ctx.packageName)
                 if (id == 0) return
