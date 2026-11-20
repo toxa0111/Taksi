@@ -44,21 +44,23 @@ object OfferSound {
     private val handler = Handler(Looper.getMainLooper())
     private var vib: Vibrator? = null
 
-    private fun playMelody(r: Ringtone2, loop: Boolean) {
+    private var player: android.media.MediaPlayer? = null
+
+    private fun playMelody(ctx: Context, r: Ringtone2, loop: Boolean) {
         try {
-            val rate = 32000
-            val pcm = r.render(rate)
-            val t = AudioTrack.Builder()
-                .setAudioAttributes(AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-                .setAudioFormat(AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(rate).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
-                .setBufferSizeInBytes(pcm.size * 2)
-                .setTransferMode(AudioTrack.MODE_STATIC).build()
-            t.write(pcm, 0, pcm.size)
-            if (loop) t.setLoopPoints(0, pcm.size, -1)
-            t.play()
-            track = t
+            val id = ctx.resources.getIdentifier("rt_" + r.id, "raw", ctx.packageName)
+            if (id == 0) return
+            val afd = ctx.resources.openRawResourceFd(id) ?: return
+            val mp = android.media.MediaPlayer()
+            mp.setAudioAttributes(AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+            mp.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+            afd.close()
+            mp.isLooping = loop
+            mp.prepare()
+            mp.start()
+            player = mp
         } catch (e: Exception) { }
     }
 
@@ -70,7 +72,7 @@ object OfferSound {
             try { tone = RingtoneManager.getRingtone(ctx, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)); tone?.play() } catch (e: Exception) { }
             return
         }
-        playMelody(r, false)
+        playMelody(ctx, r, false)
     }
 
     fun start(ctx: Context) {
@@ -81,8 +83,10 @@ object OfferSound {
             if (Build.VERSION.SDK_INT >= 26) vib?.vibrate(VibrationEffect.createWaveform(pat, -1)) else vib?.vibrate(pat, -1)
         } catch (e: Exception) { }
         if (AppSettings.sound != "on") return
-        val chosen = RINGTONES.firstOrNull { it.id == AppSettings.ringtone }
-        if (chosen != null) { playMelody(chosen, true); return }
+        if (AppSettings.ringtone != "default") {
+            playMelody(ctx, RINGTONES.firstOrNull { it.id == AppSettings.ringtone } ?: RINGTONES.first(), true)
+            return
+        }
         try {
             tone = RingtoneManager.getRingtone(ctx, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
             tone?.play()
@@ -91,6 +95,8 @@ object OfferSound {
 
     fun stop() {
         handler.removeCallbacksAndMessages(null)
+        try { player?.stop(); player?.release() } catch (e: Exception) { }
+        player = null
         try { track?.stop(); track?.release() } catch (e: Exception) { }
         track = null
         try { tone?.stop() } catch (e: Exception) { }
