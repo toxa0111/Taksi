@@ -28,6 +28,23 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        // Haqiqiy imzo kaliti: GitHub Secrets orqali beriladi (repoda saqlanmaydi). Berilmasa sinov kaliti ishlatiladi.
+        val ksPath = System.getenv("KEYSTORE_FILE")?.trim().orEmpty()
+        if (ksPath.isNotEmpty() && file(ksPath).exists()) {
+            create("release") {
+                storeFile = file(ksPath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD").orEmpty()
+                keyAlias = System.getenv("KEY_ALIAS").orEmpty()
+                keyPassword = System.getenv("KEY_PASSWORD").orEmpty()
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            val real = signingConfigs.findByName("release")
+            if (real != null) { signingConfig = real; isDebuggable = false }
+        }
     }
 
     buildFeatures {
