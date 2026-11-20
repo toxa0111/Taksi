@@ -404,16 +404,7 @@ Ishga chiqish§Выйти на работу§Go online
 Sozlamalar§Настройки§Settings
 Rington§Рингтон§Ringtone
 Yangi buyurtma kelganda eshitiladigan ovoz. Bosib tanlang.§Звук нового заказа. Нажмите, чтобы выбрать.§Sound for a new order. Tap to choose.
-Standart (telefon + musiqa)§Стандартный (телефон + музыка)§Default (phone + music)
-Klassik§Классика§Classic
-Qo'ng'iroq§Звонок§Bell
-Signal§Сигнал§Signal
-Sirena§Сирена§Siren
-Marimba§Маримба§Marimba
-Kristall§Кристалл§Crystal
-Baraban§Барабан§Drum
-Vals§Вальс§Waltz
-Fanfara§Фанфара§Fanfare
+Telefon ovozi§Звук телефона§Phone sound
 Til§Язык§Language
 Ko'rinish§Оформление§Appearance
 ☀ Yorug'§☀ Светлая§☀ Light

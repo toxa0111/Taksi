@@ -87,7 +87,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 TaksiTheme {
                     Surface(Modifier.fillMaxSize(), color = PageBg, contentColor = Fg) {
-                        if (BuildConfig.IS_ADMIN) AdminApp(prefs) else App(prefs)
+                        BrandSplash { if (BuildConfig.IS_ADMIN) AdminApp(prefs) else App(prefs) }
                     }
                 }
             }

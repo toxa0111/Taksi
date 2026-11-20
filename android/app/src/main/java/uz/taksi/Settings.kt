@@ -35,7 +35,7 @@ object AppSettings {
         private set
     var voice by mutableStateOf("on")         // on / off  (ovozli navigatsiya)
         private set
-    var ringtone by mutableStateOf("default") // yangi buyurtma ringtoni (Ringtones.kt)
+    var ringtone by mutableStateOf("neon") // yangi buyurtma ringtoni (Ringtones.kt)
         private set
 
     private var prefs: SharedPreferences? = null
@@ -50,7 +50,7 @@ object AppSettings {
         sound = p.getString("sound", "on") ?: "on"
         fontScale = p.getFloat("font", 1.0f)
         voice = p.getString("voice", "on") ?: "on"
-        ringtone = p.getString("ringtone", "default") ?: "default"
+        ringtone = p.getString("ringtone", "neon") ?: "neon"
     }
 
     fun changeLang(v: String) { lang = v; prefs?.edit()?.putString("lang", v)?.apply() }

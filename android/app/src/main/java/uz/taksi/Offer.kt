@@ -32,9 +32,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.json.JSONObject
-import kotlin.math.PI
-import kotlin.math.exp
-import kotlin.math.sin
 
 const val OFFER_TOTAL_MS = 10_000L
 private val OfferBlue = Color(0xFF2F6BFF)
@@ -47,25 +44,10 @@ object OfferSound {
     private val handler = Handler(Looper.getMainLooper())
     private var vib: Vibrator? = null
 
-    private fun melody(rate: Int, r: Ringtone2): ShortArray {
-        val per = (rate * r.noteSec).toInt()
-        val out = ShortArray(per * r.notes.size)
-        r.notes.forEachIndexed { n, f ->
-            if (f <= 0.0) return@forEachIndexed
-            for (i in 0 until per) {
-                val t = i.toDouble() / rate
-                val env = exp(-r.decay * t) * (if (i < 200) i / 200.0 else 1.0)
-                val v = (sin(2 * PI * f * t) + r.harm * sin(4 * PI * f * t) + r.harm2 * sin(6 * PI * f * t)) * env * 0.38
-                out[n * per + i] = (v * Short.MAX_VALUE).toInt().toShort()
-            }
-        }
-        return out
-    }
-
     private fun playMelody(r: Ringtone2, loop: Boolean) {
         try {
-            val rate = 22050
-            val pcm = melody(rate, r)
+            val rate = 32000
+            val pcm = r.render(rate)
             val t = AudioTrack.Builder()
                 .setAudioAttributes(AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
@@ -83,7 +65,11 @@ object OfferSound {
     /** Sozlamalarda ringtonni bir marta eshittirish. */
     fun preview(ctx: Context, id: String) {
         stop()
-        val r = RINGTONES.firstOrNull { it.id == id } ?: RINGTONES.first()
+        val r = RINGTONES.firstOrNull { it.id == id }
+        if (r == null) {
+            try { tone = RingtoneManager.getRingtone(ctx, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)); tone?.play() } catch (e: Exception) { }
+            return
+        }
         playMelody(r, false)
     }
 
@@ -101,7 +87,6 @@ object OfferSound {
             tone = RingtoneManager.getRingtone(ctx, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
             tone?.play()
         } catch (e: Exception) { }
-        handler.postDelayed({ playMelody(RINGTONES.first(), true) }, 900)
     }
 
     fun stop() {
