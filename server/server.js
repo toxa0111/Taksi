@@ -133,6 +133,59 @@ async function sendSms(phone, text) {
   throw new Error('Eskiz avtorizatsiya xatosi');
 }
 
+// ---- Telegram orqali tasdiqlash kodi (o'z botimiz). TELEGRAM_BOT_TOKEN berilsa yoqiladi ----
+// Foydalanuvchi botda Start bosib, "Raqamni ulash" tugmasi bilan o'z raqamini ulaydi. Shundan keyin kodlar botga keladi.
+const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const TG_ENABLED = !!TG_TOKEN;
+const TG_API = process.env.TELEGRAM_API || 'https://api.telegram.org';
+let tgBotName = (process.env.TELEGRAM_BOT_USERNAME || '').replace(/^@/, '');
+if (!db.tg || typeof db.tg !== 'object') db.tg = {};      // +998XXXXXXXXX -> chat id
+async function tgApi(method, body, timeoutMs) {
+  const ctrl = new AbortController(), to = setTimeout(() => ctrl.abort(), timeoutMs || 15000);
+  try {
+    const r = await fetch(TG_API + '/bot' + TG_TOKEN + '/' + method, {
+      method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!j.ok) throw new Error('Telegram ' + method + ': ' + (j.description || r.status));
+    return j.result;
+  } finally { clearTimeout(to); }
+}
+const tgSend = (chat, text, extra) => tgApi('sendMessage', Object.assign({ chat_id: chat, text }, extra || {}));
+function tgNormPhone(raw) {
+  const d = String(raw || '').replace(/\D/g, '');
+  return d.length === 12 && d.startsWith('998') ? '+' + d : '';
+}
+async function tgHandle(msg) {
+  const chat = msg.chat && msg.chat.id;
+  if (!chat || msg.chat.type !== 'private') return;
+  if (msg.contact) {
+    const phone = tgNormPhone(msg.contact.phone_number);
+    // Faqat o'z raqamini ulash mumkin (boshqa odamning kontaktini yuborib bo'lmaydi)
+    if (!msg.contact.user_id || msg.contact.user_id !== (msg.from && msg.from.id)) {
+      return tgSend(chat, 'Iltimos, pastdagi "📱 Raqamni ulash" tugmasi orqali o\'z raqamingizni yuboring.');
+    }
+    if (!phone) return tgSend(chat, 'Faqat O\'zbekiston (+998) raqamlari qabul qilinadi.');
+    db.tg[phone] = chat; save();
+    return tgSend(chat, '✅ Raqamingiz ulandi: ' + phone + '\nEndi ilovaga qaytib, "Kod olish" tugmasini bosing. Kod shu yerga keladi.', { reply_markup: { remove_keyboard: true } });
+  }
+  return tgSend(chat, 'Salom! Bu X taksi ilovasining tasdiqlash boti.\nKod olish uchun raqamingizni ulang: pastdagi tugmani bosing.', {
+    reply_markup: { keyboard: [[{ text: '📱 Raqamni ulash', request_contact: true }]], resize_keyboard: true, one_time_keyboard: true },
+  });
+}
+async function tgPoll() {
+  let offset = 0;
+  try { const me = await tgApi('getMe'); if (me && me.username) tgBotName = me.username; } catch (e) { console.error('[Telegram xato]', e.message); }
+  try { await tgApi('deleteWebhook'); } catch (e) { /* webhook bo'lmasa ham mayli */ }
+  console.log('[Telegram] bot yoqildi' + (tgBotName ? ': @' + tgBotName : ''));
+  for (;;) {
+    try {
+      const ups = await tgApi('getUpdates', { offset, timeout: 25, allowed_updates: ['message'] }, 40000);
+      for (const u of ups) { offset = u.update_id + 1; if (u.message) await tgHandle(u.message).catch(e => console.error('[Telegram xato]', e.message)); }
+    } catch (e) { console.error('[Telegram xato]', e.message); await new Promise(r => setTimeout(r, 5000)); }
+  }
+}
+
 // ---- Narx ----
 const DEFAULT_TARIFFS = { base: 5000, perKm: 2500, minimum: 8000 };
 if (!db.tariffs || typeof db.tariffs !== 'object') db.tariffs = { ...DEFAULT_TARIFFS };
@@ -433,14 +486,32 @@ const server = http.createServer(async (req, res) => {
     if (m === 'POST' && p === '/auth/request') {
       const phone = String(b.phone || '').trim();
       if (!PHONE_RE.test(phone)) return send(res, 400, { error: 'Telefon raqam +998XXXXXXXXX ko\'rinishida bo\'lsin' });
-      // Haqiqiy SMS yoqilgan bo'lsa: bir raqamga 60 soniyada bir martadan ko'p yuborilmaydi (pul va spamdan himoya)
+      const tgChat = TG_ENABLED ? db.tg[phone] : null;
+      const needTg = () => send(res, 200, { needTelegram: true, bot: tgBotName, link: tgBotName ? 'https://t.me/' + tgBotName + '?start=login' : '' });
+      // Telegram yoqilgan, SMS yo'q va raqam hali botga ulanmagan: avval botga ulanish kerak
+      if (TG_ENABLED && !tgChat && !SMS_ENABLED) return needTg();
+      // Haqiqiy SMS yoki Telegram: bir raqamga 60 soniyada bir martadan ko'p yuborilmaydi (spamdan himoya)
       const prev = db.codes[phone];
-      if (SMS_ENABLED && prev && prev.sent && Date.now() - prev.sent < 60000) {
+      if ((SMS_ENABLED || tgChat) && prev && prev.sent && Date.now() - prev.sent < 60000) {
         return send(res, 429, { error: 'Kodni 60 soniyadan keyin qayta so\'rang' });
       }
       const code = String(crypto.randomInt(100000, 1000000));
       db.codes[phone] = { code, exp: Date.now() + 5 * 60 * 1000, tries: 0, sent: Date.now() };
       save();
+      if (tgChat) {
+        try { await tgSend(tgChat, '🔐 X taksi tasdiqlash kodi: ' + code + '\nKod 5 daqiqa amal qiladi. Uni hech kimga bermang.'); }
+        catch (e) {
+          console.error('[Telegram xato]', e.message);
+          delete db.codes[phone];
+          if (/blocked|chat not found|deactivated/i.test(e.message)) { delete db.tg[phone]; save(); if (!SMS_ENABLED) return needTg(); }
+          else save();
+          if (!SMS_ENABLED) return send(res, 502, { error: 'Kod Telegramga yuborilmadi, birozdan keyin urinib ko\'ring' });
+          db.codes[phone] = { code, exp: Date.now() + 5 * 60 * 1000, tries: 0, sent: Date.now() }; save();   // SMS ga o'tamiz
+          try { await sendSms(phone, SMS_TEXT.replace('{code}', code)); } catch (e2) { delete db.codes[phone]; save(); return send(res, 502, { error: 'Kod yuborilmadi, birozdan keyin urinib ko\'ring' }); }
+          return send(res, 200, { ok: true });
+        }
+        return send(res, 200, { ok: true, via: 'telegram' });   // kod hech qachon javobda qaytmaydi
+      }
       if (SMS_ENABLED) {
         try { await sendSms(phone, SMS_TEXT.replace('{code}', code)); }
         catch (e) {
@@ -1380,4 +1451,5 @@ const server = http.createServer(async (req, res) => {
   if (!ok) setInterval(async () => { if (!sbReady && await loadRemote()) for (const u of Object.values(db.users)) if (u.role === 'driver') giveWelcome(u); }, 15000).unref();
   for (const u of Object.values(db.users)) if (u.role === 'driver') giveWelcome(u);   // idempotent
   server.listen(PORT, () => console.log(`Taksi serveri: http://0.0.0.0:${PORT}`));
+  if (TG_ENABLED) tgPoll();
 })();

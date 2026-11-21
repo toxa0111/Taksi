@@ -186,6 +186,8 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
     var ref by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
     var devCode by remember { mutableStateOf("") }
+    var tgLink by remember { mutableStateOf("") }
+    val ctx = LocalContext.current
     var sent by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -232,11 +234,23 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
                             try {
                                 Api.base = base.trim().trimEnd('/')
                                 val r = io { Api.call("POST", "/auth/request", JSONObject().put("phone", phone.trim())) }
-                                sent = true
-                                // Test rejimida server kodni o'zi qaytaradi. Haqiqiy SMS ulanganda bu o'chadi.
-                                devCode = if (r.has("devCode")) r.optString("devCode") else ""
+                                if (r.optBoolean("needTelegram")) {
+                                    // Raqam hali Telegram botga ulanmagan: avval botda Start bosib raqamni ulash kerak
+                                    tgLink = r.optString("link")
+                                    msg = "Kod Telegram orqali keladi. Avval botni oching, Start bosing va \"Raqamni ulash\" tugmasini bosing. Keyin shu yerga qaytib, \"Kod olish\" ni bosing."
+                                } else {
+                                    tgLink = ""
+                                    sent = true
+                                    // Test rejimida server kodni o'zi qaytaradi. Telegram/SMS ulanganda bu o'chadi.
+                                    devCode = if (r.has("devCode")) r.optString("devCode") else ""
+                                }
                             } catch (e: Exception) { msg = e.message ?: "Xato" }
                             busy = false
+                        }
+                    }
+                    if (tgLink.isNotEmpty()) {
+                        GhostButton("✈ Telegram botni ochish") {
+                            try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(tgLink)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { msg = "Telegram topilmadi. Uni o'rnating." }
                         }
                     }
                 } else {
@@ -248,7 +262,7 @@ fun LoginScreen(prefs: SharedPreferences, onDone: (String) -> Unit) {
                             Text("Test kodi: $devCode", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     }
-                    Field(code, { code = it }, "SMS kod", keyboard = KeyboardType.Number)
+                    Field(code, { code = it }, "Tasdiqlash kodi", keyboard = KeyboardType.Number)
                     BigButton("Kirish", enabled = !busy) {
                         scope.launch {
                             busy = true
