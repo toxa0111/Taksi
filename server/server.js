@@ -1445,10 +1445,31 @@ const server = http.createServer(async (req, res) => {
     send(res, 500, { error: 'Server xatosi' });
   }
 });
+// ---- Bir martalik tozalash (egasi so'radi): barcha eski akkauntlar o'chadi, hamma qaytadan ro'yxatdan o'tadi ----
+// Sozlamalar (tariflar, bonus, komissiya, to'lov rekvizitlari, promokodlar, yangiliklar) saqlanadi.
+// Avval to'liq nusxa alohida kalit ostida saqlanadi; nusxa saqlanmasa, hech narsa o'chirilmaydi.
+async function resetAccountsOnce(id) {
+  db.migrations = db.migrations || {};
+  if (db.migrations[id]) return;
+  const n = Object.keys(db.users).length;
+  if (!n) { db.migrations[id] = Date.now(); save(); return; }
+  try {
+    const snap = JSON.parse(JSON.stringify(db));
+    if (SB) await sbPut('db_backup_' + id, snap);
+    try { fs.writeFileSync(DB_FILE + '.backup_' + id, JSON.stringify(snap)); } catch (e) { }
+  } catch (e) { console.error('[tozalash] nusxa saqlanmadi, o\'chirilmadi:', e.message); return; }
+  db.users = {}; db.sessions = {}; db.codes = {};
+  db.orders = []; db.tickets = []; db.withdrawals = []; db.topups = [];
+  db.migrations[id] = Date.now();
+  save(); sbDirty = true;
+  console.log('[tozalash] ' + n + ' ta eski akkaunt o\'chirildi (nusxa: db_backup_' + id + ')');
+}
+
 (async () => {
   let ok = await loadRemote();
   for (let i = 0; !ok && i < 4; i++) { await new Promise(r => setTimeout(r, 3000)); ok = await loadRemote(); }
   if (!ok) setInterval(async () => { if (!sbReady && await loadRemote()) for (const u of Object.values(db.users)) if (u.role === 'driver') giveWelcome(u); }, 15000).unref();
+  if (ok) await resetAccountsOnce('reset-2026-11-22');
   for (const u of Object.values(db.users)) if (u.role === 'driver') giveWelcome(u);   // idempotent
   server.listen(PORT, () => console.log(`Taksi serveri: http://0.0.0.0:${PORT}`));
   if (TG_ENABLED) tgPoll();
