@@ -216,6 +216,18 @@ async function login(phone, name, role) {
     const ic = await call('POST', '/orders', { ...trip, kind: 'intercity', city: 'samarqand', toLat: 39.654, toLng: 66.975, seats: 2, when: 'Ertaga 08:00' }, P2);
     ok(ic.s === 200 && ic.j.order.kind === 'intercity' && ic.j.order.price === 210000 && ic.j.order.toCity === 'Samarqand', 'shaharlararo buyurtma yaratildi');
     await call('POST', `/orders/${ic.j.order.id}/cancel`, null, P2);
+    // istalgan joydan istalgan joyga (Toshkentdan chiqish shart emas)
+    const PQ = await login('+998905550009', 'Sardor', 'passenger');
+    const q1 = await call('GET', '/intercity/quote?fromLat=39.654&fromLng=66.975&toLat=39.768&toLng=64.421', null, PQ);
+    ok(q1.s === 200 && q1.j.km > 200 && q1.j.price >= 50000, 'Samarqand-Buxoro narxi hisoblandi: ' + JSON.stringify(q1.j));
+    const icA = await call('POST', '/orders', { from: 'Andijon', to: 'Namangan', fromLat: 40.782, fromLng: 72.344, toLat: 41.001, toLng: 71.672, kind: 'intercity', city: 'namangan', seats: 1 }, PQ);
+    ok(icA.s === 200 && icA.j.order.kind === 'intercity' && icA.j.order.toCity === 'Namangan', 'Andijondan Namanganga shaharlararo buyurtma yaratildi');
+    await call('POST', `/orders/${icA.j.order.id}/cancel`, null, PQ);
+    const icB = await call('POST', '/orders', { from: 'Qarshi', to: 'Termiz tumani', fromLat: 38.861, fromLng: 65.789, toLat: 37.5, toLng: 67.0, kind: 'intercity' }, PQ);
+    ok(icB.s === 200 && icB.j.order.toCity === 'Termiz tumani', 'ro\'yxatda yo\'q manzilga ham buyurtma mumkin');
+    await call('POST', `/orders/${icB.j.order.id}/cancel`, null, PQ);
+    ok((await call('POST', '/orders', { from: 'A', to: 'B', fromLat: 40.78, fromLng: 72.34, toLat: 40.79, toLng: 72.35, kind: 'intercity' }, PQ)).s === 400, 'juda yaqin manzil shaharlararo bo\'lmaydi');
+    ok((await call('POST', '/orders', { from: 'A', to: 'B', fromLat: 55.75, fromLng: 37.6, toLat: 59.9, toLng: 30.3, kind: 'intercity' }, PQ)).s === 400, 'O\'zbekistondan tashqari manzil rad etildi');
 
     // yaqin haydovchi: uzoq haydovchi yangi buyurtmani darhol ko'rmaydi
     const DF = await login('+998905550003', 'Uzoq', 'driver');

@@ -157,21 +157,64 @@ function quote(a, b, c, d, kmHint) {
 }
 
 
-// ---- Shaharlararo safarlar (Toshkentdan) ----
-const INTERCITY = {
-  samarqand: { name: 'Samarqand', lat: 39.654, lng: 66.975, km: 300 },
-  jizzax: { name: 'Jizzax', lat: 40.115, lng: 67.842, km: 190 },
-  guliston: { name: 'Guliston', lat: 40.489, lng: 68.784, km: 110 },
-  buxoro: { name: 'Buxoro', lat: 39.768, lng: 64.421, km: 570 },
-  navoiy: { name: 'Navoiy', lat: 40.103, lng: 65.374, km: 430 },
-  qarshi: { name: 'Qarshi', lat: 38.861, lng: 65.789, km: 480 },
-  andijon: { name: 'Andijon', lat: 40.782, lng: 72.344, km: 320 },
-  namangan: { name: 'Namangan', lat: 41.001, lng: 71.672, km: 290 },
-  fargona: { name: "Farg'ona", lat: 40.384, lng: 71.789, km: 320 },
-  qoqon: { name: "Qo'qon", lat: 40.529, lng: 70.943, km: 230 },
-  termiz: { name: 'Termiz', lat: 37.224, lng: 67.278, km: 700 },
-  urganch: { name: 'Urganch', lat: 41.55, lng: 60.633, km: 1000 },
-  nukus: { name: 'Nukus', lat: 42.46, lng: 59.603, km: 1150 },
+// ---- Shaharlararo safarlar (O'zbekiston bo'ylab: istalgan joydan istalgan joyga) ----
+// [kalit, nom, viloyat, lat, lng, Toshkentdan aniq yo'l km (bo'lsa)]
+const PLACES = [
+  ['toshkent', 'Toshkent', 'Toshkent', 41.311, 69.279],
+  ['chirchiq', 'Chirchiq', 'Toshkent viloyati', 41.469, 69.582], ['olmaliq', 'Olmaliq', 'Toshkent viloyati', 40.85, 69.598],
+  ['angren', 'Angren', 'Toshkent viloyati', 41.016, 70.143], ['bekobod', 'Bekobod', 'Toshkent viloyati', 40.22, 69.27],
+  ['nurafshon', 'Nurafshon', 'Toshkent viloyati', 41.04, 69.36], ['yangiyol', "Yangiyo'l", 'Toshkent viloyati', 41.112, 69.047],
+  ['ohangaron', 'Ohangaron', 'Toshkent viloyati', 40.906, 69.638], ['gazalkent', 'Gazalkent', 'Toshkent viloyati', 41.55, 69.77],
+  ['parkent', 'Parkent', 'Toshkent viloyati', 41.29, 69.68], ['piskent', 'Piskent', 'Toshkent viloyati', 40.9, 69.35],
+  ['samarqand', 'Samarqand', 'Samarqand viloyati', 39.654, 66.975, 300], ['kattaqorgon', "Kattaqo'rg'on", 'Samarqand viloyati', 39.899, 66.264],
+  ['urgut', 'Urgut', 'Samarqand viloyati', 39.4, 67.26], ['ishtixon', 'Ishtixon', 'Samarqand viloyati', 39.969, 66.488],
+  ['bulungur', "Bulung'ur", 'Samarqand viloyati', 39.77, 67.27], ['jomboy', 'Jomboy', 'Samarqand viloyati', 39.7, 67.09],
+  ['jizzax', 'Jizzax', 'Jizzax viloyati', 40.115, 67.842, 190], ['zomin', 'Zomin', 'Jizzax viloyati', 39.96, 68.4],
+  ['gallaorol', "G'allaorol", 'Jizzax viloyati', 40.03, 67.6], ['dostlik', "Do'stlik", 'Jizzax viloyati', 40.52, 68.03],
+  ['guliston', 'Guliston', 'Sirdaryo viloyati', 40.489, 68.784, 110], ['yangiyer', 'Yangiyer', 'Sirdaryo viloyati', 40.27, 68.82],
+  ['shirin', 'Shirin', 'Sirdaryo viloyati', 40.22, 69.13], ['sirdaryo', 'Sirdaryo', 'Sirdaryo viloyati', 40.84, 68.66],
+  ['buxoro', 'Buxoro', 'Buxoro viloyati', 39.768, 64.421, 570], ['gijduvon', "G'ijduvon", 'Buxoro viloyati', 40.1, 64.68],
+  ['kogon', 'Kogon', 'Buxoro viloyati', 39.72, 64.55], ['qorakol', "Qorako'l", 'Buxoro viloyati', 39.5, 63.85],
+  ['vobkent', 'Vobkent', 'Buxoro viloyati', 40.03, 64.52],
+  ['navoiy', 'Navoiy', 'Navoiy viloyati', 40.103, 65.374, 430], ['zarafshon', 'Zarafshon', 'Navoiy viloyati', 41.57, 64.2],
+  ['uchquduq', 'Uchquduq', 'Navoiy viloyati', 42.16, 63.56], ['nurota', 'Nurota', 'Navoiy viloyati', 40.56, 65.69],
+  ['qarshi', 'Qarshi', 'Qashqadaryo viloyati', 38.861, 65.789, 480], ['shahrisabz', 'Shahrisabz', 'Qashqadaryo viloyati', 39.058, 66.83],
+  ['kitob', 'Kitob', 'Qashqadaryo viloyati', 39.12, 66.88], ['guzor', "G'uzor", 'Qashqadaryo viloyati', 38.62, 66.25],
+  ['muborak', 'Muborak', 'Qashqadaryo viloyati', 39.25, 65.15], ['koson', 'Koson', 'Qashqadaryo viloyati', 39.04, 65.58],
+  ['termiz', 'Termiz', 'Surxondaryo viloyati', 37.224, 67.278, 700], ['denov', 'Denov', 'Surxondaryo viloyati', 38.27, 67.9],
+  ['sherobod', 'Sherobod', 'Surxondaryo viloyati', 37.67, 67.01], ['boysun', 'Boysun', 'Surxondaryo viloyati', 38.21, 67.2],
+  ['sariosiyo', 'Sariosiyo', 'Surxondaryo viloyati', 38.41, 67.93], ['shurchi', 'Shurchi', 'Surxondaryo viloyati', 37.99, 67.79],
+  ['urganch', 'Urganch', 'Xorazm viloyati', 41.55, 60.633, 1000], ['xiva', 'Xiva', 'Xorazm viloyati', 41.38, 60.36],
+  ['xonqa', 'Xonqa', 'Xorazm viloyati', 41.47, 60.77], ['shovot', 'Shovot', 'Xorazm viloyati', 41.65, 60.3],
+  ['hazorasp', 'Hazorasp', 'Xorazm viloyati', 41.32, 61.07],
+  ['nukus', 'Nukus', "Qoraqalpog'iston", 42.46, 59.603, 1150], ['xojayli', "Xo'jayli", "Qoraqalpog'iston", 42.4, 59.45],
+  ['qongirot', "Qo'ng'irot", "Qoraqalpog'iston", 43.07, 58.9], ['moynoq', "Mo'ynoq", "Qoraqalpog'iston", 43.77, 59.02],
+  ['beruniy', 'Beruniy', "Qoraqalpog'iston", 41.69, 60.75], ['tortkol', "To'rtko'l", "Qoraqalpog'iston", 41.55, 61.0],
+  ['chimboy', 'Chimboy', "Qoraqalpog'iston", 42.94, 59.77],
+  ['andijon', 'Andijon', 'Andijon viloyati', 40.782, 72.344, 320], ['asaka', 'Asaka', 'Andijon viloyati', 40.64, 72.24],
+  ['shahrixon', 'Shahrixon', 'Andijon viloyati', 40.71, 72.06], ['xonobod', 'Xonobod', 'Andijon viloyati', 40.8, 73.0],
+  ['marhamat', 'Marhamat', 'Andijon viloyati', 40.49, 72.32], ['xojaobod', "Xo'jaobod", 'Andijon viloyati', 40.67, 72.56],
+  ['namangan', 'Namangan', 'Namangan viloyati', 41.001, 71.672, 290], ['chust', 'Chust', 'Namangan viloyati', 41.0, 71.24],
+  ['pop', 'Pop', 'Namangan viloyati', 40.87, 71.11], ['uychi', 'Uychi', 'Namangan viloyati', 41.08, 71.92],
+  ['chortoq', 'Chortoq', 'Namangan viloyati', 41.07, 71.82], ['kosonsoy', 'Kosonsoy', 'Namangan viloyati', 41.25, 71.55],
+  ['fargona', "Farg'ona", "Farg'ona viloyati", 40.384, 71.789, 320], ['qoqon', "Qo'qon", "Farg'ona viloyati", 40.529, 70.943, 230],
+  ['margilon', "Marg'ilon", "Farg'ona viloyati", 40.47, 71.72], ['quvasoy', 'Quvasoy', "Farg'ona viloyati", 40.3, 71.98],
+  ['rishton', 'Rishton', "Farg'ona viloyati", 40.36, 71.28], ['beshariq', 'Beshariq', "Farg'ona viloyati", 40.435, 70.61],
+  ['oltiariq', 'Oltiariq', "Farg'ona viloyati", 40.39, 71.47],
+];
+const INTERCITY = {};
+for (const [key, name, region, lat, lng, km] of PLACES) INTERCITY[key] = { name, region, lat, lng, km: km || Math.round(distKm(41.311, 69.279, lat, lng) * 1.15 / 5) * 5 };
+const IC_BOX = { lat: [37, 45.7], lng: [55.9, 73.2] };   // O'zbekiston hududi
+const inUz = (la, ln) => la >= IC_BOX.lat[0] && la <= IC_BOX.lat[1] && ln >= IC_BOX.lng[0] && ln <= IC_BOX.lng[1];
+// Yo'l masofasi: to'g'ri chiziq x 1.15; Toshkent bilan bog'liq asosiy shaharlar uchun aniq km
+const icKm = (a, b2, c, d) => {
+  const near = (la, ln, p) => distKm(la, ln, p.lat, p.lng) <= 40;
+  const T = { lat: 41.311, lng: 69.279 };
+  for (const city of Object.values(INTERCITY)) {
+    if (!PLACES.find(x => x[1] === city.name)[5]) continue;
+    if ((near(a, b2, T) && near(c, d, city)) || (near(c, d, T) && near(a, b2, city))) return city.km;
+  }
+  return Math.max(5, Math.round(distKm(a, b2, c, d) * 1.15 / 5) * 5);
 };
 const intercityPrice = km => {
   const t = db.intercity || { perKm: 700, minimum: 50000 };
@@ -983,7 +1026,14 @@ const server = http.createServer(async (req, res) => {
 
     // ---- Shaharlararo shaharlar ro'yxati ----
     if (m === 'GET' && p === '/intercity/cities') {
-      return send(res, 200, { cities: Object.entries(INTERCITY).map(([key, c]) => ({ key, name: c.name, km: c.km, lat: c.lat, lng: c.lng, price: intercityPrice(c.km) })) });
+      return send(res, 200, { cities: Object.entries(INTERCITY).map(([key, c]) => ({ key, name: c.name, region: c.region, km: c.km, lat: c.lat, lng: c.lng, price: intercityPrice(c.km) })) });
+    }
+    // Istalgan ikki nuqta orasidagi shaharlararo narx
+    if (m === 'GET' && p === '/intercity/quote') {
+      const [a, b2, c, d] = ['fromLat', 'fromLng', 'toLat', 'toLng'].map(k => { const v = url.searchParams.get(k); return v === null || v === '' ? NaN : Number(v); });
+      if ([a, b2, c, d].some(isNaN) || !inUz(a, b2) || !inUz(c, d)) return send(res, 400, { error: 'Manzil noto\'g\'ri' });
+      const km = icKm(a, b2, c, d);
+      return send(res, 200, { km, price: intercityPrice(km) });
     }
 
     // ---- Haydovchi hujjatlari: surat, foto nazorat, guvohnoma, tex pasport, mashina raqami ----
@@ -1073,11 +1123,14 @@ const server = http.createServer(async (req, res) => {
       let q = quote(a, b2, c, d, num(b.km));
       let extra = {};
       if (b.kind === 'intercity') {
-        const city = INTERCITY[String(b.city || '')];
-        if (!city) return send(res, 400, { error: 'Shahar noto\'g\'ri' });
-        if (distKm(a, b2, 41.311, 69.279) > 40) return send(res, 400, { error: 'Shaharlararo safar hozircha Toshkentdan' });
-        q = { km: city.km, price: intercityPrice(city.km) };
-        extra = { kind: 'intercity', toCity: city.name, seats: Math.min(4, Math.max(1, Math.round(num(b.seats)) || 1)), when: String(b.when || '').trim().slice(0, 40) };
+        const city = b.city ? INTERCITY[String(b.city)] : null;
+        if (b.city && !city) return send(res, 400, { error: 'Shahar noto\'g\'ri' });
+        const tLat = city ? city.lat : c, tLng = city ? city.lng : d;
+        if (isNaN(tLat) || isNaN(tLng) || !inUz(a, b2) || !inUz(tLat, tLng)) return send(res, 400, { error: 'Manzil O\'zbekiston hududida bo\'lishi kerak' });
+        if (distKm(a, b2, tLat, tLng) < 15) return send(res, 400, { error: 'Shaharlararo safar uchun manzillar juda yaqin. Oddiy buyurtmadan foydalaning' });
+        const km = icKm(a, b2, tLat, tLng);
+        q = { km, price: intercityPrice(km) };
+        extra = { kind: 'intercity', toCity: city ? city.name : String(b.to).slice(0, 60), seats: Math.min(4, Math.max(1, Math.round(num(b.seats)) || 1)), when: String(b.when || '').trim().slice(0, 40) };
       }
       let promoExtra = {};
       if (b.promo) {

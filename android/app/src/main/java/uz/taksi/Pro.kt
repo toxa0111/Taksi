@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -351,48 +353,112 @@ fun IntercityLine(o: JSONObject) {
 
 // ───────────────────────── Shaharlararo buyurtma (yo'lovchi) ─────────────────────────
 
+/** Manzil tanlash oynasi: viloyat markazlari va tumanlar, qidiruv bilan. */
+@Composable
+private fun PlacePicker(places: List<JSONObject>, withMyLocation: Boolean, title: String, onPick: (JSONObject?) -> Unit, onClose: () -> Unit) {
+    var q by remember { mutableStateOf("") }
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onClose,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        androidx.compose.material3.Surface(Modifier.fillMaxSize(), color = PageBg, contentColor = Fg) {
+            Column(Modifier.fillMaxSize().statusBarsPadding().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(44.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable(onClick = onClose), contentAlignment = Alignment.Center) { Text("←", fontSize = 26.sp) }
+                    Text(title, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 6.dp))
+                }
+                Field(q, { q = it }, "Qidirish: shahar yoki tuman")
+                Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (withMyLocation && q.isBlank()) {
+                        Row(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Chip)
+                                .clickable { onPick(null) }.padding(horizontal = 14.dp, vertical = 14.dp),
+                        ) { Text("📍 Mening joylashuvim", fontWeight = FontWeight.Bold) }
+                    }
+                    places.filter {
+                        q.isBlank() || it.optString("name").contains(q.trim(), ignoreCase = true) || it.optString("region").contains(q.trim(), ignoreCase = true)
+                    }.forEach { c ->
+                        Row(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Chip)
+                                .clickable { onPick(c) }.padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(c.optString("name"), fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                            Text(c.optString("region"), fontSize = 12.sp, color = Muted)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun IntercityOrder(pickup: Pair<Double, Double>?, pickupName: String, pay: String, onMsg: (String) -> Unit) {
     val scope = rememberCoroutineScope()
-    var cities by remember { mutableStateOf(listOf<JSONObject>()) }
-    var sel by remember { mutableStateOf("") }
+    var places by remember { mutableStateOf(listOf<JSONObject>()) }
+    var fromSel by remember { mutableStateOf<JSONObject?>(null) }   // null = mening joylashuvim
+    var toSel by remember { mutableStateOf<JSONObject?>(null) }
+    var pickFrom by remember { mutableStateOf(false) }
+    var pickTo by remember { mutableStateOf(false) }
     var seats by remember { mutableStateOf("1") }
     var whenTxt by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    var quote by remember { mutableStateOf<JSONObject?>(null) }
     LaunchedEffect(Unit) {
-        try { cities = io { Api.call("GET", "/intercity/cities").getJSONArray("cities").items() } } catch (e: Exception) { onMsg(e.message ?: "Xato") }
+        try { places = io { Api.call("GET", "/intercity/cities").getJSONArray("cities").items() } } catch (e: Exception) { onMsg(e.message ?: "Xato") }
     }
-    Text("Qaysi shaharga?", fontSize = 13.sp, color = Muted)
-    cities.forEach { c ->
-        val on = c.optString("key") == sel
-        Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (on) Yellow else Chip)
-                .clickable { sel = c.optString("key") }.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(c.optString("name"), fontWeight = FontWeight.SemiBold, color = if (on) OnBrand else Fg, modifier = Modifier.weight(1f))
-            Text("${c.optInt("km")} km  ·  " + som(c.optLong("price")), fontSize = 13.sp, color = if (on) Ink else Muted)
+    val fromLat = fromSel?.optDouble("lat") ?: pickup?.first
+    val fromLng = fromSel?.optDouble("lng") ?: pickup?.second
+    val fromName = fromSel?.optString("name") ?: pickupName.ifBlank { "Xaritadagi nuqta" }
+    LaunchedEffect(fromLat, fromLng, toSel) {
+        quote = null
+        val t = toSel
+        if (fromLat != null && fromLng != null && t != null) {
+            try { quote = io { Api.call("GET", "/intercity/quote?fromLat=$fromLat&fromLng=$fromLng&toLat=${t.optDouble("lat")}&toLng=${t.optDouble("lng")}") } }
+            catch (e: Exception) { onMsg(e.message ?: "Xato") }
         }
     }
+    if (pickFrom) PlacePicker(places, true, "Qayerdan?", { fromSel = it; pickFrom = false }) { pickFrom = false }
+    if (pickTo) PlacePicker(places, false, "Qayerga?", { toSel = it; pickTo = false }) { pickTo = false }
+
+    Text("Jo'nash joyi (xohlagan shahar yoki tuman)", fontSize = 13.sp, color = Muted)
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Chip).clickable { pickFrom = true }.padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(if (fromSel == null) "📍 Mening joylashuvim" else fromName, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        Text("›", fontSize = 20.sp, color = Muted)
+    }
+    Text("Borish joyi (xohlagan shahar yoki tuman)", fontSize = 13.sp, color = Muted)
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (toSel != null) Yellow else Chip).clickable { pickTo = true }.padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(toSel?.optString("name") ?: "Shahar yoki tumanni tanlang", fontWeight = FontWeight.SemiBold, color = if (toSel != null) OnBrand else Fg, modifier = Modifier.weight(1f))
+        Text("›", fontSize = 20.sp, color = if (toSel != null) OnBrand else Muted)
+    }
+    quote?.let { Text("${it.optInt("km")} km  ·  " + som(it.optLong("price")), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold) }
     Text("Necha kishi", fontSize = 13.sp, color = Muted)
     Segmented(listOf("1" to "1", "2" to "2", "3" to "3", "4" to "4"), seats) { seats = it }
     Field(whenTxt, { whenTxt = it.take(40) }, "Qachon? (masalan: ertaga 08:00)")
     Text("Narx butun yo'l uchun. Haydovchi buyurtmani qabul qilgach siz bilan bog'lanadi.", fontSize = 12.sp, color = Muted)
-    BigButton("Shaharlararo buyurtma", enabled = !busy && sel.isNotEmpty() && pickup != null) {
-        val p = pickup ?: return@BigButton
-        val c = cities.firstOrNull { it.optString("key") == sel } ?: return@BigButton
+    BigButton("Shaharlararo buyurtma", enabled = !busy && toSel != null && fromLat != null && fromLng != null && quote != null) {
+        val t = toSel ?: return@BigButton
+        val la = fromLat ?: return@BigButton
+        val ln = fromLng ?: return@BigButton
         scope.launch {
             busy = true
             try {
                 io {
                     Api.call("POST", "/orders", JSONObject()
-                        .put("kind", "intercity").put("city", sel).put("seats", seats.toInt()).put("when", whenTxt.trim())
-                        .put("from", pickupName.ifBlank { "Xaritadagi nuqta" }).put("to", c.optString("name"))
-                        .put("fromLat", p.first).put("fromLng", p.second)
-                        .put("toLat", c.optDouble("lat")).put("toLng", c.optDouble("lng"))
+                        .put("kind", "intercity").put("city", t.optString("key")).put("seats", seats.toInt()).put("when", whenTxt.trim())
+                        .put("from", fromName).put("to", t.optString("name"))
+                        .put("fromLat", la).put("fromLng", ln)
+                        .put("toLat", t.optDouble("lat")).put("toLng", t.optDouble("lng"))
                         .put("payMethod", pay))
                 }
-                onMsg(""); sel = ""
+                onMsg(""); toSel = null
             } catch (e: Exception) { onMsg(e.message ?: "Xato") }
             busy = false
         }
