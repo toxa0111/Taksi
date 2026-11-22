@@ -20,9 +20,11 @@ jobs:
       - name: Server testlari
         run: |
           cd server
-          PORT=3999 PAY_DEV=1 ADMIN_PHONES=+998900000000 DB_FILE=/tmp/ci-db.json node server.js &
+          PORT=3999 PAY_DEV=1 REQUIRE_VERIFIED=0 ADMIN_PHONES=+998900000000 DB_FILE=/tmp/ci-db.json node server.js &
+          PORT=3998 PAY_DEV=1 ADMIN_PHONES=+998900000000 DB_FILE=/tmp/ci-db2.json node server.js &
           sleep 2
           BASE=http://localhost:3999 ADMIN_PHONE=+998900000000 node test.js
+          BASE=http://localhost:3998 ADMIN_PHONE=+998900000000 node test-verify.js
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

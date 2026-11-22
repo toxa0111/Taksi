@@ -103,10 +103,23 @@ fun App(prefs: SharedPreferences) {
         Api.token = ""
         role = ""
     }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val switchRole: (String, (String) -> Unit) -> Unit = { want, fail ->
+        scope.launch {
+            try {
+                val r = io { Api.call("POST", "/auth/switch", JSONObject().put("role", want)) }
+                val u = r.getJSONObject("user")
+                Api.token = r.getString("token")
+                prefs.edit().putString("token", Api.token).putString("role", u.getString("role"))
+                    .putString("name", u.optString("name")).putString("phone", u.optString("phone")).apply()
+                role = u.getString("role")
+            } catch (e: Exception) { fail(e.message ?: "Xato") }
+        }
+    }
     androidx.compose.runtime.SideEffect { Api.onUnauthorized = { android.os.Handler(android.os.Looper.getMainLooper()).post { if (role.isNotEmpty()) logout() } } }
     UpdateDialog()
     when (role) {
-        "passenger", "driver" -> Shell(role, prefs, logout)
+        "passenger", "driver" -> androidx.compose.runtime.key(role) { Shell(role, prefs, logout, switchRole) }
         else -> LoginScreen(prefs) { role = it }
     }
 }

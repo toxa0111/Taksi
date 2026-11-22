@@ -152,10 +152,10 @@ async function login(phone, name, role) {
 
     // ---- Haydovchi hujjatlari ----
     const jpg = Buffer.concat([Buffer.from([0xFF, 0xD8, 0xFF, 0xE0]), Buffer.alloc(2000, 7)]).toString('base64');
-    ok((await call('POST', '/driver/docs', { kind: 'license', data: jpg }, P)).s === 403, 'yo\'lovchi hujjat yuklay olmaydi');
-    ok((await call('POST', '/driver/docs', { kind: 'xxx', data: jpg }, D)).s === 400, 'noto\'g\'ri hujjat turi rad etildi');
+    ok((await call('POST', '/driver/docs', { kind: 'license', data: jpg, src: 'camera' }, P)).s === 403, 'yo\'lovchi hujjat yuklay olmaydi');
+    ok((await call('POST', '/driver/docs', { kind: 'xxx', data: jpg, src: 'camera' }, D)).s === 400, 'noto\'g\'ri hujjat turi rad etildi');
     ok((await call('POST', '/driver/docs', { kind: 'license', data: Buffer.alloc(2000).toString('base64') }, D)).s === 400, 'JPEG bo\'lmagan fayl rad etildi');
-    const up = await call('POST', '/driver/docs', { kind: 'license', data: jpg }, D);
+    const up = await call('POST', '/driver/docs', { kind: 'license', data: jpg, src: 'camera' }, D);
     ok(up.s === 200 && up.j.docs.license.status === 'pending', 'guvohnoma yuklandi (kutilmoqda)');
     ok((await call('POST', '/driver/plate', { plate: '01 A 123 BC' }, D)).j.plate === '01 A 123 BC', 'mashina raqami saqlandi');
     const dl = await call('GET', '/admin/drivers?status=pending', null, A);
@@ -417,7 +417,7 @@ async function login(phone, name, role) {
     ok((await call('GET', '/stats', null, D8)).j.penalty === 18, 'statistikada 18 ball');
     ok((await call('POST', `/orders/${o3}/cancel`, null, P8)).s === 200, 'mijoz bekor qildi (3)');
     const pts = await call('GET', '/driver/points', null, D8);
-    ok(pts.j.penalty === 18 && pts.j.priority === pts.j.base - 18 && Array.isArray(pts.j.items) && pts.j.items.length === 6 && pts.j.log.length >= 3 && pts.j.log[0].d === -4, 'ball tarixi va ustuvorlik hisoblandi');
+    ok(pts.j.penalty === 18 && pts.j.priority === pts.j.base - 18 && Array.isArray(pts.j.items) && pts.j.items.length === 7 && pts.j.log.length >= 3 && pts.j.log[0].d === -4, 'ball tarixi va ustuvorlik hisoblandi');
   }
 
   console.log(fails ? `\n${fails} ta xato` : '\nHammasi o\'tdi');

@@ -169,6 +169,11 @@ Kod Telegram orqali keladi. Avval botni oching, Start bosing va "Raqamni ulash" 
 ✈ Telegram botni ochish§✈ Открыть Telegram-бота§✈ Open Telegram bot
 Telegram topilmadi. Uni o'rnating.§Telegram не найден. Установите его.§Telegram not found. Please install it.
 Maxfiylik va shartlar§Конфиденциальность и условия§Privacy and terms
+🚕 Taksi litsenziya kartasi (ixtiyoriy, +15 ball)§🚕 Карта лицензии такси (по желанию, +15 баллов)§🚕 Taxi licence card (optional, +15 points)
+📷 Kamera orqali suratga olish§📷 Сфотографировать камерой§📷 Take photo with camera
+Hujjatlar faqat kamera orqali olinadi (telefondan yuklab bo'lmaydi). Admin onlayn tekshirib tasdiqlaydi; tasdiqlangach buyurtma qabul qila olasiz.§Документы снимаются только камерой (загрузка из галереи недоступна). Админ проверит онлайн; после подтверждения вы сможете принимать заказы.§Documents are taken with the camera only (no gallery upload). An admin reviews them online; once approved you can accept orders.
+🧍 Yo'lovchi rejimiga o'tish§🧍 Перейти в режим пассажира§🧍 Switch to passenger mode
+🚕 Haydovchi rejimiga o'tish§🚕 Перейти в режим водителя§🚕 Switch to driver mode
 Kod olish§Получить код§Get code
 =Test kodi: §Тестовый код: §Test code:
 SMS kod§SMS-код§SMS code

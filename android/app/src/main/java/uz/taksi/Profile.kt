@@ -99,7 +99,7 @@ private fun MenuGroup(content: @Composable () -> Unit) {
 
 /** Haydovchi kabineti (Yandex Pro uslubida). */
 @Composable
-fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () -> Unit) {
+fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, onSwitch: (String, (String) -> Unit) -> Unit = { _, _ -> }, goSupport: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var profile by remember { mutableStateOf<JSONObject?>(null) }
@@ -247,6 +247,7 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
                     )
                 } catch (e: Exception) { }
             }
+            MenuRow("🧍", "Yo'lovchi rejimiga o'tish", "") { onSwitch("passenger") { } }
             MenuRow("🚪", "Chiqish") { onLogout() }
         }
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Card).padding(16.dp)) {

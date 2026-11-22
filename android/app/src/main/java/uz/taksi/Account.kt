@@ -193,7 +193,7 @@ fun MoneyTab(role: String) {
 // ───────────────────────── Shaxsiy kabinet ─────────────────────────
 
 @Composable
-fun CabinetTab(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
+fun CabinetTab(role: String, prefs: SharedPreferences, onLogout: () -> Unit, onSwitch: (String, (String) -> Unit) -> Unit = { _, _ -> }) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val orders by rememberMyOrders()
@@ -277,6 +277,9 @@ fun CabinetTab(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
                 } catch (e: Exception) { }
             }
         }
+        var swErr by remember { mutableStateOf("") }
+        GhostButton(if (isDriver) "🧍 Yo'lovchi rejimiga o'tish" else "🚕 Haydovchi rejimiga o'tish") { swErr = ""; onSwitch(if (isDriver) "passenger" else "driver") { swErr = it } }
+        if (swErr.isNotEmpty()) Text(swErr, fontSize = 12.sp, color = Bad)
         DangerButton("Hisobdan chiqish", onClick = onLogout)
     }
 }

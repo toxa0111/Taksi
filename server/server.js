@@ -65,7 +65,8 @@ const loadRemote = async () => {
 for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, async () => { try { if (SB) { sbDirty = true; sbBusy = false; await sbFlush(); } } catch (e) { } process.exit(0); });
 // Haydovchi hujjatlari rasmlari db.json ichida emas, alohida papkada saqlanadi.
 const DOCS_DIR = process.env.DOCS_DIR || path.join(path.dirname(DB_FILE), 'docs');
-const DOC_KINDS = ['face', 'selfie', 'license', 'techpass', 'carplate'];   // surat, foto nazorat, guvohnoma, tex pasport, mashina raqami
+const REQUIRED_DOCS = ['face', 'selfie', 'license', 'techpass', 'carplate'];   // majburiy: surat, foto nazorat, guvohnoma, tex pasport, mashina raqami
+const DOC_KINDS = [...REQUIRED_DOCS, 'taxilicense'];                            // + taksi litsenziya kartasi (ixtiyoriy, tasdiqlansa +15 ball)
 const docFile = (uid, kind) => path.join(DOCS_DIR, uid + '_' + kind + '.jpg');
 const docsView = u => {
   const d = u.docs || {};
@@ -73,7 +74,7 @@ const docsView = u => {
   for (const k of DOC_KINDS) if (d[k]) out[k] = { status: d[k].status, at: d[k].at, note: d[k].note || '' };
   return out;
 };
-const isVerified = u => DOC_KINDS.every(k => u.docs && u.docs[k] && u.docs[k].status === 'approved') && !!u.plate;
+const isVerified = u => REQUIRED_DOCS.every(k => u.docs && u.docs[k] && u.docs[k].status === 'approved') && !!u.plate;
 
 // ---- Haydovchi to'lov usuli: naqd va naqdsiz / faqat naqd / faqat naqdsiz ----
 const PAYMODE_MAX = 3;
@@ -101,7 +102,8 @@ function pointsOf(u) {
   const items = [
     { k: 'orders', pts: Math.floor(Math.min(trips, 200) / 4), max: 50, got: true, sub: 'Jami: ' + Math.floor(Math.min(trips, 200) / 4), hint: 'Har 4 ta yakunlangan safar uchun +1 ball (200 safargacha, eng ko\'pi +50). Hozir: ' + trips + ' ta safar.' },
     { k: 'carYear', pts: 15, max: 15, got: yr >= MIN_CAR_YEAR, hint: 'Mashina ' + MIN_CAR_YEAR + '-yil yoki yangi bo\'lsa +15. Profil → Hujjatlar bo\'limida mashina yilini yozing.' },
-    { k: 'license', pts: 15, max: 15, got: !!(u.docs && u.docs.license && u.docs.license.status === 'approved'), hint: 'Haydovchilik guvohnomasi rasmini yuklang, admin tasdiqlasa +15.' },
+    { k: 'license', pts: 15, max: 15, got: !!(u.docs && u.docs.license && u.docs.license.status === 'approved'), hint: 'Haydovchilik guvohnomasini kamera orqali suratga oling, admin tasdiqlasa +15.' },
+    { k: 'taxilic', pts: 15, max: 15, got: !!(u.docs && u.docs.taxilicense && u.docs.taxilicense.status === 'approved'), hint: 'Taksi litsenziya kartasini (ixtiyoriy) kamera orqali suratga oling, admin tasdiqlasa +15.' },
     { k: 'brand', pts: 18, max: 18, got: !!car && GOOD_BRANDS.some(b => car.includes(b)), hint: 'Zamonaviy mashina markasi uchun +18 (masalan Kia, Hyundai, Toyota, BYD, Chevrolet Tracker/Onix). Markani Hujjatlar bo\'limida yozing.' },
     { k: 'r475', pts: 15, max: 15, got: rc > 0 && rating >= 4.75, hint: 'Reyting 4.75 dan yuqori bo\'lsa +15. Hozir: ' + (rc > 0 ? rating.toFixed(2) : 'baho yo\'q') + '.' },
     { k: 'r485', pts: 15, max: 15, got: rc > 0 && rating >= 4.85, hint: 'Reyting 4.85 dan yuqori bo\'lsa yana +15. Hozir: ' + (rc > 0 ? rating.toFixed(2) : 'baho yo\'q') + '.' },
@@ -570,13 +572,16 @@ const server = http.createServer(async (req, res) => {
       delete db.codes[phone];
       const adminLogin = b.admin === true;
       if (adminLogin && !ADMIN_PHONES.includes(phone)) return send(res, 403, { error: 'Bu raqamga admin huquqi berilmagan' });
-      let user = Object.values(db.users).find(u => u.phone === phone);
-      if (user && user.blocked) return send(res, 403, { error: 'Hisobingiz bloklangan' });
-      if (user && user.role === 'admin' && !adminLogin) return send(res, 403, { error: 'Bu hisob faqat admin ilovasi uchun' });
+      // Bir telefon raqamida ikkita akkaunt bo'lishi mumkin: yo'lovchi va haydovchi (har biri alohida hisob, tarix va reyting bilan)
+      const sameP = Object.values(db.users).filter(u => u.phone === phone);
+      if (sameP.some(u => u.blocked)) return send(res, 403, { error: 'Hisobingiz bloklangan' });
+      if (!adminLogin && sameP.some(u => u.role === 'admin')) return send(res, 403, { error: 'Bu hisob faqat admin ilovasi uchun' });
+      const wantRole = b.role === 'driver' ? 'driver' : 'passenger';
+      let user = adminLogin ? (sameP.find(u => u.role === 'admin') || sameP[0]) : sameP.find(u => u.role === wantRole);
       if (!user) {
-        const name = String(b.name || '').trim().slice(0, 40);
+        const name = String(b.name || '').trim().slice(0, 40) || (sameP[0] && sameP[0].name) || '';
         if (!name) return send(res, 400, { error: 'Ismingizni kiriting' });
-        const role = adminLogin ? 'admin' : (b.role === 'driver' ? 'driver' : 'passenger');
+        const role = adminLogin ? 'admin' : wantRole;
         user = { id: crypto.randomUUID(), phone, name, role };
         const refIn = String(b.ref || '').trim().toUpperCase();
         if (refIn && role === 'driver') {
@@ -1146,6 +1151,27 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { km, price: intercityPrice(km) });
     }
 
+    // Bir raqamdagi yo'lovchi va haydovchi akkauntlari orasida o'tish (qayta kod so'ramasdan)
+    if (m === 'POST' && p === '/auth/switch') {
+      if (user.role !== 'passenger' && user.role !== 'driver') return send(res, 403, { error: 'Bu hisob uchun mumkin emas' });
+      const want = b.role === 'driver' ? 'driver' : 'passenger';
+      if (want === user.role) return send(res, 400, { error: 'Siz allaqachon shu rejimdasiz' });
+      if (user.role === 'driver' && db.orders.some(o => o.driverId === user.id && isActive(o))) return send(res, 400, { error: 'Faol safar tugamaguncha rejimni almashtirib bo\'lmaydi' });
+      if (user.role === 'passenger' && db.orders.some(o => o.passengerId === user.id && isActive(o))) return send(res, 400, { error: 'Faol buyurtma tugamaguncha rejimni almashtirib bo\'lmaydi' });
+      let other = Object.values(db.users).find(u => u.phone === user.phone && u.role === want);
+      if (!other) {
+        other = { id: crypto.randomUUID(), phone: user.phone, name: user.name, role: want };
+        db.users[other.id] = other;
+        if (want === 'driver') giveWelcome(other);
+      }
+      if (user.role === 'driver') user.online = false;
+      const nt = crypto.randomBytes(24).toString('hex');
+      delete db.sessions[token];
+      db.sessions[nt] = other.id;
+      save();
+      return send(res, 200, { token: nt, user: { name: other.name, phone: other.phone, role: other.role } });
+    }
+
     // ---- Haydovchi hujjatlari: surat, foto nazorat, guvohnoma, tex pasport, mashina raqami ----
     if (m === 'GET' && p === '/driver/docs') {
       if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
@@ -1165,6 +1191,7 @@ const server = http.createServer(async (req, res) => {
       if (user.role !== 'driver') return send(res, 403, { error: 'Faqat haydovchi' });
       const kind = String(b.kind || '');
       if (!DOC_KINDS.includes(kind)) return send(res, 400, { error: 'Hujjat turi noto\'g\'ri' });
+      if (b.src !== 'camera') return send(res, 400, { error: 'Hujjat faqat kamera orqali olinadi. Ilovani yangilang' });
       let buf;
       try { buf = Buffer.from(String(b.data || ''), 'base64'); } catch { buf = null; }
       if (!buf || buf.length < 1000 || buf.length > 3 * 1024 * 1024) return send(res, 400, { error: 'Rasm hajmi noto\'g\'ri (3 MB gacha)' });
@@ -1199,7 +1226,7 @@ const server = http.createServer(async (req, res) => {
       if (!online && db.orders.some(o => o.driverId === user.id && ['accepted', 'arrived', 'started'].includes(o.status))) {
         return send(res, 400, { error: "Faol safar tugamaguncha ishdan chiqa olmaysiz" });
       }
-      if (online && process.env.REQUIRE_VERIFIED === '1' && !isVerified(user)) {
+      if (online && process.env.REQUIRE_VERIFIED !== '0' && !isVerified(user)) {
         return send(res, 403, { error: "Hujjatlaringiz tasdiqlanmagan. Kabinet → Hujjatlar bo'limidan yuboring" });
       }
       if (online) {
@@ -1374,6 +1401,7 @@ const server = http.createServer(async (req, res) => {
           if (o.reservedBy === user.id) { delete o.reservedBy; delete o.reservedAt; save(); }
           return send(res, 200, { ok: true });
         }
+        if (process.env.REQUIRE_VERIFIED !== '0' && !isVerified(user)) return send(res, 403, { error: "Hujjatlaringiz tasdiqlanmagan. Profil → Hujjatlar bo'limidan yuboring" });
         if (user.online !== true) return send(res, 400, { error: 'Avval ishga chiqing' });
         if (o.status !== 'searching') return send(res, 400, { error: 'Buyurtma allaqachon olingan' });
         if (!payOk(user, o)) return send(res, 400, { error: 'Siz tanlagan to\'lov usuli bu buyurtmaga mos emas' });

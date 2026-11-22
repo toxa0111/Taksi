@@ -39,7 +39,7 @@ private val DRIVER_TABS = listOf("🧭" to "Buyurtmalar", "🗓" to "Shaharlarar
  * boshqa bo'limlar uning ustidan ochiladi.
  */
 @Composable
-fun Shell(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
+fun Shell(role: String, prefs: SharedPreferences, onLogout: () -> Unit, onSwitch: (String, (String) -> Unit) -> Unit = { _, _ -> }) {
     var tab by remember { mutableStateOf(0) }
     BackHandler(enabled = tab != 0) { tab = 0 }
     Column(Modifier.fillMaxSize().appBackground()) {
@@ -52,12 +52,12 @@ fun Shell(role: String, prefs: SharedPreferences, onLogout: () -> Unit) {
                             1 -> DriverIntercityTab()
                             2 -> DriverMoney { tab = 3 }
                             3 -> DriverChats()
-                            else -> DriverProfile(prefs, onLogout) { tab = 3 }
+                            else -> DriverProfile(prefs, onLogout, onSwitch) { tab = 3 }
                         }
                     } else when (tab) {
                         1 -> MoneyTab(role)
                         2 -> SupportTab(role)
-                        else -> CabinetTab(role, prefs, onLogout)
+                        else -> CabinetTab(role, prefs, onLogout, onSwitch)
                     }
                 }
             }

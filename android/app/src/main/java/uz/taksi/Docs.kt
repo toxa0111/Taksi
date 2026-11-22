@@ -57,7 +57,11 @@ val DOC_LABELS = listOf(
     "license" to "🪪 Haydovchilik guvohnomasi",
     "techpass" to "📄 Mashina tex pasporti",
     "carplate" to "🚗 Mashina raqami (surat)",
+    "taxilicense" to "🚕 Taksi litsenziya kartasi (ixtiyoriy, +15 ball)",
 )
+
+/** Majburiy hujjatlar soni (taksi litsenziyasi ixtiyoriy). */
+const val DOCS_REQUIRED = 5
 
 /** Rasmni o'qiydi, aylantiradi (EXIF), 1280 pikselgacha kichraytiradi va JPEG (base64) qiladi. */
 fun jpegBase64(ctx: Context, uri: Uri): String? {
@@ -115,13 +119,13 @@ fun DriverDocsEntry(row: Boolean = false) {
             val j = io { Api.call("GET", "/driver/docs") }
             val docs = j.optJSONObject("docs")
             var up = 0; var ok = 0
-            for ((k, _) in DOC_LABELS) {
+            for ((k, _) in DOC_LABELS.take(DOCS_REQUIRED)) {
                 val st = docs?.optJSONObject(k)?.optString("status")
                 if (st != null && st.isNotEmpty()) up++
                 if (st == "approved") ok++
             }
             summary = if (j.optBoolean("verified")) "✅ Tasdiqlangan"
-            else "Yuklangan $up/${DOC_LABELS.size} · Tasdiqlangan $ok/${DOC_LABELS.size}"
+            else "Yuklangan $up/$DOCS_REQUIRED · Tasdiqlangan $ok/$DOCS_REQUIRED"
         } catch (e: Exception) { }
     }
     if (row) {
@@ -192,16 +196,13 @@ fun DriverDocsPanel() {
             busy = kind; msg = ""
             try {
                 val data = io { jpegBase64(ctx, uri) } ?: throw Exception("Rasmni o'qib bo'lmadi")
-                io { Api.call("POST", "/driver/docs", JSONObject().put("kind", kind).put("data", data)) }
+                io { Api.call("POST", "/driver/docs", JSONObject().put("kind", kind).put("data", data).put("src", "camera")) }
                 tick++
             } catch (e: Exception) { msg = e.message ?: "Xato" }
             busy = ""
         }
     }
 
-    val gallery = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null && pendingKind.isNotEmpty()) upload(pendingKind, uri)
-    }
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
         val u = cameraUri
         if (ok && u != null && pendingKind.isNotEmpty()) upload(pendingKind, u)
@@ -212,7 +213,7 @@ fun DriverDocsPanel() {
             Text("Hujjatlar va tasdiqlash", fontWeight = FontWeight.Bold, fontSize = 17.sp, modifier = Modifier.weight(1f))
             if (verified) Pill("✅ Tasdiqlangan", Color(0xFFE1F5E9), Color(0xFF14753F))
         }
-        Text("Rasmlarni aniq va to'liq oling. Admin tekshirib tasdiqlaydi.", fontSize = 12.sp, color = Muted)
+        Text("Hujjatlar faqat kamera orqali olinadi (telefondan yuklab bo'lmaydi). Admin onlayn tekshirib tasdiqlaydi; tasdiqlangach buyurtma qabul qila olasiz.", fontSize = 12.sp, color = Muted)
         for ((kind, label) in DOC_LABELS) {
             val d = docs?.optJSONObject(kind)
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -224,7 +225,7 @@ fun DriverDocsPanel() {
                     Text("Sabab: ${d.optString("note")}", fontSize = 12.sp, color = Bad)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    GhostButton("📷 Kamera", Modifier.weight(1f), enabled = busy.isEmpty()) {
+                    GhostButton("📷 Kamera orqali suratga olish", Modifier.fillMaxWidth(), enabled = busy.isEmpty()) {
                         try {
                             val dir = File(ctx.cacheDir, "updates").apply { mkdirs() }
                             val f = File(dir, "doc_$kind.jpg")
@@ -232,10 +233,6 @@ fun DriverDocsPanel() {
                             pendingKind = kind; cameraUri = uri
                             camera.launch(uri)
                         } catch (e: Exception) { msg = "Kamerani ochib bo'lmadi" }
-                    }
-                    GhostButton("🖼 Galereya", Modifier.weight(1f), enabled = busy.isEmpty()) {
-                        pendingKind = kind
-                        gallery.launch("image/*")
                     }
                 }
                 if (busy == kind) Text("Yuklanmoqda…", fontSize = 12.sp, color = Muted)
