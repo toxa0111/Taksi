@@ -186,6 +186,39 @@ async function tgPoll() {
   }
 }
 
+// ---- Huquqiy sahifalar matni (maxfiylik siyosati va foydalanish shartlari) ----
+const legalPage = (title, body) => '<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + title + ' — X taksi</title>' +
+  '<style>body{font:16px/1.6 system-ui,sans-serif;max-width:760px;margin:0 auto;padding:20px;color:#222}h1{font-size:24px}h2{font-size:18px;margin-top:28px}small{color:#777}</style></head><body><h1>' + title + '</h1><small>Oxirgi yangilanish: 2026-yil 22-noyabr</small>' + body + '</body></html>';
+const LEGAL = {
+  privacy: legalPage('Maxfiylik siyosati',
+    '<p>Ushbu siyosat «X» taksi ilovasi (yo\'lovchi va haydovchi ilovalari) qanday ma\'lumotlarni yig\'ishi, nima uchun ishlatishi va qanday himoya qilishini tushuntiradi. Ilovadan foydalanib, siz shu shartlarga rozi bo\'lasiz.</p>' +
+    '<h2>1. Qanday ma\'lumotlar yig\'iladi</h2><ul>' +
+    '<li><b>Telefon raqam va ism</b> — ro\'yxatdan o\'tish va kirish uchun.</li>' +
+    '<li><b>Joylashuv (GPS)</b> — yo\'lovchining olib ketish manzilini aniqlash va yaqin haydovchini topish uchun; haydovchining joylashuvi liniyada bo\'lganda buyurtma berish va yo\'lovchiga mashina joyini ko\'rsatish uchun.</li>' +
+    '<li><b>Buyurtmalar tarixi</b> — manzillar, narx, holat, baho va sharhlar.</li>' +
+    '<li><b>Haydovchi hujjatlari</b> — surat, haydovchilik guvohnomasi, texnik pasport, mashina raqami va avtomobil ma\'lumotlari: haydovchini tekshirish uchun.</li>' +
+    '<li><b>Hisob va to\'lov yozuvlari</b> — haydovchi hisobi, komissiya, to\'ldirish va yechish so\'rovlari. Karta ma\'lumotlari ilovada saqlanmaydi.</li>' +
+    '<li><b>Telegram</b> — tasdiqlash kodini yuborish uchun siz bot orqali ulagan telefon raqamingiz va Telegram chat identifikatori.</li>' +
+    '<li><b>Murojaatlar</b> — yordam xizmatiga yozgan xabarlaringiz.</li></ul>' +
+    '<h2>2. Ma\'lumotlardan nima uchun foydalanamiz</h2><p>Xizmatni ko\'rsatish (haydovchi topish, narxni hisoblash, hisob-kitob), xavfsizlik va firibgarlikning oldini olish, qo\'llab-quvvatlash va ilovani yaxshilash uchun.</p>' +
+    '<h2>3. Kimga beriladi</h2><p>Buyurtma davomida yo\'lovchi va haydovchi bir-birining ismi, telefon raqami va tegishli joylashuvini ko\'radi. Ma\'lumotlarni reklama maqsadida uchinchi shaxslarga sotmaymiz. Qonun talab qilganda vakolatli organlarga berilishi mumkin.</p>' +
+    '<h2>4. Qayerda saqlanadi</h2><p>Ma\'lumotlar bulutli serverlarda (Render va Supabase xizmatlari) saqlanadi va shifrlangan (HTTPS) ulanish orqali uzatiladi.</p>' +
+    '<h2>5. Saqlash muddati va o\'chirish</h2><p>Ma\'lumotlar akkaunt mavjud bo\'lguncha saqlanadi. Akkauntingiz va ma\'lumotlaringizni o\'chirishni ilovadagi «Yordam» bo\'limi orqali so\'rashingiz mumkin; so\'rov ko\'rib chiqilib, qonun talab qilgan yozuvlardan tashqari ma\'lumotlar o\'chiriladi.</p>' +
+    '<h2>6. Ruxsatlar</h2><p>Joylashuv, kamera/galereya (haydovchi hujjatlari uchun) va bildirishnomalar ruxsatlarini telefon sozlamalaridan istalgan vaqtda o\'chirishingiz mumkin, ammo bu holda ba\'zi funksiyalar ishlamaydi.</p>' +
+    '<h2>7. Bolalar</h2><p>Ilova 18 yoshdan kichiklar uchun mo\'ljallanmagan.</p>' +
+    '<h2>8. O\'zgarishlar va aloqa</h2><p>Siyosat yangilanganda shu sahifada e\'lon qilinadi. Savollar uchun ilovadagi «Yordam» bo\'limiga yozing.</p><p><a href="/terms">Foydalanish shartlari</a></p>'),
+  terms: legalPage('Foydalanish shartlari',
+    '<p>«X» ilovasi yo\'lovchilar va mustaqil haydovchilarni bir-biriga bog\'laydigan platformadir. Ilovadan foydalanib, siz quyidagi shartlarga rozi bo\'lasiz.</p>' +
+    '<h2>1. Xizmat mohiyati</h2><p>X yo\'lovchi buyurtmasini haydovchilarga yetkazadi. Tashish xizmatini haydovchi ko\'rsatadi; haydovchi o\'z faoliyatini amaldagi qonunchilikka muvofiq (zarur ruxsatnoma va hujjatlar bilan) olib borishi shart.</p>' +
+    '<h2>2. Akkaunt</h2><p>Akkaunt telefon raqam va tasdiqlash kodi orqali ochiladi. Ma\'lumotlaringiz to\'g\'ri bo\'lishi va tasdiqlash kodi boshqalarga berilmasligi shart. Qoidalar buzilganda akkaunt cheklanishi yoki bloklanishi mumkin.</p>' +
+    '<h2>3. Narx va to\'lov</h2><p>Safar narxi ilovadagi tarif bo\'yicha oldindan ko\'rsatiladi. To\'lov hozircha safar oxirida haydovchiga naqd amalga oshiriladi.</p>' +
+    '<h2>4. Haydovchi komissiyasi va hisobi</h2><p>Har bir tugagan safardan ilovada ko\'rsatilgan foizda xizmat komissiyasi haydovchi hisobidan yechiladi. Hisob belgilangan miqdordan kam bo\'lsa, haydovchi liniyadan chiqarilishi mumkin. Bonus va xush kelibsiz puli faqat komissiyaga sarflanadi va yechib olinmaydi.</p>' +
+    '<h2>5. Buyurtmani qabul qilish va bekor qilish</h2><p>Haydovchilar buyurtmani qabul qilish va bekor qilish bo\'yicha ilovada ko\'rsatilgan ball qoidalariga amal qiladi; qoidabuzarlik uchun ball ayirilishi mumkin.</p>' +
+    '<h2>6. Taqiqlangan harakatlar</h2><p>Soxta ma\'lumot kiritish, boshqa foydalanuvchilarni aldash yoki haqorat qilish, ilovaning ishiga aralashish va qonunga zid maqsadlarda foydalanish taqiqlanadi.</p>' +
+    '<h2>7. Javobgarlik</h2><p>Javobgarlik hajmi amaldagi qonunchilik bilan belgilanadi. Ilova uzluksiz ishlashiga kafolat berilmaydi: xizmat vaqtincha to\'xtashi mumkin.</p>' +
+    '<h2>8. O\'zgarishlar</h2><p>Shartlar yangilanishi mumkin; yangi tahrir shu sahifada e\'lon qilinadi. Savollar uchun ilovadagi «Yordam» bo\'limiga yozing.</p><p><a href="/privacy">Maxfiylik siyosati</a></p>'),
+};
+
 // ---- Narx ----
 const DEFAULT_TARIFFS = { base: 5000, perKm: 2500, minimum: 8000 };
 if (!db.tariffs || typeof db.tariffs !== 'object') db.tariffs = { ...DEFAULT_TARIFFS };
@@ -463,6 +496,12 @@ const server = http.createServer(async (req, res) => {
     const b = m === 'POST' ? await readBody(req, p === '/driver/docs' ? 4e6 : 1e5) : {};
 
     if ((m === 'GET' || m === 'HEAD') && (p === '/health' || p === '/')) return send(res, 200, { ok: true, t: Date.now() });
+    // ---- Ommaviy huquqiy sahifalar (Play Market va ilova ichida havola sifatida) ----
+    if ((m === 'GET' || m === 'HEAD') && (p === '/privacy' || p === '/terms')) {
+      const html = LEGAL[p.slice(1)];
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300' });
+      return res.end(m === 'HEAD' ? undefined : html);
+    }
     // Ilova yangilanishi: GitHub API cheklovlarini chetlab o'tish uchun server orqali (5 daqiqa keshlanadi)
     if (m === 'GET' && p === '/app/release') {
       const tag = String(url.searchParams.get('tag') || '').replace(/[^\w.-]/g, '');

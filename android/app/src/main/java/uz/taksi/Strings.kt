@@ -168,6 +168,7 @@ Ismingiz (birinchi marta kirganda)§Ваше имя (при первом вхо�
 Kod Telegram orqali keladi. Avval botni oching, Start bosing va "Raqamni ulash" tugmasini bosing. Keyin shu yerga qaytib, "Kod olish" ni bosing.§Код придёт в Telegram. Сначала откройте бота, нажмите Start и кнопку «Привязать номер». Затем вернитесь сюда и нажмите «Получить код».§The code arrives via Telegram. First open the bot, press Start and tap "Link number". Then come back here and tap "Get code".
 ✈ Telegram botni ochish§✈ Открыть Telegram-бота§✈ Open Telegram bot
 Telegram topilmadi. Uni o'rnating.§Telegram не найден. Установите его.§Telegram not found. Please install it.
+Maxfiylik va shartlar§Конфиденциальность и условия§Privacy and terms
 Kod olish§Получить код§Get code
 =Test kodi: §Тестовый код: §Test code:
 SMS kod§SMS-код§SMS code

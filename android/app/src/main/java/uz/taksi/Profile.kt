@@ -220,6 +220,9 @@ fun DriverProfile(prefs: SharedPreferences, onLogout: () -> Unit, goSupport: () 
         MenuGroup {
             MenuRow("💬", "Yordam", "") { goSupport() }
             MenuRow("⚙️", "Sozlamalar", "") { showPrefs = true }
+            MenuRow("📄", "Maxfiylik va shartlar", "") {
+                try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Api.base.trimEnd('/') + "/privacy")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { }
+            }
         }
         if (showPrefs) androidx.compose.ui.window.Dialog(
             onDismissRequest = { showPrefs = false },
